@@ -149,7 +149,8 @@ def get_latest_confirmed(store) -> Root:
     # this reversal trades monotonicity in favour of safety in the casey of asynchrony in the network
     head = get_head(store)
     is_confirmed_root_canonical = (confirmed_root == get_ancestor(store, head, store.blocks[confirmed_root].slot))
-    if confirmed_block_epoch + 1 < current_epoch or not is_confirmed_root_canonical:
+    is_not_going_to_be_filtered_out_during_current_epoch = (get_voting_source(store, head) + 2 >= current_epoch)
+    if confirmed_block_epoch + 1 < current_epoch or not is_confirmed_root_canonical or not is_not_going_to_be_filtered_out_during_current_epoch:
         confirmed_root = store.finalized_checkpoint.root
 
     # use unrealized justified root if the confirmed root is older
