@@ -125,7 +125,10 @@ def find_latest_confirmed_descendant(store, latest_confirmed_root) -> Root:
         )
         
         if (block_epoch > compute_epoch_at_slot(latest_confirmed_slot)
-            and not will_checkpoint_be_justified(store, checkpoint)):
+            and 
+                (not will_checkpoint_be_justified(store, checkpoint) or
+                store.block_states[get_head(store)].current_justified_checkpoint != checkpoint)
+            ):
             break
             
         if is_one_confirmed(store, block_root):
