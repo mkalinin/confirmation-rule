@@ -29,6 +29,10 @@ def get_checkpoint_weight(store, checkpoint, checkpoint_state) -> Gwei:
 
     return Gwei(checkpoint_weight)
 
+def get_ffg_weight_till_now_current_epoch(store: Store, total_active_balance) -> Gwei:
+    return total_active_balance * compute_slots_since_epoch_start(get_current_slot(store)) // SLOTS_PER_EPOCH 
+    
+
 
 def get_remaining_honest_ffg_weight(store, total_active_balance) -> Gwei:
     """
@@ -57,13 +61,15 @@ def will_current_epoch_checkpoint_be_justified(store, checkpoint) -> bool:
     # compute FFG support for checkpoint
     ffg_support_for_checkpoint = get_checkpoint_weight(store, checkpoint, checkpoint_state)
     
+    ffg_weight_till_now = get_ffg_weight_till_now_current_epoch(store, total_active_balance)
+    
     # compute remaining honest FFG weight
     remaining_honest_ffg_weight = get_remaining_honest_ffg_weight(store, total_active_balance)
 
     # compute min honest FFG support
     min_honest_ffg_support = ffg_support_for_checkpoint - min(
-        Gwei(total_active_balance // 100 * config.CONFIRMATION_BYZANTINE_THRESHOLD),
-        Gwei(total_active_balance // 100 * config.CONFIRMATION_SLASHING_THRESHOLD),
+        Gwei(ffg_weight_till_now // 100 * config.CONFIRMATION_BYZANTINE_THRESHOLD),
+        Gwei(ffg_weight_till_now // 100 * config.CONFIRMATION_SLASHING_THRESHOLD),
         ffg_support_for_checkpoint
     )
 
