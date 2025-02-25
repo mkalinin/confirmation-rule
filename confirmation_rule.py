@@ -29,6 +29,7 @@ def get_checkpoint_weight(store, checkpoint, checkpoint_state) -> Gwei:
 
     return Gwei(checkpoint_weight)
 
+
 def get_ffg_weight_till_now_current_epoch(store: Store, total_active_balance) -> Gwei:
     return total_active_balance * compute_slots_since_epoch_start(get_current_slot(store)) // SLOTS_PER_EPOCH 
     
