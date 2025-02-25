@@ -170,8 +170,7 @@ def get_latest_confirmed(store) -> Root:
 
     # attempt to further advance the latest confirmed block
     confirmed_block_epoch = compute_epoch_at_slot(store.blocks[confirmed_root].slot)
-    if (confirmed_block_epoch + 1 >= current_epoch
-        and store.justified_checkpoint.epoch + 2 >= current_epoch):
+    if confirmed_block_epoch + 1 >= current_epoch:
         return find_latest_confirmed_descendant(store, confirmed_root)
     else:
         return confirmed_root
