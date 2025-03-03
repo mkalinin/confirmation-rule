@@ -15,7 +15,7 @@ def get_checkpoint_weight(store, checkpoint, checkpoint_state) -> Gwei:
     checkpoint_weight = 0
     for validator_index, latest_message in store.latest_messages.items():
         # vote is too old
-        if latest_message.epoch < checkpoint.epoch:
+        if latest_message.epoch != checkpoint.epoch:
             continue
 
         vote_checkpoint = Checkpoint(
@@ -124,11 +124,13 @@ def find_latest_confirmed_descendant(store, latest_confirmed_root) -> Root:
             root=get_checkpoint_block(store, block_root, block_epoch),
             epoch=block_epoch
         )
-
-        if (block_epoch > compute_epoch_at_slot(latest_confirmed_slot)
-            and not will_checkpoint_be_justified(store, checkpoint)):
+                
+        if (block_epoch > compute_epoch_at_slot(latest_confirmed_slot) and not will_checkpoint_be_justified(store, checkpoint)):
             break
-
+        
+        if (block_epoch == current_epoch and store.unrealized_justifications[get_head(store)].epoch + 1 < current_epoch):
+            break           
+        
         if is_one_confirmed(store, block_root):
             confirmed_root = block_root
         else:
@@ -167,8 +169,7 @@ def get_latest_confirmed(store) -> Root:
 
     # attempt to further advance the latest confirmed block
     confirmed_block_epoch = compute_epoch_at_slot(store.blocks[confirmed_root].slot)
-    if (confirmed_block_epoch + 1 >= current_epoch
-        and store.justified_checkpoint.epoch + 2 >= current_epoch):
+    if confirmed_block_epoch + 1 >= current_epoch:
         return find_latest_confirmed_descendant(store, confirmed_root)
     else:
         return confirmed_root
