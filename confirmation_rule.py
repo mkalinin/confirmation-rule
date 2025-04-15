@@ -112,7 +112,7 @@ def find_latest_confirmed_descendant(store, latest_confirmed_root) -> Root:
     # starting with the child of the latest_confirmed_root
     # move towards the head in attempt to advance confirmed block
     # and stop when the first unconfirmed descendant is encountered
-    head = canonical_roots[-1]
+    head = get_head(store)
     confirmed_root = latest_confirmed_root
     for block_root in canonical_roots:
         block_epoch = compute_epoch_at_slot(store.blocks[block_root].slot)
