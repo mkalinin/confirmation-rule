@@ -117,20 +117,18 @@ def find_latest_confirmed_descendant(store, latest_confirmed_root) -> Root:
     for block_root in canonical_roots:
         block_epoch = compute_epoch_at_slot(store.blocks[block_root].slot)
 
-        # cross epoch boundary only if new epoch checkpoint will be justified
         confirmed_epoch = compute_epoch_at_slot(store.blocks[confirmed_root].slot)
         if block_epoch > confirmed_epoch:
             checkpoint_root = get_checkpoint_block(store, block_root, block_epoch)
             checkpoint = Checkpoint(checkpoint_root, block_epoch)
-            if not will_checkpoint_be_justified(store, checkpoint):
+
+            # To be able to confirm blocks from the current epoch ensure that:
+            # 1) current epoch checkpoint will be justified
+            # 2) previous epoch checkpoint is justified, although may not yet be realized.
+            if (not will_checkpoint_be_justified(store, checkpoint) or 
+                store.unrealized_justifications[head].epoch + 1 < current_epoch):
                 break
 
-        # confirm block from current epoch only if there is enough votes
-        # to justify previous or current epoch
-        if block_epoch == current_epoch:
-            if store.unrealized_justifications[head].epoch + 1 < current_epoch:
-                break
-        
         if is_one_confirmed(store, block_root):
             confirmed_root = block_root
         else:
