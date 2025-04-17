@@ -2,6 +2,12 @@ def is_one_confirmed(store, block_root) -> bool:
     """
     Same logic as in the Confirmation Rule PR
     """
+    # This method must use store.prev_slot_justified_checkpoint
+    # in its computations.
+    #
+    # get_weight() function must also be called with
+    # store.prev_slot_justified_checkpoint which requires
+    # get_weight() modification.
     pass
 
 
@@ -162,7 +168,8 @@ def get_latest_confirmed(store) -> Root:
     confirmed_block_slot = store.blocks[confirmed_root].slot
     unrealized_justified_block_slot = store.blocks[store.unrealized_justified_checkpoint.root].slot
     if (confirmed_block_slot < unrealized_justified_block_slot
-        and store.unrealized_justified_checkpoint.epoch == current_epoch):
+        and store.unrealized_justified_checkpoint.epoch == current_epoch
+        and store.prev_slot_justified_checkpoint.epoch + 1 >= current_epoch):
             confirmed_root = store.unrealized_justified_checkpoint.root
 
     # attempt to further advance the latest confirmed block
@@ -179,3 +186,4 @@ def on_tick_per_slot_after_attestations_applied(store: Store):
     # 2) attestations from the previous slot are apllied to the store
     # 3) on_tick_per_slot_after_attestations_applied(store) is called
     store.confirmed_root = get_latest_confirmed(store)
+    store.prev_slot_justified_checkpoint = store.justified_checkpoint
