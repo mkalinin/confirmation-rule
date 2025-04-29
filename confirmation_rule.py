@@ -169,7 +169,7 @@ def get_latest_confirmed(store) -> Root:
     unrealized_justified_block_slot = store.blocks[store.unrealized_justified_checkpoint.root].slot
     if (confirmed_block_slot < unrealized_justified_block_slot
         and store.unrealized_justified_checkpoint.epoch == current_epoch
-        and store.prev_slot_justified_checkpoint.epoch + 1 >= current_epoch):
+        and store.prev_slot_justified_checkpoint.epoch + 1 == current_epoch):
             confirmed_root = store.unrealized_justified_checkpoint.root
 
     # attempt to further advance the latest confirmed block
