@@ -1,17 +1,169 @@
-def is_one_confirmed(store, block_root) -> bool:
-    """
-    Same logic as in the Confirmation Rule PR
-    """
-    # This method must use store.prev_slot_justified_checkpoint
-    # in its computations.
-    #
-    # get_weight() function must also be called with
-    # store.prev_slot_justified_checkpoint which requires
-    # get_weight() modification.
-    pass
+CONFIRMATION_BYZANTINE_THRESHOLD = 33
+CONFIRMATION_SLASHING_THRESHOLD = 33
+COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR = 5
+
+@dataclass
+class Store(object):
+    time: uint64
+    genesis_time: uint64
+    justified_checkpoint: Checkpoint
+    finalized_checkpoint: Checkpoint
+    unrealized_justified_checkpoint: Checkpoint
+    unrealized_finalized_checkpoint: Checkpoint
+    proposer_boost_root: Root
+    equivocating_indices: Set[ValidatorIndex]
+    blocks: Dict[Root, BeaconBlock] = field(default_factory=dict)
+    block_states: Dict[Root, BeaconState] = field(default_factory=dict)
+    block_timeliness: Dict[Root, boolean] = field(default_factory=dict)
+    checkpoint_states: Dict[Checkpoint, BeaconState] = field(default_factory=dict)
+    latest_messages: Dict[ValidatorIndex, LatestMessage] = field(default_factory=dict)
+    unrealized_justifications: Dict[Root, Checkpoint] = field(default_factory=dict)
+    confirmed_root: Root  # New for confirmation rule
+    prev_slot_justified_checkpoint: Checkpoint  # New for confirmation rule
 
 
-def get_checkpoint_weight(store, checkpoint, checkpoint_state) -> Gwei:
+def get_forkchoice_store(anchor_state: BeaconState, anchor_block: BeaconBlock) -> Store:
+    assert anchor_block.state_root == hash_tree_root(anchor_state)
+    anchor_root = hash_tree_root(anchor_block)
+    anchor_epoch = get_current_epoch(anchor_state)
+    justified_checkpoint = Checkpoint(epoch=anchor_epoch, root=anchor_root)
+    finalized_checkpoint = Checkpoint(epoch=anchor_epoch, root=anchor_root)
+    proposer_boost_root = Root()
+    return Store(
+        time=uint64(anchor_state.genesis_time + SECONDS_PER_SLOT * anchor_state.slot),
+        genesis_time=anchor_state.genesis_time,
+        justified_checkpoint=justified_checkpoint,
+        finalized_checkpoint=finalized_checkpoint,
+        unrealized_justified_checkpoint=justified_checkpoint,
+        unrealized_finalized_checkpoint=finalized_checkpoint,
+        proposer_boost_root=proposer_boost_root,
+        equivocating_indices=set(),
+        blocks={anchor_root: copy(anchor_block)},
+        block_states={anchor_root: copy(anchor_state)},
+        checkpoint_states={justified_checkpoint: copy(anchor_state)},
+        unrealized_justifications={anchor_root: justified_checkpoint},
+        confirmed_root=finalized_checkpoint.root,  # New for confirmation rule
+        prev_slot_justified_checkpoint=justified_checkpoint,  # New for confirmation rule
+    )
+
+
+def get_weight(store: Store, root: Root, checkpoint_state: BeaconState = None) -> Gwei:
+    """
+    The only modification is the new ``checkpoint_state`` param
+    """
+    if checkpoint_state is None:
+        state = store.checkpoint_states[store.justified_checkpoint]
+    else:
+        state = checkpoint_state
+    unslashed_and_active_indices = [
+        i for i in get_active_validator_indices(state, get_current_epoch(state))
+        if not state.validators[i].slashed
+    ]
+    attestation_score = Gwei(sum(
+        state.validators[i].effective_balance for i in unslashed_and_active_indices
+        if (i in store.latest_messages
+            and i not in store.equivocating_indices
+            and get_ancestor(store, store.latest_messages[i].root, store.blocks[root].slot) == root)
+    ))
+    if store.proposer_boost_root == Root():
+        # Return only attestation score if ``proposer_boost_root`` is not set
+        return attestation_score
+
+    # Calculate proposer score if ``proposer_boost_root`` is set
+    proposer_score = Gwei(0)
+    # Boost is applied if ``root`` is an ancestor of ``proposer_boost_root``
+    if get_ancestor(store, store.proposer_boost_root, store.blocks[root].slot) == root:
+        proposer_score = get_proposer_score(store)
+    return attestation_score + proposer_score
+
+
+def is_full_validator_set_covered(start_slot: Slot, end_slot: Slot) -> bool:
+    """
+    Returns whether the range from ``start_slot`` to ``end_slot`` (inclusive of both) includes an entire epoch
+    """
+    start_epoch = compute_epoch_at_slot(start_slot)
+    end_epoch = compute_epoch_at_slot(end_slot)
+
+    return (
+        end_epoch > start_epoch + 1
+        or (end_epoch == start_epoch + 1 and start_slot % SLOTS_PER_EPOCH == 0))
+
+
+def adjust_committee_weight_estimate_to_ensure_safety(estimate: Gwei) -> Gwei:
+    """
+    Adjusts the ``estimate`` of the weight of a committee for a sequence of slots not covering a full epoch to
+    ensure the safety of the confirmation rule with high probability.
+
+    See https://gist.github.com/saltiniroberto/9ee53d29c33878d79417abb2b4468c20 for an explanation of why this is
+    required.
+    """
+    return Gwei(estimate // 1000 * (1000 + COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR))
+
+
+def get_committee_weight_between_slots(state: BeaconState, start_slot: Slot, end_slot: Slot) -> Gwei:
+    """
+    Returns the total weight of committees between ``start_slot`` and ``end_slot`` (inclusive of both).
+    """
+    total_active_balance = get_total_active_balance(state)
+
+    start_epoch = compute_epoch_at_slot(start_slot)
+    end_epoch = compute_epoch_at_slot(end_slot)
+
+    if start_slot > end_slot:
+        return Gwei(0)
+
+    # If an entire epoch is covered by the range, return the total active balance
+    if is_full_validator_set_covered(start_slot, end_slot):
+        return total_active_balance
+
+    if start_epoch == end_epoch:
+        return total_active_balance // SLOTS_PER_EPOCH * (end_slot - start_slot + 1)
+    else:
+        # A range that spans an epoch boundary, but does not span any full epoch
+        # needs pro-rata calculation
+
+        # See https://gist.github.com/saltiniroberto/9ee53d29c33878d79417abb2b4468c20
+        # for an explanation of the formula used below.
+
+        # First, calculate the number of committees in the end epoch
+        num_slots_in_end_epoch = compute_slots_since_epoch_start(end_slot)
+        # Next, calculate the number of slots remaining in the end epoch
+        remaining_slots_in_end_epoch = SLOTS_PER_EPOCH - num_slots_in_end_epoch
+        # Then, calculate the number of slots in the start epoch
+        num_slots_in_start_epoch = SLOTS_PER_EPOCH - compute_slots_since_epoch_start(start_slot)
+
+        end_epoch_weight_estimate = total_active_balance // SLOTS_PER_EPOCH * num_slots_in_end_epoch
+        start_epoch_weight_estimate = (total_active_balance // SLOTS_PER_EPOCH // SLOTS_PER_EPOCH * 
+            num_slots_in_start_epoch * remaining_slots_in_end_epoch)
+
+        # Each committee from the end epoch only contributes a pro-rated weight
+        return adjust_committee_weight_estimate_to_ensure_safety(
+            Gwei(start_epoch_weight_estimate + end_epoch_weight_estimate)
+        )
+
+
+def is_one_confirmed(store: Store, block_root: Root) -> bool:
+    current_slot = get_current_slot(store)
+    block = store.blocks[block_root]
+    parent_block = store.blocks[block.parent_root]
+    prev_slot_justified_state = store.checkpoint_states[store.prev_slot_justified_checkpoint]
+    support = get_weight(store, block_root, prev_slot_justified_state)
+    maximum_support = get_committee_weight_between_slots(
+        prev_slot_justified_state, Slot(parent_block.slot + 1), Slot(current_slot - 1))
+    proposer_score = get_proposer_score(store)
+
+    # Returns whether the following condition is true using only integer arithmetic
+    # support / maximum_support >
+    # 0.5 * (1 + proposer_score / maximum_support) + CONFIRMATION_BYZANTINE_THRESHOLD / 100
+
+    # 2 * support > maximum_support * (1 + 2 * CONFIRMATION_BYZANTINE_THRESHOLD / 100) + proposer_score
+    return (
+        2 * support >
+        maximum_support + maximum_support // 50 * CONFIRMATION_BYZANTINE_THRESHOLD + proposer_score
+    )
+
+
+def get_checkpoint_weight(store: Store, checkpoint: checkpoint_state, checkpoint_state: BeaconState) -> Gwei:
     """
     Uses LMD-GHOST votes to estimate FFG support for a checkpoint.
     """
@@ -31,7 +183,7 @@ def get_checkpoint_weight(store, checkpoint, checkpoint_state) -> Gwei:
     return Gwei(checkpoint_weight)
 
 
-def get_ffg_weight_till_slot(slot, epoch, total_active_balance) -> Gwei:
+def get_ffg_weight_till_slot(slot: Slot, epoch: Epoch, total_active_balance: Gwei) -> Gwei:
     if slot <= compute_start_slot_at_epoch(epoch):
         return Gwei(0)
     elif slot >= compute_start_slot_at_epoch(epoch + 1):
@@ -41,7 +193,7 @@ def get_ffg_weight_till_slot(slot, epoch, total_active_balance) -> Gwei:
         return total_active_balance // SLOTS_PER_EPOCH * slots_passed
 
 
-def will_current_epoch_checkpoint_be_justified(store, checkpoint) -> bool:
+def will_current_epoch_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
     assert checkpoint.epoch == get_current_epoch_store(store)
 
     current_slot = get_current_slot(store)
@@ -72,7 +224,7 @@ def will_current_epoch_checkpoint_be_justified(store, checkpoint) -> bool:
     return 3 * (min_honest_ffg_support + remaining_honest_ffg_weight) >= 2 * total_active_balance
 
 
-def will_checkpoint_be_justified(store, checkpoint) -> bool:
+def will_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
     if checkpoint == store.justified_checkpoint:
         return True
 
@@ -85,7 +237,7 @@ def will_checkpoint_be_justified(store, checkpoint) -> bool:
     return False
 
 
-def get_canonical_roots(store, ancestor_slot) -> Sequence[Root]:
+def get_canonical_roots(store: Store, ancestor_slot: Slot) -> Sequence[Root]:
     """
     Returns a suffix of the canonical chain
     including a block that is no later than the ``ancestor_slot``.
@@ -99,7 +251,7 @@ def get_canonical_roots(store, ancestor_slot) -> Sequence[Root]:
     return canonical_roots
 
 
-def find_latest_confirmed_descendant(store, latest_confirmed_root) -> Root:
+def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) -> Root:
     """
     This function assumes that the ``latest_confirmed_root`` belongs to the canonical chain
     and is either from the previous or from the current epoch.
@@ -143,7 +295,7 @@ def find_latest_confirmed_descendant(store, latest_confirmed_root) -> Root:
     return confirmed_root
 
 
-def get_latest_confirmed(store) -> Root:
+def get_latest_confirmed(store: Store) -> Root:
     confirmed_root = store.confirmed_root
     current_epoch = get_current_store_epoch(store)
 
