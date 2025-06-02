@@ -312,16 +312,23 @@ def get_latest_confirmed(store: Store) -> Root:
         confirmed_root = store.finalized_checkpoint.root
 
     # use unrealized justified root if the confirmed root is older
-    # and unrealized justification is of the current epoch checkpoint
+    # and the following conditions are met:
+    #     1) UJ checkpoint is from the current epoch
+    #     2) by the beginning of the previous slot it is known that the previous epoch is justified
+    #     3) previous epoch checkpoint is an ancestor of UJ checkpoint
     #
     # useful in the case when the confirmation rule machinery should be restarted after a period of asynchrony
     # UJ becomes GJ in the beginning of the next epoch
     # which, assuming synchrony, every honest validator will vote for
     confirmed_block_slot = store.blocks[confirmed_root].slot
-    unrealized_justified_block_slot = store.blocks[store.unrealized_justified_checkpoint.root].slot
-    if (confirmed_block_slot < unrealized_justified_block_slot
+    unrealized_justified_slot = store.blocks[store.unrealized_justified_checkpoint.root].slot
+    unrealized_justified_root = store.unrealized_justified_checkpoint.root
+    prev_slot_justified_slot = store.blocks[store.prev_slot_justified_checkpoint.root].slot
+    prev_slot_justified_root = store.prev_slot_justified_checkpoint.root
+    if (confirmed_block_slot < unrealized_justified_slot
         and store.unrealized_justified_checkpoint.epoch == current_epoch
-        and store.prev_slot_justified_checkpoint.epoch + 1 == current_epoch):
+        and store.prev_slot_justified_checkpoint.epoch + 1 == current_epoch
+        and prev_slot_justified_root == get_ancestor(store, unrealized_justified_root, prev_slot_justified_slot)):
             confirmed_root = store.unrealized_justified_checkpoint.root
 
     # attempt to further advance the latest confirmed block
