@@ -280,7 +280,7 @@ def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) 
             checkpoint_root = get_checkpoint_block(store, block_root, block_epoch)
             checkpoint = Checkpoint(checkpoint_root, block_epoch)
 
-            # To be able to confirm blocks from the current epoch ensure that
+            # To confirm blocks from the current epoch ensure that
             # current epoch checkpoint will be justified
             if not will_checkpoint_be_justified(store, checkpoint):
                 break
@@ -291,10 +291,10 @@ def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) 
             if store.unrealized_justifications[head].epoch + 1 < current_epoch:
                 break
 
-        if is_one_confirmed(store, block_root):
-            confirmed_root = block_root
-        else:
+        if not is_one_confirmed(store, block_root):
             break
+        
+        confirmed_root = block_root
 
     return confirmed_root
 
