@@ -291,6 +291,11 @@ def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) 
             if store.unrealized_justifications[head].epoch + 1 < current_epoch:
                 break
 
+        # Check GU(b) >= epoch(t) - 2 if slot(t) == first_slot(epoch(t))
+        if block_epoch < current_epoch and get_current_slot(store) % SLOTS_PER_EPOCH == 0:
+            if store.unrealized_justifications[block_root].epoch + 1 < current_epoch:
+                break
+
         if not is_one_confirmed(store, block_root):
             break
         
