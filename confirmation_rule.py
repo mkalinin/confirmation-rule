@@ -267,11 +267,33 @@ def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) 
     canonical_roots = get_canonical_roots(store, latest_confirmed_slot)
     assert canonical_roots.pop(0) == latest_confirmed_root
 
+    # return if there are no blocks to examine
+    if len(canonical_roots) == 0:
+        return latest_confirmed_root
+
+    # If epoch(b) < epoch(t),
+    # check that there exists canonical block b' observed by honest validators
+    # such that GU(b') >= epoch(t) - 2
+    if compute_epoch_at_slot(store.blocks[canonical_roots[0]].slot) < current_epoch:
+        is_block_found = False
+        for block_root in canonical_roots:
+            if (
+                store.unrealized_justifications[block_root].epoch + 1 >= current_epoch
+                and is_one_confirmed(store, block_root)
+            ):
+                is_block_found = True
+
+        # If such a block is not found,
+        # it is impossible to safely confirm any block from the previous epoch
+        if not is_block_found:
+            return latest_confirmed_root
+
     # starting with the child of the latest_confirmed_root
     # move towards the head in attempt to advance confirmed block
     # and stop when the first unconfirmed descendant is encountered
     head = get_head(store)
     confirmed_root = latest_confirmed_root
+
     for block_root in canonical_roots:
         block_epoch = compute_epoch_at_slot(store.blocks[block_root].slot)
 
