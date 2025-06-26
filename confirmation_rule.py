@@ -296,6 +296,13 @@ def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) 
         
         confirmed_root = block_root
 
+    # Check that previous epoch block won't be filtered out in the view of any honest validator
+    # at the beginning of the first slot of the current epoch
+    confirmed_epoch = compute_epoch_at_slot(store.blocks[confirmed_root].slot)
+    if confirmed_epoch < current_epoch and get_current_slot(store) % SLOTS_PER_EPOCH == 0:
+        if store.unrealized_justifications[confirmed_root].epoch + 1 < current_epoch:
+            return latest_confirmed_root
+
     return confirmed_root
 
 
