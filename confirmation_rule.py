@@ -72,7 +72,7 @@ def get_weight(store: Store, root: Root, checkpoint_state: BeaconState = None) -
         state.validators[i].effective_balance for i in unslashed_and_active_indices
         if (i in store.latest_messages
             and i not in store.equivocating_indices
-            and is_ancestor(store, store.latest_messages[i].root, root)
+            and is_ancestor(store, store.latest_messages[i].root, root))
     ))
     if store.proposer_boost_root == Root():
         # Return only attestation score if ``proposer_boost_root`` is not set
