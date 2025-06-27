@@ -1,6 +1,10 @@
 \documentclass{article}
 \usepackage{amsmath, amssymb, amsthm}
 \usepackage{hyperref}
+\usepackage[linesnumbered,ruled]{algorithm2e}
+\SetKwProg{Fn}{function}{}{end}
+\SetNlSty{textbf}{}{:}
+
 
 \newtheorem{lemma}{Lemma}
 \newtheorem{definition}{Definition}
@@ -23,14 +27,17 @@ See:
     \]
 \end{definition}
 
-\section*{Algorithm 100}
-\textbf{(Highest LMD-GHOST confirmed descendant)}
 
-\begin{enumerate}
-    \item \textbf{function} highestLMDConfirmedDesc$_v(b_{\text{anchor}}, t)$
-    \item \quad \textbf{let} blocks = $\{b'' \in \nu^{v,t} : b_{\text{anchor}} \preceq b'' \preceq \text{LMD\_GHOST\_HFC}(\nu, t)\}$
-    \item \quad \textbf{return} $\max(\{b' \in \text{blocks} : \forall b'' \in \text{blocks} \wedge b'' \preceq b', \text{isOneConfirmed}_v(b'', GJ^{\text{st}(\text{slot}(t) - 1),v}, t)\})$
-\end{enumerate}
+\begin{algorithm}[H]
+\caption{Highest LMD-GHOST confirmed descendant}
+\SetAlgoNoLine
+\Fn{highestLMDConfirmedDesc$_v(b_{\text{anchor}}, t)$}{
+    blocks $\gets \left\{b'' \in \nu^{v,t} : b_{\text{anchor}} \preceq b'' \preceq \text{LMD\_GHOST\_HFC}(\nu, t)\right\}$\;
+    
+    \Return{$\max\left(\left\{b' \in \text{blocks} : \forall b'' \in \text{blocks}, b'' \preceq b' \Rightarrow \text{isOneConfirmed}_v(b'', GJ^{\text{st}(\text{slot}(t) - 1),v}, t)\right\}\right)$}\;
+}
+\end{algorithm}
+
 
 \begin{lemma}
 If $t$ and $t'$ are any two times, $b := \text{highestLMDConfirmedDesc}_v(b_{\text{anchor}}, t)$, $t \leq t'$ and the following holds:
@@ -48,31 +55,43 @@ then $b$ is canonical in the view of any honest validator $v'$ at time $t'$.
     TBD..
 \end{proof}
 
-\section*{Algorithm 101}
-\textbf{(Highest confirmed descendant)}
 
-\begin{enumerate}
-    \item \textbf{function} highestConfirmedDesc$_v(b_{\text{anchor}}, t)$
-    \item \quad \textbf{let} $b' = \text{highestLMDConfirmedDesc}_v(b_{\text{anchor}}, t)$
-    \item \quad \textbf{if} $\text{epoch}(t) = \text{epoch}(b') > \text{epoch}(b_{\text{anchor}})$
-    \item \quad \quad \textbf{if} $\wedge \text{willChkpBeJustified}_v(C(b'))$
-    \item \quad \quad \quad $\wedge \exists b'' \succeq b' : \text{epoch}(GU(b'')) \geq \text{epoch}(t) - 1$
-    \item \quad \quad \quad \quad \textbf{return} $b'$
-    \item \quad \quad \textbf{else}
-    \item \quad \quad \quad \quad \textbf{return} $\max(\{b'' \in \nu^{v,t} : b_{\text{anchor}} \preceq b'' \prec b' \wedge \text{epoch}(b'') = \text{epoch}(b_{\text{anchor}})\})$
-    \item \quad \textbf{elif} $\text{epoch}(t) = \text{epoch}(b') = \text{epoch}(b_{\text{anchor}})$
-    \item \quad \quad \textbf{if} $\exists b'' \succeq b' : \text{epoch}(GU(b'')) \geq \text{epoch}(t) - 1$
-    \item \quad \quad \quad \textbf{return} $b'$
-    \item \quad \quad \textbf{else}
-    \item \quad \quad \quad \textbf{return} $b_{\text{anchor}}$
-    \item \quad \textbf{elif} $\text{epoch}(t) > \text{epoch}(b') \wedge \text{slot}(t) = \text{first\_slot}(\text{epoch}(t))$
-    \item \quad \quad \textbf{if} $\text{epoch}(GU(b')) \geq \text{epoch}(t) - 2$
-    \item \quad \quad \quad \textbf{return} $b'$
-    \item \quad \quad \textbf{else}
-    \item \quad \quad \quad \textbf{return} $b_{\text{anchor}}$
-    \item \quad \textbf{else}
-    \item \quad \quad \textbf{return} $b'$
-\end{enumerate}
+\begin{algorithm}[H]
+\caption{Highest confirmed descendant}
+% \SetAlgoLined
+\SetAlgoNoLine
+\Fn{highestConfirmedDesc$_v(b_{\text{anchor}}, t)$}{
+    $b' \gets \text{highestLMDConfirmedDesc}_v(b_{\text{anchor}}, t)$\;
+    
+    \uIf{$\text{epoch}(t) = \text{epoch}(b') > \text{epoch}(b_{\text{anchor}})$}{
+        \uIf{$\text{willChkpBeJustified}_v(C(b'))$ \textbf{and} $\exists b'' \succeq b' : \text{epoch}(GU(b'')) \geq \text{epoch}(t) - 1$}{
+            \Return{$b'$}\;
+        }
+        \uElse{
+            \Return{$\max\left(\left\{b'' \in \nu^{v,t} : b_{\text{anchor}} \preceq b'' \prec b' \wedge \text{epoch}(b'') = \text{epoch}(b_{\text{anchor}})\right\}\right)$}\;
+        }
+    }
+    \uElseIf{$\text{epoch}(t) = \text{epoch}(b') = \text{epoch}(b_{\text{anchor}})$}{
+        \uIf{$\exists b'' \succeq b' : \text{epoch}(GU(b'')) \geq \text{epoch}(t) - 1$}{
+            \Return{$b'$}\;
+        }
+        \uElse{
+            \Return{$b_{\text{anchor}}$}\;
+        }
+    }
+    \uElseIf{$\text{epoch}(t) > \text{epoch}(b')$ \textbf{and} $\text{slot}(t) = \text{first\_slot}(\text{epoch}(t))$}{
+        \uIf{$\text{epoch}(GU(b')) \geq \text{epoch}(t) - 2$}{
+            \Return{$b'$}\;
+        }
+        \uElse{
+            \Return{$b_{\text{anchor}}$}\;
+        }
+    }
+    \uElse{
+        \Return{$b'$}\;
+    }
+}
+\end{algorithm}
 
 \begin{lemma}
 If $t$ and $t'$ are any two times such that $t' \geq t \wedge \text{epoch}(t') = \text{epoch}(t)$, $b := \text{highestConfirmedDesc}_v(b_{\text{anchor}}, t)$, $\text{epoch}(b) = \text{epoch}(t) - 1$ and the following holds:
@@ -116,25 +135,31 @@ then $b$ is canonical in the view of any honest validator $v'$ at time $t' < \te
     TBD...
 \end{proof}
 
-\section*{Algorithm 102}
-\textbf{(Highest confirmed)}
+% \section*{Algorithm 102}
+% \textbf{(Highest confirmed)}
 
 Let $V^{v,t}$ be the view of a validator $v$ at the start of $\text{slot}(t)$ to which all the votes cast and observed by $v$ before $\text{st}(\text{slot}(t))$ are applied.
 
-\begin{enumerate}
-    \item \textbf{function} highestConfirmed$_v(V^{v,t})$
-    \item \quad \textbf{let} $b' = \text{highestConfirmed}(V^{v, \text{st}(\text{slot}(t) - 1)})$
-    \item \quad \textbf{if} $\wedge b' \preceq \text{LMD\_GHOST\_HFC}(V^{v, t})$
-    \item \quad \quad $\wedge \text{epoch}(b') \geq \text{epoch}(t) - 1$
-    \item \quad \quad \quad \textbf{return} $\text{highestConfirmedDesc}_v(b', t)$
-    \item \quad \textbf{else}
-    \item \quad \quad \textbf{if} $\wedge \text{epoch}(GU(V^{v, t})) = \text{epoch}(t)$
-    \item \quad \quad \quad $\wedge \text{epoch}(GJ(V^{v, \text{st}(\text{slot}(t) - 1)})) = \text{epoch}(t) - 1$
-    \item \quad \quad \quad $\wedge GU(V^{v,t}) \succeq GJ^{\text{st}(\text{slot}(t) - 1), v}$
-    \item \quad \quad \quad \quad \textbf{return} $\text{highestConfirmedDesc}_v(\text{block}(GU(V^{v,t})), t)$
-    \item \quad \quad \textbf{else}
-    \item \quad \quad \quad \textbf{return} $b_{\text{fin}}$
-\end{enumerate}
+\begin{algorithm}[H]
+\SetAlgoNoLine
+\Fn{$\text{highestConfirmed}_v(V^{v,t})$}{
+    $b' \gets \text{highestConfirmed}(V^{v, \text{st}(\text{slot}(t) - 1)})$\;
+    \uIf{$b' \preceq \text{LMD\_GHOST\_HFC}(V^{v,t})$ \textbf{and} $\text{epoch}(b') \geq \text{epoch}(t) - 1$}{
+        \Return{$\text{highestConfirmedDesc}_v(b', t)$}\;
+    }
+    \uElseIf{
+        $\text{epoch}(GU(V^{v,t})) = \text{epoch}(t)$ \textbf{and} \\
+        $\text{epoch}(GJ(V^{v, \text{st}(\text{slot}(t) - 1)})) = \text{epoch}(t) - 1$ \textbf{and} \\
+        $GU(V^{v,t}) \succeq GJ^{\text{st}(\text{slot}(t) - 1), v}$
+    }{
+        \Return{$\text{highestConfirmedDesc}_v(\text{block}(GU(V^{v,t})), t)$}\;
+    }
+    \uElse{
+        \Return{$b_{\text{fin}}$}\;
+    }
+}
+\caption{Highest Confirmed Block Selection}
+\end{algorithm}
 
 \begin{lemma}
     If $t$ and $t'$ are any two times such that $t' \geq t$, $b := \text{highestConfirmed}(V^{v,t})$ and the following holds:
