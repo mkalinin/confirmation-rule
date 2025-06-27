@@ -2,6 +2,7 @@
 \usepackage{amsmath, amssymb, amsthm}
 \usepackage{hyperref}
 \usepackage[linesnumbered,ruled]{algorithm2e}
+\usepackage{cleveref}
 \SetKwProg{Fn}{function}{}{end}
 \SetNlSty{textbf}{}{:}
 
@@ -197,5 +198,79 @@ then $GU^{t,v}$ is canonical in the view of any honest validator $v'$ at any tim
         \item[Case 2: $\text{epoch}(t') > \text{epoch}(t)$.]  
     \end{description}
 \end{proof}
+
+\subsection*{Roberto's suggested Lemmas}
+
+\begin{lemma}
+    If
+    \begin{enumerate}
+        \item $epoch(b_{\text{anchor}}^{v,st(slot(t))}) \geq epoch(t)-2$
+    \end{enumerate},
+    then
+    \begin{enumerate}
+        \item $epoch(GJ^{v,st(slot(t))}) \geq epoch(t)-2$
+        % \item $b_{\text{anchor}}^{v,st(slot(t))} \succeq GJ^{v,t}$
+    \end{enumerate}
+\end{lemma}
+
+\begin{lemma}
+    If
+    \begin{enumerate}
+        \item $\text{st}(\text{last\_slot}(\text{epoch}(t) - 1)) \geq GST$
+        \item $epoch(b_{\text{anchor}}^{v,st(slot(t))}) \geq epoch(t)-2$
+    \end{enumerate},
+    then, for any honest validator $v'$,
+    \begin{enumerate}
+        \item $epoch(GJ^{v',st(slot(t))}) \geq epoch(t)-2$
+    \end{enumerate}
+\end{lemma}
+
+\begin{lemma}\label{lem:gj-at-least-e-2}
+    If
+    \begin{enumerate}
+        \item $\text{st}(\text{last\_slot}(\text{epoch}(t) - 1)) \geq GST$
+        \item $slot(t) > \text{first\_slot}(epoch(t))$
+        \item $epoch(b_{\text{anchor}}^{v,st(slot(t))}) \geq epoch(t)-2$
+    \end{enumerate},
+    then, for any honest validator $v'$,
+    \begin{enumerate}
+        \item $epoch(GJ^{v',st(slot(t)-1)}) \geq epoch(t)-2$
+    \end{enumerate}
+\end{lemma}
+
+\begin{lemma}
+    If
+    \begin{enumerate}
+        \item $\text{isOneConfirmed}_v(b, GJ^{v,st(slot(t))}, st(slot(t)))$
+        \item $epoch(b) = epoch(t)$
+    \end{enumerate},
+    then, for any honest validator $v'$ and time $t' \geq t$ such that $epoch(t') = epoch(t)$
+    \begin{enumerate}
+        \item $b \in \text{filt}^{t',v'}_{\text{hfc}}$
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}(Sketch)
+    At least one honest validator $v'$ voted for $b$ in the previous slot.
+    This also implies that $slot(t) > first_slot(epoch(t))$. 
+    Given, \Cref{lem:gj-at-least-e-2} and that $epoch(slot(t)-1) = epoch(t)$,  it must be that $v'$'s view includes a block $b' \succeq b$ such that $epoch(vs(b', st(slot(t)-1))) \geq epoch(t)-2$.
+    By $st(slot(t))$, $b'$ is in the view of any honest validator.
+    Hence, $b'$ is not filtered out by any honest validator at time $st(slot(t))$ or after during epoch $epoch(t)$.
+\end{proof}
+
+\begin{lemma}
+    Let $GU^{v,t-1} := GU(V^{v,st(slot(t)-1)},st(slot(t)-1))$.
+    If
+    \begin{enumerate}
+        \item $t = st(epoch(t))$
+        \item $epoch(GU^{v,t-1}) = epoch(t)-1$
+    \end{enumerate},
+    then for any honest validator $v'$ and time $t'$ such that $epoch(t') \in \{epoch(t),epoch(t)+1\}$,
+    \begin{enumerate}
+        \item $b \in \text{filt}^{t',v'}_{\text{hfc}}$
+    \end{enumerate}
+\end{lemma}
+
+
 
 \end{document}
