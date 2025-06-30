@@ -1,0 +1,824 @@
+\usepackage{graphicx} % Required for inserting images
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{mathtools}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+% \usepackage{algorithm}
+% \usepackage{algorithmic}
+%\usepackage{algpseudocode}
+% \usepackage{numbertabbing}
+\usepackage{xcolor}
+\usepackage{amsmath,amsfonts}
+\usepackage{listings}
+\usepackage{marginnote}
+\usepackage[shortlabels,inline]{enumitem}
+\usepackage{url}
+\usepackage{xspace}
+\usepackage[inkscapeformat=png]{svg}
+\usepackage{keyval}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=false, % disables colored text, keeps colored boxes
+    % pdfborder={0 0 1}, % sets the border thickness (0 0 1) for the link box
+    % pdfborderstyle={/S/U/W 1}, % solid line, underline, width of 1
+    linkbordercolor=green, % color of internal link box border
+    citebordercolor=green, % color of citation link box border
+    filebordercolor=green, % color of file link box border
+    urlbordercolor=green % color of URL link box border
+}
+\usepackage{ifthen}
+\usepackage{varwidth}
+\usepackage{witharrows}
+\usepackage{afterpage}
+\usepackage{xparse}
+\usepackage{cleveref}
+\usepackage{pgfplots}
+\pgfplotsset{compat=newest}
+\usepackage{etoolbox}
+
+\usepackage[linesnumbered,ruled]{algorithm2e}
+\SetKwProg{Fn}{function}{}{end}
+\SetNlSty{textbf}{}{:}
+
+% \usepackage{ulem}
+
+\makeatletter
+
+\define@key{commfromslot}{from}{\def\commfromslot@From{#1}}
+\define@key{commfromslot}{to}{\def\commfromslot@To{#1}}
+\define@key{commfromslot}{val}{\def\commfromslot@Val{#1}}
+\define@key{commfromslot}{when}{\def\commfromslot@When{#1}}
+\newcommand{\commfromslot}[2][]{%
+    \setkeys{commfromslot}{from=,to=,val=,when=}%
+    \setkeys{commfromslot}{#1}%
+    \ensuremath{\overline{#2}_{\commfromslot@From}^{\commfromslot@To%
+    \ifthenelse{\equal{\commfromslot@Val}{}}{}{,\commfromslot@Val}%
+    \ifthenelse{\equal{\commfromslot@When}{}}{}{,\commfromslot@When}%
+    }}%
+}%
+
+
+% Define keys using pgfkeys
+% \pgfkeys{
+%     /commfromslot/.is family, /commfromslot,
+%     from/.code = {\def\commfromslotFrom{#1}}, % Automatically groups the argument
+%     to/.code = {\def\commfromslotTo{#1}}     % Automatically groups the argument
+% }
+
+% \pgfkeys{
+%     /commfromslot/.is family, /commfromslot,
+%     from/.estore in = \commfromslotFrom,
+%     to/.estore in = \commfromslotTo
+% }
+
+% \newcommand{\commfromslotp}[2][]{%
+%     \pgfkeys{/commfromslot, #1}% Set the keys
+%     \ensuremath{\overline{#2}_{\commfromslotFrom}^{\commfromslotTo}}
+% }
+
+
+
+
+\define@key{commfromblock}{from}{\def\commfromblock@From{#1}}
+\define@key{commfromblock}{to}{\def\commfromblock@To{#1}}
+\define@key{commfromblock}{val}{\def\commfromblock@Val{#1}}
+\define@key{commfromblock}{when}{\def\commfromblock@When{#1}}
+\newcommand{\commfromblock}[2][]{%
+    \setkeys{commfromblock}{from=,to=,val=,when=}%
+    \setkeys{commfromblock}{#1}%
+    \ensuremath{{#2}_{\commfromblock@From}^{\commfromblock@To%
+    \ifthenelse{\equal{\commfromblock@Val}{}}{}{,\commfromblock@Val}%
+    \ifthenelse{\equal{\commfromblock@When}{}}{}{,\commfromblock@When}%
+    }}%
+}%
+
+
+\define@key{commatepoch}{epoch}{\def\commatepoch@Epoch{#1}}
+% \setkeys{commatepoch}{epoch=}
+\define@key{commatepoch}{val}{\def\commatepoch@Val{#1}}
+\define@key{commatepoch}{when}{\def\commatepoch@When{#1}}
+\newcommand{\commatepoch}[2][]{%
+    \setkeys{commatepoch}{epoch=,val=,when=}%
+    \setkeys{commatepoch}{#1}%
+    \ensuremath{{\hat{\overline{#2}}}{}^{\commatepoch@Epoch%
+    \ifthenelse{\equal{\commatepoch@Val}{}}{}{,\commatepoch@Val}%
+    \ifthenelse{\equal{\commatepoch@When}{}}{}{,\commatepoch@When}%    
+    }}
+}%
+
+% Enable the expl3 programming conventions
+\ExplSyntaxOn
+
+% Define the \addweight command
+\NewDocumentCommand{\addweight}{m}{
+  % Extract the command name without the leading backslash
+  \tl_set:Nx \l_tmpa_tl { \cs_to_str:N #1 }
+  % Append 'weight' to the command name
+  \tl_put_right:Nn \l_tmpa_tl { weight }
+  % Convert the string back to a command and execute it
+  \use:c { \l_tmpa_tl }
+}
+
+% Turn off expl3 syntax to return to normal LaTeX syntax
+\ExplSyntaxOff
+
+\define@key{commweightatepoch}{epoch}{\def\commweightatepoch@Epoch{#1}}
+% \setkeys{commweightatepoch}{epoch=}
+\define@key{commweightatepoch}{val}{\def\commweightatepoch@Val{#1}}
+\define@key{commweightatepoch}{when}{\def\commweightatepoch@When{#1}}
+\define@key{commweightatepoch}{chkp}{\def\commweightatepoch@Chkp{#1}}
+\newcommand{\commweightatepoch}[2][]{%
+    \setkeys{commweightatepoch}{epoch=,val=,when=,chkp=}%
+    \setkeys{commweightatepoch}{#1}%
+    \ensuremath{\hat{\overline{\addweight{#2}}}{}^{\commweightatepoch@Epoch,%
+    \ifthenelse{\equal{\commweightatepoch@Val}{}}{}{\commweightatepoch@Val,}%
+    \ifthenelse{\equal{\commweightatepoch@When}{}}{}{\commweightatepoch@When,}%
+    \commweightatepoch@Chkp%    
+    }}
+}%
+
+\define@key{commweightfromblock}{from}{\def\commweightfromblock@From{#1}}
+\define@key{commweightfromblock}{to}{\def\commweightfromblock@To{#1}}
+\define@key{commweightfromblock}{chkp}{\def\commweightfromblock@ValSetChkp{#1}}
+\define@key{commweightfromblock}{val}{\def\commweightfromblock@Val{#1}}
+\define@key{commweightfromblock}{when}{\def\commweightfromblock@When{#1}}
+\newcommand{\commweightfromblock}[2][]{%
+    \setkeys{commweightfromblock}{from=,to=,chkp=,when=,val=}
+    \setkeys{commweightfromblock}{#1}%
+    \ensuremath{\addweight{#2}_{\commweightfromblock@From}^{\commweightfromblock@To,%
+    \ifthenelse{\equal{\commweightfromblock@Val}{}}{}{\commweightfromblock@Val,}%
+    \ifthenelse{\equal{\commweightfromblock@When}{}}{}{\commweightfromblock@When,}% 
+    \commweightfromblock@ValSetChkp}}%
+}%
+
+
+\define@key{commweightfromslot}{from}{\def\commweightfromslot@From{#1}}
+\define@key{commweightfromslot}{to}{\def\commweightfromslot@To{#1}}
+\define@key{commweightfromslot}{chkp}{\def\commweightfromslot@ValsetChkp{#1}}
+\define@key{commweightfromslot}{val}{\def\commweightfromslot@Val{#1}}
+\define@key{commweightfromslot}{when}{\def\commweightfromslot@When{#1}}
+\newcommand{\commweightfromslot}[2][]{%
+    \setkeys{commweightfromslot}{from=,to=,chkp=,when=,val=}%
+    \setkeys{commweightfromslot}{#1}%
+    \ensuremath{\overline{{\addweight{#2}}}_{\commweightfromslot@From}^{\commweightfromslot@To,%
+    \ifthenelse{\equal{\commweightfromslot@Val}{}}{}{\commweightfromslot@Val,}%
+    \ifthenelse{\equal{\commweightfromslot@When}{}}{}{\commweightfromslot@When,}%     
+    \commweightfromslot@ValsetChkp}}%
+}%
+
+
+\define@key{valsetfromslot}{from}{\def\valsetfromslot@From{#1}}
+\define@key{valsetfromslot}{to}{\def\valsetfromslot@To{#1}}
+\define@key{valsetfromslot}{chkp}{\def\valsetfromslot@Chkp{#1}}
+\setkeys{valsetfromslot}{from=,to=,chkp=}
+\newcommand{\valsetfromslot}[2][]{%
+    \setkeys{valsetfromslot}{#1}%
+    \ensuremath{\overline{{#2}}_{\valsetfromslot@From}^{\valsetfromslot@To,\valsetfromslot@Chkp}}%
+}%
+
+\define@key{valsetweightfromslot}{from}{\def\valsetweightfromslot@From{#1}}
+\define@key{valsetweightfromslot}{to}{\def\valsetweightfromslot@To{#1}}
+\define@key{valsetweightfromslot}{chkp}{\def\valsetweightfromslot@ValsetChkp{#1}}
+\define@key{valsetweightfromslot}{weight chkp}{\def\valsetweightfromslot@WeightChkp{#1}}
+
+\setkeys{valsetweightfromslot}{from=,to=,chkp=,weight chkp=}
+\newcommand{\valsetweightfromslot}[2][]{%
+    \setkeys{valsetweightfromslot}{#1}%
+    \ensuremath{\overline{{\addweight{#2}}}_{\valsetweightfromslot@From}^{\valsetweightfromslot@To,\valsetweightfromslot@ValsetChkp\ifthenelse{\equal{\valsetweightfromslot@WeightChkp}{}}{}{,\valsetweightfromslot@WeightChkp}}}%
+}%
+
+\define@key{valsetfromblock}{from}{\def\valsetfromblock@From{#1}}
+\define@key{valsetfromblock}{to}{\def\valsetfromblock@To{#1}}
+\define@key{valsetfromblock}{chkp}{\def\valsetfromblock@Chkp{#1}}
+\setkeys{valsetfromblock}{from=,to=,chkp=}
+\newcommand{\valsetfromblock}[2][]{%
+    \setkeys{valsetfromblock}{#1}%
+    \ensuremath{{#2}_{\valsetfromblock@From}^{\valsetfromblock@To,\valsetfromblock@Chkp}}%
+}%
+
+\define@key{totvalset}{chkp}{\def\totvalset@Chkp{#1}}
+\setkeys{totvalset}{chkp=}
+\newcommand{\totvalset}[2][]{%
+    \setkeys{totvalset}{#1}%
+    \ensuremath{{#2}_{\mathsf{t}}^{\totvalset@Chkp}}%
+}%
+
+\define@key{weightofset}{chkp}{\def\weightofset@Chkp{#1}}
+\setkeys{weightofset}{chkp=}
+\newcommand{\weightofset}[2][]{%
+    \setkeys{weightofset}{#1}%
+    \ensuremath{\left|{#2}\right|^{\weightofset@Chkp}}%
+}%
+
+
+
+
+\define@key{totvalsetweight}{chkp}{\def\totvalsetweight@ValsetChkp{#1}}
+\setkeys{totvalsetweight}{chkp=}
+\newcommand{\totvalsetweight}[2][]{%
+    \setkeys{totvalsetweight}{#1}%
+    \ensuremath{{\addweight{#2}}_{\mathsf{t}}^{\totvalsetweight@ValsetChkp}}%
+}%
+
+
+\define@key{attsetfromblock}{from}{\def\attsetfromblock@From{#1}}
+\define@key{attsetfromblock}{to}{\def\attsetfromblock@To{#1}}
+\define@key{attsetfromblock}{val}{\def\attsetfromblock@Val{#1}}
+\define@key{attsetfromblock}{when}{\def\attsetfromblock@When{#1}}
+\define@key{attsetfromblock}{chkp}{\def\attsetfromblock@ValSetChkp{#1}}
+\setkeys{attsetfromblock}{from=,to=,val=,when=,chkp=}
+\newcommand{\attsetfromblock}[2][]{%
+    \setkeys{attsetfromblock}{#1}%
+    \ensuremath{{#2}_{\attsetfromblock@From}^{\attsetfromblock@To,\attsetfromblock@Val,\attsetfromblock@When,\attsetfromblock@ValSetChkp}}
+}%
+
+\newcommand{\ghostvotersfnname}{\ensuremath{GS}}
+
+\define@key{ghostvoters}{block}{\def\ghostvoters@Block{#1}}
+\define@key{ghostvoters}{view}{\def\ghostvoters@View{#1}}
+\setkeys{ghostvoters}{block=,view=}
+\newcommand{\ghostvoters}[1][]{%
+    \setkeys{ghostvoters}{#1}%
+    \ensuremath{{\ghostvotersfnname}(\ghostvoters@Block,\ghostvoters@View)}
+}%
+
+\define@key{attsetfromblockunfiltered}{from}{\def\attsetfromblockunfiltered@From{#1}}
+\define@key{attsetfromblockunfiltered}{to}{\def\attsetfromblockunfiltered@To{#1}}
+\define@key{attsetfromblockunfiltered}{val}{\def\attsetfromblockunfiltered@Val{#1}}
+\define@key{attsetfromblockunfiltered}{when}{\def\attsetfromblockunfiltered@When{#1}}
+\setkeys{attsetfromblockunfiltered}{from=,to=,val=,when=}
+\newcommand{\attsetfromblockunfiltered}[2][]{%
+    \setkeys{attsetfromblockunfiltered}{#1}%
+    \ensuremath{{#2}_{\attsetfromblockunfiltered@From}^{\attsetfromblockunfiltered@To,\attsetfromblockunfiltered@Val,\attsetfromblockunfiltered@When}}%
+    \setkeys{attsetfromblockunfiltered}{from=,to=,val=,when=}%
+}%
+
+\define@key{attsetweightfromblock}{from}{\def\attsetweightfromblock@From{#1}}
+\define@key{attsetweightfromblock}{to}{\def\attsetweightfromblock@To{#1}}
+\define@key{attsetweightfromblock}{val}{\def\attsetweightfromblock@Val{#1}}
+\define@key{attsetweightfromblock}{when}{\def\attsetweightfromblock@When{#1}}
+\define@key{attsetweightfromblock}{chkp}{\def\attsetweightfromblock@ValSetChkp{#1}}
+\setkeys{attsetweightfromblock}{from=,to=,val=,when=}
+\newcommand{\attsetweightfromblock}[2][]{%
+    \setkeys{attsetweightfromblock}{#1}%
+    \ensuremath{{\addweight{#2}}_{\attsetweightfromblock@From}^{\attsetweightfromblock@To,\attsetweightfromblock@Val,\attsetweightfromblock@When,\attsetweightfromblock@ValSetChkp}}%
+    \setkeys{attsetweightfromblock}{from=,to=,val=,when=,chkp=}%
+}%
+
+\define@key{indicatorfromblock}{from}{\def\indicatorfromblock@From{#1}}
+\define@key{indicatorfromblock}{to}{\def\indicatorfromblock@To{#1}}
+\define@key{indicatorfromblock}{val}{\def\indicatorfromblock@Val{#1}}
+\define@key{indicatorfromblock}{when}{\def\indicatorfromblock@When{#1}}
+\define@key{indicatorfromblock}{chkp}{\def\indicatorfromblock@ValSetChkp{#1}}
+\setkeys{indicatorfromblock}{from=,to=,val=,when=,chkp=}
+\newcommand{\indicatorfromblock}[2][]{%
+    \setkeys{indicatorfromblock}{#1}%
+    \ensuremath{{{#2}}_{\indicatorfromblock@From}^{\indicatorfromblock@To,\indicatorfromblock@Val,\indicatorfromblock@When,\indicatorfromblock@ValSetChkp}}%
+    \setkeys{indicatorfromblock}{from=,to=,val=,when=,chkp=}%
+}%
+
+\define@key{boostweight}{chkp}{\def\boostweight@Chkp{#1}}
+\setkeys{boostweight}{chkp=}
+\newcommand{\boostweight}[1][]{%
+    \setkeys{boostweight}{#1}%
+    \ensuremath{W_p^{\boostweight@Chkp}}%
+}%
+
+\define@key{ffgvote}{from}{\def\ffgvote@From{#1}}
+\define@key{ffgvote}{to}{\def\ffgvote@To{#1}}
+\setkeys{ffgvote}{from=,to=}
+\newcommand{\ffgvote}[1][]{%
+    \setkeys{ffgvote}{#1}%
+    \ensuremath{{\ffgvote@From}\to{\ffgvote@To}}
+}%
+
+\define@key{ffgvalsetallsentraw}{source}{\def\ffgvalsetallsentraw@Source{#1}}
+\define@key{ffgvalsetallsentraw}{target}{\def\ffgvalsetallsentraw@Target{#1}}
+\define@key{ffgvalsetallsentraw}{time}{\def\ffgvalsetallsentraw@Time{#1}}
+\setkeys{ffgvalsetallsentraw}{source=,target=,time=}
+\newcommand{\ffgvalsetallsentraw}[1][]{%
+    \setkeys{ffgvalsetallsentraw}{#1}%
+    \ensuremath{\overset{T}{\mathcal{F}}{}_{\ffgvalsetallsentraw@Source \to \ffgvalsetallsentraw@Target}}^{\ffgvalsetallsentraw@Time}%
+}%
+
+\define@key{ffgvalsetraw}{source}{\def\ffgvalsetraw@Source{#1}}
+\define@key{ffgvalsetraw}{target}{\def\ffgvalsetraw@Target{#1}}
+\define@key{ffgvalsetraw}{time}{\def\ffgvalsetraw@Time{#1}}
+\define@key{ffgvalsetraw}{val}{\def\ffgvalsetraw@Val{#1}}
+\setkeys{ffgvalsetraw}{source=,target=,val=,time=}
+\newcommand{\ffgvalsetraw}[1][]{%
+    \setkeys{ffgvalsetraw}{#1}%
+    \ensuremath{\mathcal{F}_{\ffgvalsetraw@Source \to \ffgvalsetraw@Target}^{\ffgvalsetraw@Val,\ffgvalsetraw@Time}}%
+}%
+
+\define@key{ffgvalsettoslot}{source}{\def\ffgvalsettoslot@Source{#1}}
+\define@key{ffgvalsettoslot}{target}{\def\ffgvalsettoslot@Target{#1}}
+\define@key{ffgvalsettoslot}{time}{\def\ffgvalsettoslot@Time{#1}}
+\define@key{ffgvalsettoslot}{val}{\def\ffgvalsettoslot@Val{#1}}
+\define@key{ffgvalsettoslot}{to}{\def\ffgvalsettoslot@To{#1}}
+\setkeys{ffgvalsettoslot}{source=,target=,val=,time=,to=}
+\newcommand{\ffgvalsettoslot}[1][]{%
+    \setkeys{ffgvalsettoslot}{#1}%
+    \ensuremath{\mathcal{F}_{\ffgvalsettoslot@Source \to \ffgvalsettoslot@Target}^{\ffgvalsettoslot@To,\ffgvalsettoslot@Val,\ffgvalsettoslot@Time}}%
+}%
+
+\define@key{ffgvalset}{target blck}{\def\ffgvalset@TargetBlck{#1}}
+\define@key{ffgvalset}{time}{\def\ffgvalset@Time{#1}}
+\define@key{ffgvalset}{val}{\def\ffgvalset@Val{#1}}
+\setkeys{ffgvalset}{time=,val=,target blck=}
+\newcommand{\ffgvalset}[1][]{%
+    \setkeys{ffgvalset}{#1}%
+    \ffgvalsetraw[source=\gjblock(\ffgvalset@TargetBlck),target=\chkp(\ffgvalset@TargetBlck),time=\ffgvalset@Time,val=\ffgvalset@Val]%
+}%
+
+\define@key{ffgvalsetallsent}{target blck}{\def\ffgvalsetallsent@TargetBlck{#1}}
+\define@key{ffgvalsetallsent}{time}{\def\ffgvalsetallsent@Time{#1}}
+\setkeys{ffgvalsetallsent}{time=,target blck=}
+\newcommand{\ffgvalsetallsent}[1][]{%
+    \setkeys{ffgvalsetallsent}{#1}%
+    \ffgvalsetallsentraw[source={\votsource[blck=b,time=\epoch(b)]},target=\chkp(\ffgvalsetallsent@TargetBlck),time=\ffgvalsetallsent@Time]%
+}%
+
+\define@key{ffgvalsetweightraw}{source}{\def\ffgvalsetweightraw@Source{#1}}
+\define@key{ffgvalsetweightraw}{target}{\def\ffgvalsetweightraw@Target{#1}}
+\define@key{ffgvalsetweightraw}{time}{\def\ffgvalsetweightraw@Time{#1}}
+\define@key{ffgvalsetweightraw}{val}{\def\ffgvalsetweightraw@Val{#1}}
+\define@key{ffgvalsetweightraw}{weight chkp}{\def\ffgvalsetweightraw@WeightChkp{#1}}
+\setkeys{ffgvalsetweightraw}{time=,val=,source=,target=,weight chkp=}
+\newcommand{\ffgvalsetweightraw}[1][]{%
+    \setkeys{ffgvalsetweightraw}{#1}%
+    \ensuremath{F_{\ffgvalsetweightraw@Source \to \ffgvalsetweightraw@Target}^{\ffgvalsetweightraw@Val,\ffgvalsetweightraw@Time,\ffgvalsetweightraw@WeightChkp}}%
+}%
+
+\define@key{ffgvalsettoslotweight}{source}{\def\ffgvalsettoslotweight@Source{#1}}
+\define@key{ffgvalsettoslotweight}{target}{\def\ffgvalsettoslotweight@Target{#1}}
+\define@key{ffgvalsettoslotweight}{time}{\def\ffgvalsettoslotweight@Time{#1}}
+\define@key{ffgvalsettoslotweight}{val}{\def\ffgvalsettoslotweight@Val{#1}}
+\define@key{ffgvalsettoslotweight}{to}{\def\ffgvalsettoslotweight@To{#1}}
+\define@key{ffgvalsettoslotweight}{weight chkp}{\def\ffgvalsettoslotweight@WeightChkp{#1}}
+\setkeys{ffgvalsettoslotweight}{to=,time=,val=,source=,target=,weight chkp=}
+\newcommand{\ffgvalsettoslotweight}[1][]{%
+    \setkeys{ffgvalsettoslotweight}{#1}%
+    \ensuremath{F_{\ffgvalsettoslotweight@Source \to \ffgvalsettoslotweight@Target}^{\ffgvalsettoslotweight@To, \ffgvalsettoslotweight@Val,\ffgvalsettoslotweight@Time,\ffgvalsettoslotweight@WeightChkp}}%
+}%
+
+\define@key{ffgvalsetweight}{target blck}{\def\ffgvalsetweight@TargetBlck{#1}}
+\define@key{ffgvalsetweight}{time}{\def\ffgvalsetweight@Time{#1}}
+\define@key{ffgvalsetweight}{val}{\def\ffgvalsetweight@Val{#1}}
+\define@key{ffgvalsetweight}{weight chkp}{\def\ffgvalsetweight@WeightChkp{#1}}
+\setkeys{ffgvalsetweight}{time=,val=,target blck=,weight chkp=}
+\newcommand{\ffgvalsetweight}[1][]{%
+    \setkeys{ffgvalsetweight}{#1}%
+    \ffgvalsetweightraw[source=\gjblock(\ffgvalsetweight@TargetBlck),target=\chkp(\ffgvalsetweight@TargetBlck),time=\ffgvalsetweight@Time,val=\ffgvalsetweight@Val,weight chkp=\ffgvalsetweight@WeightChkp]%
+}%
+
+\define@key{slashedset}{chkp}{\def\slashedset@Chkp{#1}}
+\setkeys{slashedset}{chkp=}
+\newcommand{\slashedset}[1][]{%
+    \setkeys{slashedset}{#1}%
+    \ensuremath{\mathcal{D}^{\slashedset@Chkp}}%
+}%
+
+
+\define@key{slashedweight}{chkp}{\def\slashedweight@Chkp{#1}}
+\setkeys{slashedweight}{chkp=}
+\newcommand{\slashedweight}[1][]{%
+    \setkeys{slashedweight}{#1}%
+    \ensuremath{{D}^{\slashedweight@Chkp}}%
+}%
+
+
+
+\define@key{viewattime}{time}{\def\viewattime@Time{#1}}
+\define@key{viewattime}{val}{\def\viewattime@Val{#1}}
+\setkeys{viewattime}{time=,val=}
+\newcommand{\viewattime}[1][]{%
+    \setkeys{viewattime}{#1}%
+    \ensuremath{\View^{\viewattime@Val,\viewattime@Time}}%
+    \setkeys{viewattime}{time=,val=}%
+}%
+
+\define@key{viewatstslottime}{time}{\def\viewatstslottime@Time{#1}}
+\define@key{viewatstslottime}{val}{\def\viewatstslottime@Val{#1}}
+\setkeys{viewatstslottime}{time=,val=}
+\newcommand{\viewatstslottime}[1][]{%
+    \setkeys{viewatstslottime}{#1}%
+    \ensuremath{\View^{\viewatstslottime@Val,\slotstart(\slot(\viewatstslottime@Time))}}%
+    \setkeys{viewatstslottime}{time=,val=}%
+}%
+
+\define@key{gviewattime}{time}{\def\gviewattime@Time{#1}}
+\setkeys{gviewattime}{time=}
+\newcommand{\gviewattime}[1][]{%
+    \setkeys{gviewattime}{#1}%
+    \ensuremath{\View^{\mathsf{gbl},\gviewattime@Time}}%
+}%
+
+\newcommand{\gjviewsym}{\ensuremath{\mathsf{GJ}}}
+
+\define@key{gjview}{time}{\def\gjview@Time{#1}}
+\define@key{gjview}{view}{\def\gjview@View{#1}}
+\setkeys{gjview}{time=,view=}
+\newcommand{\gjview}[1][]{%
+    \setkeys{gjview}{time=,view=}%
+    \setkeys{gjview}{#1}%
+    \ensuremath{\gjviewsym(\gjview@View, \gjview@Time)}%
+}%
+
+\define@key{gfview}{time}{\def\gfview@Time{#1}}
+\define@key{gfview}{view}{\def\gfview@View{#1}}
+\setkeys{gfview}{time=,view=}
+\newcommand{\gfview}[1][]{%
+    \setkeys{gfview}{#1}%
+    \ensuremath{\mathit{GF}(\gfview@View, \gfview@Time)}%
+}%
+
+\define@key{gjattime}{time}{\def\gjattime@Time{#1}}
+\define@key{gjattime}{val}{\def\gjattime@Val{#1}}
+\setkeys{gjattime}{time=,val=}
+\newcommand{\gjattime}[1][]{%
+    \setkeys{gjattime}{time=,val=}%    
+    \setkeys{gjattime}{#1}%
+    \ensuremath{\gjviewsym^{\gjattime@Time\ifthenelse{\equal{\gjattime@Val}{}}{}{,\gjattime@Val}}}%
+}%
+
+\newcommand{\guviewsym}{\ensuremath{\mathsf{GU}}}
+
+\define@key{guattime}{time}{\def\guattime@Time{#1}}
+\define@key{guattime}{val}{\def\guattime@Val{#1}}
+\setkeys{guattime}{time=,val=}
+\newcommand{\guattime}[1][]{%
+    \setkeys{guattime}{time=,val=}%
+    \setkeys{guattime}{#1}%
+    \ensuremath{\guviewsym^{\guattime@Time\ifthenelse{\equal{\guattime@Val}{}}{}{,\guattime@Val}}}%
+}%
+
+% \define@key{jviewall}{time}{\def\jviewall@Time{#1}}
+% \define@key{jviewall}{val}{\def\jviewall@Val{#1}}
+% \setkeys{jviewall}{time=,val=}
+% \newcommand{\jviewall}[1][]{%
+%     \setkeys{jviewall}{#1}%
+%     \ensuremath{\gjviewsym^{\jviewall@Time\ifthenelse{\equal{\jviewall@Val}{}}{}{,\jviewall@Val}}}%
+% }%
+
+\define@key{finattime}{time}{\def\finattime@Time{#1}}
+\define@key{finattime}{val}{\def\finattime@Val{#1}}
+\setkeys{finattime}{time=,val=}
+\newcommand{\finattime}[1][]{%
+    \setkeys{finattime}{#1}%
+    \ensuremath{\mathsf{GF}^{\finattime@Time\ifthenelse{\equal{\finattime@Val}{}}{}{,\finattime@Val}}}%
+}%
+
+\define@key{filtered}{time}{\def\filtered@Time{#1}}
+\define@key{filtered}{val}{\def\filtered@Val{#1}}
+\setkeys{filtered}{time=,val=}
+\newcommand{\filtered}[1][]{%
+    \setkeys{filtered}{time=,val=}%
+    \setkeys{filtered}{#1}%
+    \ensuremath{\mathsf{filt}_{\mathsf{hfc}}^{\filtered@Time\ifthenelse{\equal{\filtered@Val}{}}{}{,\filtered@Val}}}%
+}%
+
+\define@key{votsource}{time}{\def\votsource@Time{#1}}
+\define@key{votsource}{blck}{\def\votsource@Blk{#1}}
+\define@key{votsource}{chkp}{\def\votsource@Chkp{#1}}
+\newcommand{\votsource}[1][]{%
+\setkeys{votsource}{time=,blck=,chkp=}%
+    \setkeys{votsource}{#1}%
+    \ensuremath{\mathsf{vs}(%
+    \ifthenelse{\equal{\votsource@Chkp}{}}{%
+    \votsource@Blk,\votsource@Time%
+    }{%
+    \votsource@Chkp}%
+    %
+    )}%
+}%
+
+\define@key{blckandtime}{time}{\def\blckandtime@Time{#1}}
+\define@key{blckandtime}{blck}{\def\blckandtime@Blk{#1}}
+\newcommand{\blckandtime}[1][]{%
+\setkeys{blckandtime}{time=,blck=}%
+    \setkeys{blckandtime}{#1}%
+    \ensuremath{(\textsf{blck: }\blckandtime@Blk,\textsf{ time: } \blckandtime@Time)}%
+}%
+
+\define@key{fcparam}{fc}{\def\fcparam@FC{#1}}
+\define@key{fcparam}{balf}{\def\fcparam@BalF{#1}}
+\define@key{fcparam}{val}{\def\fcparam@Val{#1}}
+\setkeys{fcparam}{fc=,balf=,val=}
+\newcommand{\fcparam}[1][]{%
+    \setkeys{fcparam}{#1}%
+    \ensuremath{\ifthenelse{\equal{\fcparam@Val}{}}{{\fcparam@FC}_{\fcparam@BalF}}{{\fcparam@FC}_{\fcparam@BalF}^{\fcparam@Val}}}%
+}%
+
+
+\newcommand{\customlabel}[3][]{%
+   \protected@write \@auxout {}{\string \newlabel {#2}{{#3}{\thepage}{#3}{#2}{}} }%
+   \protected@write \@auxout {}{\string \newlabel {#2@cref}{{[#1][#3][]#3}{[1][\thepage][]\thepage}}}%
+   \hypertarget{#2}{}%
+}
+
+\define@key{varforvalattime}{time}{\def\varforvalattime@Time{#1}}
+\define@key{varforvalattime}{val}{\def\varforvalattime@Val{#1}}
+\setkeys{varforvalattime}{time=,val=}
+\newcommand{\varforvalattime}[2][]{%
+    \setkeys{varforvalattime}{#1}%
+    \ensuremath{%
+        \ifthenelse%
+        {\equal{\varforvalattime@Time}%
+        {}}%
+        {{#2}_{\varforvalattime@Val}}
+        {{#2}_{\varforvalattime@Val}^{\varforvalattime@Time}}}%
+        \setkeys{varforvalattime}{time=,val=}%
+}%
+
+\define@key{children}{view}{\def\children@View{#1}}
+\define@key{children}{blck}{\def\children@Blck{#1}}
+\setkeys{children}{view=,blck=}
+\newcommand{\children}[1][]{%
+    \setkeys{children}{#1}%
+    \ensuremath{\mathsf{children}(\children@Blck,\children@View)}%
+}%
+
+\crefname{assumption}{assumption}{assumptions}
+\Crefname{assumption}{Assumption}{Assumptions}
+\crefname{condition}{condition}{conditions}
+
+\newcounter{countersetupcrefforlines}
+\setcounter{countersetupcrefforlines}{1}
+\loop
+  \edef\temp{\noexpand\crefname{linecounter\arabic{countersetupcrefforlines}}{line}{lines}}
+  \temp
+  \stepcounter{countersetupcrefforlines}
+  \ifnum\value{countersetupcrefforlines}<10
+\repeat
+\undef{\temp}
+
+
+
+
+\makeatother
+
+\newcommand{\True}[0]{\textsc{True}\xspace}
+\newcommand{\False}[0]{\textsc{False}\xspace}
+
+\newcommand{\chain}[0]{\ensuremath{\mathsf{chain}}}
+% \newcommand{\chainconf}[0]{\ensuremath{\mathsf{Ch}}}
+% \newcommand{\chainava}[0]{\ensuremath{\mathsf{ch}_{\mathrm{ava}}}}
+% \newcommand{\chainacc}[0]{\ensuremath{\mathsf{ch}_{\mathrm{acc}}}}
+\newcommand{\lmdghost}[0]{\ensuremath{\operatorname{\textsc{LMD-GHOST}}}}
+\newcommand{\ghost}[0]{\ensuremath{\operatorname{\textsc{GHOST}}}}
+\newcommand{\GHOST}[0]{\textsf{GHOST}\xspace}
+\newcommand{\FFG}[0]{\textsf{FFG}\xspace}
+\newcommand{\Goldfish}[0]{\textsf{Goldfish}\xspace}
+\newcommand{\LMDGHOST}[0]{\textsf{LMD-GHOST}\xspace}
+\newcommand{\FFGCASPER}[0]{\textsf{FFG-Casper}\xspace}
+\newcommand{\LMDGHOSTHFC}[0]{\textsf{LMD-GHOST-HFC}\xspace}
+\newcommand{\ULMDGHOST}[0]{\textsf{RLMD-GHOST}\xspace}
+\newcommand{\FIL}[0]{\textsf{FIL}\xspace}
+\newcommand{\FILINV}[0]{\ensuremath{\FIL_{\lnot \mathsf{valid}}}\xspace}
+\newcommand{\FILEQ}[0]{\ensuremath{\FIL_{\mathsf{eq}}}\xspace}
+\newcommand{\FILLMD}[0]{\ensuremath{\FIL_{\mathsf{lmd}}}\xspace}
+\newcommand{\FILCUR}[0]{\ensuremath{\FIL_{\mathsf{cur}}}\xspace}
+\newcommand{\FILHFC}[0]{\ensuremath{\FIL_{\mathsf{hfc}}}\xspace}
+\newcommand{\FILLATE}[0]{\ensuremath{\FIL_{\mathsf{late}}}\xspace}
+\newcommand{\highestLMDConfirmedDesc}{\text{highestLMDConfirmedDesc}}
+\newcommand{\isOneConfirmed}{\text{isOneConfirmed}}
+\newcommand{\willChkpBeJustified}{\text{willChkpBeJustified}}
+
+
+
+\newcommand{\FC}[0]{\ensuremath{\mathsf{FC}}}
+\newcommand{\GAT}[0]{\ensuremath{\mathsf{GAT}}}
+\newcommand{\GST}[0]{\ensuremath{\mathsf{GST}}}
+\newcommand{\GGST}[0]{\ensuremath{\mathbb{GST}}}
+\newcommand{\V}[0]{\ensuremath{\mathcal{V}}}
+\newcommand{\View}{\ensuremath{\mathcal{V}}} % name clash with the above \V --- a set of validators
+% \newcommand{\View}{\ensuremath{\mathcal{V}iew}} % name clash with
+\newcommand{\B}{\texttt{B}}
+\newcommand{\genesis}{b_{\texttt{gen}}}
+\newcommand{\tuple}[1]{\langle #1\rangle}
+\newcommand{\commentout}[1]{}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\sumop}{sum}
+%\DeclareMathOperator*{\argmax}{arg\,max}
+\newcommand{\firstslot}[0]{\ensuremath{\mathsf{first\_slot}}}
+\newcommand{\lastslot}[0]{\ensuremath{\mathsf{last\_slot}}}
+\newcommand{\allU}[0]{\ensuremath{\mathsf{AU}}}
+\newcommand{\allF}[0]{\ensuremath{\mathsf{AF}}}
+
+\newcommand{\voting}[0]{\textsf{v}}
+\newcommand{\votingtime}[0]{{\mathsf{v}_{t}}}
+\newcommand{\votingchkp}[0]{{\mathsf{v}_{C}}}
+% \newcommand{\chkpattime}[0]{\mathsf{C}}
+\newcommand{\slotend}[0]{\textsf{e}}
+\newcommand{\slotstart}[0]{\ensuremath{\mathsf{st}}}
+\newcommand{\now}[0]{\textsf{n}}
+\newcommand{\nowtime}[0]{{\textsf{n}_t}}
+\newcommand{\nowchkp}[0]{{\textsf{n}_C}}
+\newcommand{\nowslot}[0]{{\textsf{n}_s}}
+\newcommand{\slotattime}[1]{\ensuremath{\mathsf{slot}(#1)}}
+\newcommand{\slot}[0]{\ensuremath{\mathsf{slot}}}
+\newcommand{\epoch}{\ensuremath{\mathsf{epoch}}}
+\newcommand{\parent}{\ensuremath{\mathsf{parent}}}
+\newcommand{\block}{\ensuremath{\mathsf{block}}}
+% \newcommand{\chain}{\ensuremath{\mathit{chain}}}
+\newcommand{\chkp}{\ensuremath{\mathsf{C}}}
+\newcommand{\latestchkp}{\ensuremath{\mathsf{C}}}
+\newcommand{\effbalass}{\ensuremath{\mathsf{EBA}}}
+\newcommand{\teffbalass}{effective-balance-assignment\xspace}
+% \newcommand{\latestjustifiedinview}{\ensuremath{\mathsf{C}}}
+\newcommand{\gu}{\ensuremath{\mathsf{GU}}}
+\newcommand{\gjblock}{\ensuremath{\mathsf{GJ}}}
+\newcommand{\gfblock}{\ensuremath{\mathsf{GF}}}
+
+\newcommand{\signer}{\ensuremath{\mathit{signer}}}
+\newcommand{\blocksinview}{\ensuremath{\mathit{blocks}}}
+\newcommand{\ffgsinview}{\ensuremath{\mathit{FFG}}}
+\newcommand{\ghostsinview}{{\ensuremath{\mathit{GHOSTs}}}}
+\newcommand{\parentslotplusone}{{\ensuremath{\mathsf{ps}^{+1}}}}
+% \newcommand{\children}{{\ensuremath{\mathit{children}}}}
+\newcommand{\receivedattime}{{\ensuremath{\mathit{rcvd\_time}}}}
+\newcommand{\banchor}{\ensuremath{b_\mathsf{anchor}}}
+
+% \newcommand{\synccondition}[1]{#1}
+% \newcommand{\synccondition}[1]{\ensuremath{\slotstart(\lastslot(\epoch(t)-2))\geq\GST}}
+
+
+
+\newcommand{\indP}{{\ensuremath{\mathit{P}}}}
+\newcommand{\indQ}{{\ensuremath{\mathit{Q}}}}
+\newcommand{\ffgPar}{{\ensuremath{\mathsf{k}}}}
+
+\newcommand{\safetyinductionrequirement}[1]{Safety Induction Requirement{#1}\xspace}
+% \newcommand{\safetyinductionrequirementvarbal}[1]{Safety Induction Requirement{#1}\xspace}
+\newcommand{\safetyinductionrequirementgeneral}[1]{General Safety Induction Requirement#1\xspace}
+
+
+% \newcommand{\ghostvotefor}{\ensuremath{\GHOST\mathit{-target}}}
+
+
+
+\newcommand{\var}[1]{\textit{#1}}
+\newcommand{\op}[1]{\textsl{#1}}
+\newcommand{\calF}{\mathcal{F}}
+\newcommand{\calH}{\mathcal{H}}
+\newcommand{\calS}{\mathcal{S}}
+\newcommand{\calV}{\mathcal{V}}
+\newcommand{\calX}{\mathcal{X}}
+\newcommand{\calW}{\mathcal{W}}
+\newcommand{\calJ}{\mathcal{J}}
+\newcommand{\calA}{\mathcal{A}}
+\newcommand{\calD}{\mathcal{D}}
+\newcommand{\calB}{\mathcal{B}}
+\newcommand{\frakB}{\mathfrak{B}}
+
+\newcommand{\slotsperepoch}[0]{{E}}
+
+\newcommand{\honvalsweight}[0]{J}
+\newcommand{\honvals}[0]{\mathcal{\honvalsweight}}
+
+\newcommand{\allattsweight}[0]{S}
+\newcommand{\allatts}[0]{\mathcal{\allattsweight}}
+
+\newcommand{\advvalsweight}[0]{A}
+\newcommand{\advvals}[0]{\mathcal{\advvalsweight}}
+
+\newcommand{\slashvalsweight}[0]{I}
+\newcommand{\slashvals}[0]{\mathcal{\slashvalsweight}}
+
+\newcommand{\honattsweight}[0]{H}
+\newcommand{\honatts}[0]{\mathcal{\honattsweight}}
+
+\newcommand{\allvalsweight}[0]{W}
+\newcommand{\allvals}[0]{\mathcal{\allvalsweight}}
+
+\newcommand{\rewardr}[0]{\rho}
+\newcommand{\exitr}[0]{\epsilon}
+\newcommand{\penr}[0]{\pi}
+\newcommand{\slashpenr}[0]{\sigma}
+\newcommand{\numslotsupbound}[0]{E}
+
+\newcommand{\boostscore}[0]{p}
+
+\newcommand{\ffgequivweight}[0]{\ensuremath{W_e}}
+
+\newcommand{\funcassummonot}{\ensuremath{\mathsf{honFFGratio}}}
+\newcommand{\funcassummonotvar}{\ensuremath{\mathsf{honFFGratioVar}}}
+
+
+\newcommand{\committee}[0]{K}
+\newcommand{\honcommittee}[0]{{K_h}}
+
+\newcommand{\chkplastslot}{\ensuremath{\mathit{GJ}^{\text{-}1}}}
+\newcommand{\safetydecay}[0]{\ensuremath{d}}
+\newcommand{\maxlookahead}[0]{\ensuremath{\ell}}
+\newcommand{\totvalsetlowerbound}[0]{\ensuremath{\mathit{f}}}
+
+
+\newcommand{\alignexpl}[2][]{%
+    \ifthenelse{\equal{#1}{}}{%
+        \text{--- #2}%
+        }{%
+        \begin{minipage}[t]{#1}%
+            \begin{itemize}[label=---,nosep,left=0pt]%
+                \item #2%
+            \end{itemize}%
+        \end{minipage}%
+    }
+}
+
+\newcommand{\eqtag}{\refstepcounter{equation}(\theequation)}
+
+% calculation proof skeleton
+% \begingroup
+% \def\alignexplwidth{5cm}
+% \begin{align*}
+%     A
+%     &\geq
+%     B
+%     % &&\alignexpl[\alignexplwidth]{XXX}
+%     \\
+% \end{align*}
+% \endgroup
+
+% add firstpage to the list of options below to show the watermakr on the firstpage only
+%\usepackage[stamp=true]{draftwatermark}
+%\SetWatermarkColor[gray]{0.97}
+%\SetWatermarkText{\fontfamily{cmss}\selectfont \textbf{Draft}}
+%\SetWatermarkScale{10}
+
+
+%\newenvironment{proof}[1][Proof]{\begin{trivlist}
+%\item[\hskip \labelsep {\bfseries #1}]}{\end{trivlist}}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}{Corollary}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newtheorem{definition}{Definition}
+\newtheorem{example}{Example}
+\newtheorem{assumption}{Assumption}
+\newtheorem{property}{Property}
+\newtheorem{problem}{Problem}
+
+\newtheorem{manualassumptioninner}{Assumption}
+\newenvironment{manualassumption}[1]{%
+  \renewcommand\themanualassumptioninner{#1}%
+  \manualassumptioninner
+}{\endmanualassumptioninner}
+
+\newtheorem{manuallemmainner}{Lemma}
+\newenvironment{manuallemma}[1]{%
+  \renewcommand\themanuallemmainner{#1}%
+  \manuallemmainner
+}{\endmanuallemmainner}
+
+\newtheorem{manualtheoreminner}{Theorem}
+\newenvironment{manualtheorem}[1]{%
+  \renewcommand\themanualtheoreminner{#1}%
+  \manualtheoreminner
+}{\endmanualtheoreminner}
+
+\newcommand{\etal}{\textit{et al}.}
+\newcommand{\ie}{\textit{i}.\textit{e}.}
+\newcommand{\eg}{\textit{e}.\textit{g}.}
+
+% Custom macro using \footnotemark with bold footnote numbers
+
+\newcommand{\fcomment}[3]{%
+\begingroup%
+\renewcommand{\thefootnote}{\color{#1}\textbf{\arabic{footnote}}}%
+\hypersetup{linkbordercolor=#1,pdfborder=0 0 2}%
+\textcolor{#1}{\footnotemark}{\footnotetext{\color{#1} #2: #3}}%
+\renewcommand{\thefootnote}{\arabic{footnote}}%
+\endgroup%
+}
+
+% \newcommand{\RS}[1]{{\color{red}RS: #1}}
+% \newcommand{\RSsimple}[1]{{\color{red}#1}}
+% \newcommand{\RSfn}[1]{\fcomment{red}{RS}{#1}}
+% \newcommand{\LZfn}[1]{\fcomment{blue}{LZ}{#1}}
+% \newcommand{\CZ}[1]{\textcolor{blue}{#1}}
+% \newcommand{\CZfn}[1]{\fcomment{blue}{CZ}{#1}}
+% \newcommand{\PC}[1]{\textcolor{purple}{#1}}
+% \newcommand{\fix}[1]{{\color{orange}#1}}
+% \newcommand{\tobefixed}[1]{{\color{red}#1}}
+% \newcommand{\fixtwo}[1]{{\color{teal}#1}}
+% \newcommand{\startfix}[0]{\begingroup \color{orange}}
+% \newcommand{\finishfix}[0]{\endgroup}
+
+% \newcommand{\RS}[1]{{\color{red}RS: #1}}
+\newcommand{\RSsimple}[1]{#1}
+\newcommand{\RSfn}[1]{}
+% \newcommand{\LZfn}[1]{\fcomment{blue}{LZ}{#1}}
+% \newcommand{\CZ}[1]{\textcolor{blue}{#1}}
+\newcommand{\CZfn}[1]{}
+
+\newcommand{\sep}[0]{\leavevmode\\\noindent\rule{\textwidth}{1pt}\\}
+
+\renewlist{enumerate*}{enumerate*}{2}
+\setlist[enumerate*,1,2]{label=(\roman*),itemjoin={{, }}, itemjoin*={{, and }}}
+
+
+\DeclareMathOperator*{\argmax}{arg\,max}
