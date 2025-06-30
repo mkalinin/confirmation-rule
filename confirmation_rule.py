@@ -373,7 +373,8 @@ def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) 
             
         # the tentative_confirmed_root can only be confirmed if we can ensure that it is not going to be reorged out in either the current or next epoch.
         if (get_block_epoch(tentative_confirmed_root) == current_epoch 
-            or store.unrealized_justifications[tentative_confirmed_root].epoch + 1 == current_epoch):
+            or (get_current_slot(store) % SLOTS_PER_EPOCH == 0 and store.unrealized_justifications[tentative_confirmed_root].epoch + 2 >= current_epoch)
+            or store.unrealized_justifications[tentative_confirmed_root].epoch + 1 >= current_epoch):
             confirmed_root = tentative_confirmed_root
             
     return confirmed_root        
