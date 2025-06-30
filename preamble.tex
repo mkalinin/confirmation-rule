@@ -584,6 +584,7 @@
 \newcommand{\FILLATE}[0]{\ensuremath{\FIL_{\mathsf{late}}}\xspace}
 \newcommand{\highestLMDConfirmedDesc}{\text{highestLMDConfirmedDesc}}
 \newcommand{\isOneConfirmed}{\text{isOneConfirmed}}
+\newcommand{\isLMDConfirmed}{\text{isLMDConfirmed}}
 \newcommand{\willChkpBeJustified}{\text{willChkpBeJustified}}
 
 
@@ -617,8 +618,9 @@
 \newcommand{\nowtime}[0]{{\textsf{n}_t}}
 \newcommand{\nowchkp}[0]{{\textsf{n}_C}}
 \newcommand{\nowslot}[0]{{\textsf{n}_s}}
-\newcommand{\slotattime}[1]{\ensuremath{\mathsf{slot}(#1)}}
+% \newcommand{\slotattime}[1]{\ensuremath{\mathsf{slot}(#1)}}
 \newcommand{\slot}[0]{\ensuremath{\mathsf{slot}}}
+\newcommand{\slotstartslot}[1]{\slotstart(\slot(#1))}
 \newcommand{\epoch}{\ensuremath{\mathsf{epoch}}}
 \newcommand{\parent}{\ensuremath{\mathsf{parent}}}
 \newcommand{\block}{\ensuremath{\mathsf{block}}}
