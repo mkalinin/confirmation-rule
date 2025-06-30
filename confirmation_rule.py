@@ -20,6 +20,7 @@ class Store(object):
     unrealized_justifications: Dict[Root, Checkpoint] = field(default_factory=dict)
     confirmed_root: Root  # New for confirmation rule
     prev_slot_justified_checkpoint: Checkpoint  # New for confirmation rule
+    prev_slot_head: Root # New for confirmation
 
 
 def get_forkchoice_store(anchor_state: BeaconState, anchor_block: BeaconBlock) -> Store:
@@ -44,6 +45,7 @@ def get_forkchoice_store(anchor_state: BeaconState, anchor_block: BeaconBlock) -
         unrealized_justifications={anchor_root: justified_checkpoint},
         confirmed_root=finalized_checkpoint.root,  # New for confirmation rule
         prev_slot_justified_checkpoint=justified_checkpoint,  # New for confirmation rule
+        prev_slot_head=justified_checkpoint.root,  # New for confirmation rule
     )
 
 
@@ -296,6 +298,19 @@ def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) 
         
         confirmed_root = block_root
 
+    # For previous epoch blocks check that either the voting source of a block itself
+    # or the voting source of its descendant (use previous slot head if possible)
+    # is at least epoch(t) - 2
+    confirmed_slot = store.blocks[confirmed_root].slot
+    if compute_epoch_at_slot(confirmed_slot) < current_epoch:
+        if (confirmed_root == get_ancestor(store, store.prev_slot_head, confirmed_slot)):
+            descendant_root = store.prev_slot_head
+        else:
+            descendant_root = confirmed_root
+
+        if get_voting_source(store, descendant_root).epoch + 2 < current_epoch:
+            confirmed_root = latest_confirmed_root
+
     return confirmed_root
 
 
@@ -319,7 +334,7 @@ def get_latest_confirmed(store: Store) -> Root:
     # and the following conditions are met:
     #     1) UJ checkpoint is from the current epoch
     #     2) by the beginning of the previous slot it is known that the previous epoch is justified
-    #     3) previous epoch checkpoint is an ancestor of UJ checkpoint
+    #     3) UJ is ancestor of prev_slot_head and vs(prev_slot_head) = GJ
     #
     # useful in the case when the confirmation rule machinery should be restarted after a period of asynchrony
     # UJ becomes GJ in the beginning of the next epoch
@@ -327,12 +342,11 @@ def get_latest_confirmed(store: Store) -> Root:
     confirmed_block_slot = store.blocks[confirmed_root].slot
     unrealized_justified_slot = store.blocks[store.unrealized_justified_checkpoint.root].slot
     unrealized_justified_root = store.unrealized_justified_checkpoint.root
-    prev_slot_justified_slot = store.blocks[store.prev_slot_justified_checkpoint.root].slot
-    prev_slot_justified_root = store.prev_slot_justified_checkpoint.root
     if (confirmed_block_slot < unrealized_justified_slot
         and store.unrealized_justified_checkpoint.epoch == current_epoch
         and store.prev_slot_justified_checkpoint.epoch + 1 == current_epoch
-        and prev_slot_justified_root == get_ancestor(store, unrealized_justified_root, prev_slot_justified_slot)):
+        and unrealized_justified_root == get_ancestor(store, prev_slot_head, unrealized_justified_slot)
+        and get_voting_source(store, prev_slot_head) == store.justified_checkpoint):
             confirmed_root = store.unrealized_justified_checkpoint.root
 
     # attempt to further advance the latest confirmed block
@@ -350,3 +364,4 @@ def on_tick_per_slot_after_attestations_applied(store: Store):
     # 3) on_tick_per_slot_after_attestations_applied(store) is called
     store.confirmed_root = get_latest_confirmed(store)
     store.prev_slot_justified_checkpoint = store.justified_checkpoint
+    store.prev_slot_head = get_head(store)
