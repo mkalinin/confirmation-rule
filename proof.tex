@@ -1,14 +1,9 @@
 \documentclass{article}
+\usepackage[utf8]{inputenc}
+% \usepackage[margin=2.5cm]{geometry}
+% \pagestyle{plain}
+\include{preamble.tex}
 \usepackage{amsmath, amssymb, amsthm}
-\usepackage{hyperref}
-\usepackage[linesnumbered,ruled]{algorithm2e}
-\SetKwProg{Fn}{function}{}{end}
-\SetNlSty{textbf}{}{:}
-
-
-\newtheorem{lemma}{Lemma}
-\newtheorem{definition}{Definition}
-
 
 \begin{document}
 
@@ -23,7 +18,7 @@ See:
 \begin{definition}[LMD-GHOST Safety condition for a single block]
     Given $C \in AU(b):$
     \[
-    \text{isOneConfirmed}_v(b, C, t) := Q^{\text{slot}(t)-1,\ v,\ t,\ C}_{b} > \frac{1}{2}\left(1 + \frac{W^C_p}{W^{\text{slot}(t)-1,\ C}_b}\right)
+    \isOneConfirmed_v(b, C, t) := Q^{\slot(t)-1,\ v,\ t,\ C}_{b} > \frac{1}{2}\left(1 + \frac{W^C_p}{W^{\slot(t)-1,\ C}_b}\right)
     \]
 \end{definition}
 
@@ -31,21 +26,21 @@ See:
 \begin{algorithm}[H]
 \caption{Highest LMD-GHOST confirmed descendant}
 \SetAlgoNoLine
-\Fn{highestLMDConfirmedDesc$_v(b_{\text{anchor}}, t)$}{
-    blocks $\gets \left\{b'' \in \nu^{v,t} : b_{\text{anchor}} \preceq b'' \preceq \text{LMD\_GHOST\_HFC}(\nu, t)\right\}$\;
+\Fn{\highestLMDConfirmedDesc$_v(\banchor, t)$}{
+    blocks $\gets \left\{b'' \in \viewattime[time=t,val=v] : \banchor \preceq b'' \preceq \LMDGHOSTHFC(\viewattime[time=t,val=v], t)\right\}$\;
     
-    \Return{$\max\left(\left\{b' \in \text{blocks} : \forall b'' \in \text{blocks}, b'' \preceq b' \Rightarrow \text{isOneConfirmed}_v(b'', GJ^{\text{st}(\text{slot}(t) - 1),v}, t)\right\}\right)$}\;
+    \Return{$\max\left(\left\{b' \in \text{blocks} : \forall b'' \in \text{blocks}, b'' \preceq b' \Rightarrow \isOneConfirmed_v(b'', GJ^{\slotstart(\slot(t) - 1),v}, t)\right\}\right)$}\;
 }
 \end{algorithm}
 
 
 \begin{lemma}
-If $t$ and $t'$ are any two times, $b := \text{highestLMDConfirmedDesc}_v(b_{\text{anchor}}, t)$, $t \leq t'$ and the following holds:
+If $t$ and $t'$ are any two times, $b := \highestLMDConfirmedDesc_v(\banchor, t)$, $t \leq t'$ and the following holds:
 \begin{enumerate}
-    \item $\text{st}(\text{slot}(t) - 1) \geq \text{GST},$
-    \item $b_{\text{anchor}}$ is canonical in the view of any honest validator $v'$ at time $t,$
-    \item $GJ^{t',v} \succeq GJ^{\text{st}(\text{slot}(t) - 1),v},$
-    \item $b \in \text{filt}^{t',v'}_{\text{hfc}}$
+    \item $\slotstart(\slot(t) - 1) \geq \GST,$
+    \item $\banchor$ is canonical in the view of any honest validator $v'$ at time $t,$
+    \item $\gjattime[time=t',val=v] \succeq \gjattime[time=\slotstart(\slot(t) - 1),val=v],$
+    \item $b \in \filtered[time=t',val=v']$
 \end{enumerate}
 
 then $b$ is canonical in the view of any honest validator $v'$ at time $t'$.
@@ -60,31 +55,31 @@ then $b$ is canonical in the view of any honest validator $v'$ at time $t'$.
 \caption{Highest confirmed descendant}
 % \SetAlgoLined
 \SetAlgoNoLine
-\Fn{highestConfirmedDesc$_v(b_{\text{anchor}}, t)$}{
-    $b' \gets \text{highestLMDConfirmedDesc}_v(b_{\text{anchor}}, t)$\;
+\Fn{highestConfirmedDesc$_v(\banchor, t)$}{
+    $b' \gets \highestLMDConfirmedDesc_v(\banchor, t)$\;
     
-    \uIf{$\text{epoch}(t) = \text{epoch}(b') > \text{epoch}(b_{\text{anchor}})$}{
-        \uIf{$\text{willChkpBeJustified}_v(C(b'))$ \textbf{and} $\exists b'' \succeq b' : \text{epoch}(GU(b'')) \geq \text{epoch}(t) - 1$}{
+    \uIf{$\epoch(t) = \epoch(b') > \epoch(\banchor)$}{
+        \uIf{$\willChkpBeJustified_v(\chkp(b'))$ \textbf{and} $\exists b'' \succeq b' : \epoch(\gu(b'')) \geq \epoch(t) - 1$}{
             \Return{$b'$}\;
         }
         \uElse{
-            \Return{$\max\left(\left\{b'' \in \nu^{v,t} : b_{\text{anchor}} \preceq b'' \prec b' \wedge \text{epoch}(b'') = \text{epoch}(b_{\text{anchor}})\right\}\right)$}\;
+            \Return{$\max\left(\left\{b'' \in \viewattime[time=t,val=v] : \banchor \preceq b'' \prec b' \wedge \epoch(b'') = \epoch(\banchor)\right\}\right)$}\;
         }
     }
-    \uElseIf{$\text{epoch}(t) = \text{epoch}(b') = \text{epoch}(b_{\text{anchor}})$}{
-        \uIf{$\exists b'' \succeq b' : \text{epoch}(GU(b'')) \geq \text{epoch}(t) - 1$}{
+    \uElseIf{$\epoch(t) = \epoch(b') = \epoch(\banchor)$}{
+        \uIf{$\exists b'' \succeq b' : \epoch(\gu(b'')) \geq \epoch(t) - 1$}{
             \Return{$b'$}\;
         }
         \uElse{
-            \Return{$b_{\text{anchor}}$}\;
+            \Return{$\banchor$}\;
         }
     }
-    \uElseIf{$\text{epoch}(t) > \text{epoch}(b')$ \textbf{and} $\text{slot}(t) = \text{first\_slot}(\text{epoch}(t))$}{
-        \uIf{$\text{epoch}(GU(b')) \geq \text{epoch}(t) - 2$}{
+    \uElseIf{$\epoch(t) > \epoch(b')$ \textbf{and} $\slot(t) = \text{first\_slot}(\epoch(t))$}{
+        \uIf{$\epoch(\gu(b')) \geq \epoch(t) - 2$}{
             \Return{$b'$}\;
         }
         \uElse{
-            \Return{$b_{\text{anchor}}$}\;
+            \Return{$\banchor$}\;
         }
     }
     \uElse{
@@ -94,17 +89,17 @@ then $b$ is canonical in the view of any honest validator $v'$ at time $t'$.
 \end{algorithm}
 
 \begin{lemma}
-If $t$ and $t'$ are any two times such that $t' \geq t \wedge \text{epoch}(t') = \text{epoch}(t)$, $b := \text{highestConfirmedDesc}_v(b_{\text{anchor}}, t)$, $\text{epoch}(b) = \text{epoch}(t) - 1$ and the following holds:
+If $t$ and $t'$ are any two times such that $t' \geq t \wedge \epoch(t') = \epoch(t)$, $b := \text{highestConfirmedDesc}_v(\banchor, t)$, $\epoch(b) = \epoch(t) - 1$ and the following holds:
 
 \begin{enumerate}
-    \item $\text{st}(\text{epoch}(t) - 1) \geq \text{GST},$
-    \item $b_{\text{anchor}}, \text{epoch}(b_{\text{anchor}}) = \text{epoch}(t) - 1$ is canonical in the view of any validator $v'$ at time $\text{st}(\text{slot}(t) - 1),$
-    \item At the time $t'' \leq \text{st}(\text{last\_slot}(\text{epoch}(t) - 1))$ in the view of validator $v$ exists block $b' \preceq b : \text{epoch}(b') = \text{epoch}(t) - 1$ such that $\text{willChkpBeJustified}^{t''}_v(C(b')) = \text{True},$
-    \item At the time $\text{st}(\text{slot}(t) - 1)$ $\exists b'' \succeq b_{\text{anchor}} : \text{epoch}(b'') = \text{epoch}(t) - 1 \wedge \text{epoch}(GU(b'')) \geq \text{epoch}(t) - 2,$
-    \item $GJ^{\text{st}(\text{last\_slot}(\text{epoch}(t) - 1)),v} = C(b, *)$
+    \item $\slotstart(\epoch(t) - 1) \geq \GST,$
+    \item $\banchor, \epoch(\banchor) = \epoch(t) - 1$ is canonical in the view of any validator $v'$ at time $\slotstart(\slot(t) - 1),$
+    \item At the time $t'' \leq \slotstart(\lastslot(\epoch(t) - 1))$ in the view of validator $v$ exists block $b' \preceq b : \epoch(b') = \epoch(t) - 1$ such that $\willChkpBeJustified^{t''}_v(\chkp(b')) = \True,$
+    \item At the time $\slotstart(\slot(t) - 1)$ $\exists b'' \succeq \banchor : \epoch(b'') = \epoch(t) - 1 \wedge \epoch(\gu(b'')) \geq \epoch(t) - 2,$
+    \item $\gjattime[time=\slotstart(\lastslot(\epoch(t) - 1)),val=v] = \chkp(b, *)$
 \end{enumerate}
 
-then $b$ is canonical in the view of any honest validator $v'$ at time $t' < \text{st}(\text{epoch}(b) + 2)$.
+then $b$ is canonical in the view of any honest validator $v'$ at time $t' < \slotstart(\epoch(b) + 2)$.
 \end{lemma}
 
 \begin{proof}
@@ -114,21 +109,21 @@ then $b$ is canonical in the view of any honest validator $v'$ at time $t' < \te
 
 
 \begin{lemma}
-   If $t$ and $t'$ are any two times such that $t' \geq t$, $b := \text{highestConfirmedDesc}_v(b_{\text{anchor}}, t)$, $\text{epoch}(b) = \text{epoch}(t)$ and the following holds:
+   If $t$ and $t'$ are any two times such that $t' \geq t$, $b := \text{highestConfirmedDesc}_v(\banchor, t)$, $\epoch(b) = \epoch(t)$ and the following holds:
     
     \begin{enumerate}
-        \item $\text{st}(\text{epoch}(t') - 1) \geq \text{GST},$
-        \item $b_{\text{anchor}}$ is canonical in the view of any validator $v'$ at time $t,$
-        \item At the time $t'' \leq \text{st}(\text{last\_slot}(\text{epoch}(t)))$ in the view of validator $v$ exists block $b' \preceq b : \text{epoch}(b') = \text{epoch}(t)$ such that:
+        \item $\slotstart(\epoch(t') - 1) \geq \GST,$
+        \item $\banchor$ is canonical in the view of any validator $v'$ at time $t,$
+        \item At the time $t'' \leq \slotstart(\lastslot(\epoch(t)))$ in the view of validator $v$ exists block $b' \preceq b : \epoch(b') = \epoch(t)$ such that:
         \begin{enumerate}
-            \item $willChkpBeJustified^{t''}_v(C(b')),$
-            \item $\exists b'' \succeq b' : \text{epoch}(b'') = \text{epoch}(t) \wedge \text{epoch}(GU(b'')) \geq \text{epoch}(t) - 1,$
+            \item $willChkpBeJustified^{t''}_v(\chkp(b')),$
+            \item $\exists b'' \succeq b' : \epoch(b'') = \epoch(t) \wedge \epoch(\gu(b'')) \geq \epoch(t) - 1,$
         \end{enumerate}
-        \item $GU^{\text{st}(\text{last\_slot}(\text{epoch}(t) - 1)),v} \succeq C(b, \text{epoch}(t) - 2),$
-        \item $GJ^{\text{st}(\text{last\_slot}(\text{epoch}(t) - 1)),v} = C(b, *),$
+        \item $\guattime[time=\slotstart(\lastslot(\epoch(t) - 1)),val=v] \succeq \chkp(b, \epoch(t) - 2),$
+        \item $\gjattime[time=\slotstart(\lastslot(\epoch(t) - 1)),val=v] = \chkp(b, *),$
     \end{enumerate}
     
-    then $b$ is canonical in the view of any honest validator $v'$ at time $t' < \text{st}(\text{epoch}(b) + 2)$.
+    then $b$ is canonical in the view of any honest validator $v'$ at time $t' < \slotstart(\epoch(b) + 2)$.
 \end{lemma}
 
 \begin{proof}
@@ -138,21 +133,21 @@ then $b$ is canonical in the view of any honest validator $v'$ at time $t' < \te
 % \section*{Algorithm 102}
 % \textbf{(Highest confirmed)}
 
-Let $V^{v,t}$ be the view of a validator $v$ at the start of $\text{slot}(t)$ to which all the votes cast and observed by $v$ before $\text{st}(\text{slot}(t))$ are applied.
+Let $\viewatstslottime[val=v,time=t]$ be the view of a validator $v$ at the start of $\slot(t)$ to which all the votes cast and observed by $v$ before $\slotstart(\slot(t))$ are applied.
 
 \begin{algorithm}[H]
 \SetAlgoNoLine
-\Fn{$\text{highestConfirmed}_v(V^{v,t})$}{
-    $b' \gets \text{highestConfirmed}(V^{v, \text{st}(\text{slot}(t) - 1)})$\;
-    \uIf{$b' \preceq \text{LMD\_GHOST\_HFC}(V^{v,t})$ \textbf{and} $\text{epoch}(b') \geq \text{epoch}(t) - 1$}{
+\Fn{$\text{highestConfirmed}_v(\viewatstslottime[val=v,time=t])$}{
+    $b' \gets \text{highestConfirmed}(\viewatstslottime[val=v, time=\slotstart(\slot(t) - 1)])$\;
+    \uIf{$b' \preceq \LMDGHOSTHFC(\viewatstslottime[val=v,time=t])$ \textbf{and} $\epoch(b') \geq \epoch(t) - 1$}{
         \Return{$\text{highestConfirmedDesc}_v(b', t)$}\;
     }
     \uElseIf{
-        $\text{epoch}(GU(V^{v,t})) = \text{epoch}(t)$ \textbf{and} \\
-        $\text{epoch}(GJ(V^{v, \text{st}(\text{slot}(t) - 1)})) = \text{epoch}(t) - 1$ \textbf{and} \\
-        $GU(V^{v,t}) \succeq GJ^{\text{st}(\text{slot}(t) - 1), v}$
+        $\epoch(\gu(\viewatstslottime[val=v,time=t])) = \epoch(t)$ \textbf{and} \\
+        $\epoch(\gjview[view={\viewattime[val=v, time=\slotstart(\slot(t) - 1)]}]) = \epoch(t) - 1$ \textbf{and} \\
+        $\gu(\viewatstslottime[val=v,time=t]) \succeq \gjattime[time=\slotstart(\slot(t) - 1), val=v]$
     }{
-        \Return{$\text{highestConfirmedDesc}_v(\text{block}(GU(V^{v,t})), t)$}\;
+        \Return{$\text{highestConfirmedDesc}_v(\text{block}(\gu(\viewatstslottime[val=v,time=t])), t)$}\;
     }
     \uElse{
         \Return{$b_{\text{fin}}$}\;
@@ -162,10 +157,10 @@ Let $V^{v,t}$ be the view of a validator $v$ at the start of $\text{slot}(t)$ to
 \end{algorithm}
 
 \begin{lemma}
-    If $t$ and $t'$ are any two times such that $t' \geq t$, $b := \text{highestConfirmed}(V^{v,t})$ and the following holds:
+    If $t$ and $t'$ are any two times such that $t' \geq t$, $b := \text{highestConfirmed}(\viewatstslottime[val=v,time=t])$ and the following holds:
     
     \begin{enumerate}
-        \item $\text{st}(\text{epoch}(t) - 1) \geq \text{GST},$
+        \item $\slotstart(\epoch(t) - 1) \geq \GST,$
     \end{enumerate}
     
     then $b$ is canonical in the view of any honest validator $v'$ at time $t'$.
@@ -180,21 +175,21 @@ Let $V^{v,t}$ be the view of a validator $v$ at the start of $\text{slot}(t)$ to
     If $t$ and $t'$ are any two times such that $t' \geq t$ and the following holds:
     
     \begin{enumerate}
-        \item $\text{st}(\text{epoch}(t')) \geq \text{GST},$
-        \item $\text{epoch}(GU^{t,v}) = \text{epoch}(t),$
-        \item $\text{epoch}(GJ^{\text{st}(\text{slot}(t)-1),v}) = \text{epoch}(t) - 1,$
-        \item $GU^{t,v} \succeq GJ^{\text{st}(\text{slot}(t)-1),v},$
+        \item $\slotstart(\epoch(t')) \geq \GST,$
+        \item $\epoch(\guattime[time=t,val=v]) = \epoch(t),$
+        \item $\epoch(\gjattime[time=\slotstart(\slot(t)-1),val=v]) = \epoch(t) - 1,$
+        \item $\guattime[time=t,val=v] \succeq \gjattime[time=\slotstart(\slot(t)-1),val=v],$
     \end{enumerate}
     
-then $GU^{t,v}$ is canonical in the view of any honest validator $v'$ at any time $t'$.
+then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator $v'$ at any time $t'$.
 \end{lemma}
 
 \begin{proof}
     TBD...
 
     \begin{description}
-        \item[Case 1: $\text{epoch}(t') = \text{epoch}(t)$.]
-        \item[Case 2: $\text{epoch}(t') > \text{epoch}(t)$.]  
+        \item[Case 1: $\epoch(t') = \epoch(t)$.]
+        \item[Case 2: $\epoch(t') > \epoch(t)$.]  
     \end{description}
 \end{proof}
 
