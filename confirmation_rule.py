@@ -314,9 +314,10 @@ def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) 
     
     if (get_block_epoch(confirmed_root) + 1 == current_epoch 
         and get_voting_source(store, store.prev_slot_head).epoch + 2 >= current_epoch 
-        and (get_current_slot(store) % SLOTS_PER_EPOCH == 0 
-             or store.unrealized_justifications[store.prev_slot_head].epoch + 1 >= current_epoch 
-             or store.unrealized_justifications[head].epoch + 1 >= current_epoch)):
+        and (get_current_slot(store) % SLOTS_PER_EPOCH == 0
+             or (will_no_conflicting_checkpoint_be_justified(store, get_checkpoint_block(store, head, current_epoch))
+                 and (store.unrealized_justifications[store.prev_slot_head].epoch + 1 >= current_epoch
+                      or store.unrealized_justifications[head].epoch + 1 >= current_epoch)))):
         # retrieve suffix of the canonical chain
         # verify the latest_confirmed_root belongs to it
         canonical_roots = get_canonical_roots(store, confirmed_root)
