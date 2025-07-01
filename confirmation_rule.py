@@ -344,7 +344,8 @@ def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) 
             
             confirmed_root = block_root
             
-    if store.unrealized_justifications[head].epoch + 1 >= current_epoch:
+    if (get_current_slot(store) % SLOTS_PER_EPOCH == 0
+        or store.unrealized_justifications[head].epoch + 1 >= current_epoch):
         # retrieve suffix of the canonical chain
         # verify the latest_confirmed_root belongs to it
         canonical_roots = get_canonical_roots(store, confirmed_root)
