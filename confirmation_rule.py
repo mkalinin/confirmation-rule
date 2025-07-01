@@ -298,6 +298,21 @@ def get_canonical_roots(store: Store, ancestor_slot: Slot) -> Sequence[Root]:
     return canonical_roots
 
 
+def find_highest_lmd_confirmed_index(store: Store,
+        chain_roots: list[Root], lmd_confirmed_idx: int, end_idx: int = None) -> int:
+    if end_idx is None:
+        end_idx = len(chain_roots)
+
+    highest_lmd_confirmed_idx = lmd_confirmed_idx
+    for idx in range(lmd_confirmed_idx + 1, end_idx):
+        if is_one_confirmed(store, chain_roots[idx]):
+            highest_lmd_confirmed_idx = idx
+        else:
+            break
+
+    return highest_lmd_confirmed_idx
+
+
 def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) -> Root:
     """
     This function assumes that the ``latest_confirmed_root`` belongs to the canonical chain
@@ -309,17 +324,24 @@ def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) 
     assert compute_block_epoch(latest_confirmed_root) + 1 >= current_epoch
 
     head = get_head(store)
-    confirmed_root = latest_confirmed_root
 
     # retrieve suffix of the canonical chain
     # verify the latest_confirmed_root belongs to it
-    canonical_roots = get_canonical_roots(store, store.blocks[confirmed_root].slot)
-    assert canonical_roots.pop(0) == confirmed_root
+    canonical_roots = get_canonical_roots(store, store.blocks[latest_confirmed_root].slot)
+    assert len(canonical_roots) > 0
+    assert canonical_roots[0] == latest_confirmed_root
 
-    prev_epoch_roots = [root for root in canonical_roots if get_block_epoch(store, root) < current_epoch]
-    curr_epoch_roots = [root for root in canonical_roots if get_block_epoch(store, root) == current_epoch]
+    confirmed_idx = 0
+    lmd_confirmed_idx = 0
+    first_curr_epoch_block_idx = len(canonical_roots)
 
-    if len(prev_epoch_roots) > 0:
+    # Find the first current epoch block if exists
+    for idx, block_root in enumerate(canonical_roots):
+        if get_block_epoch(store, block_root) == current_epoch:
+            first_curr_epoch_block_idx = idx
+            break
+
+    if len(canonical_roots) > confirmed_idx + 1:
         # To confirm previous epoch blocks in the middle of the current epoch ensure that:
         # 1) no conflicting checkpoint for the current epoch can be justified
         # 2) a confirmed block can't get filtered out after moving to the next epoch
@@ -330,61 +352,54 @@ def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) 
                     and (store.unrealized_justifications[store.prev_slot_head].epoch + 1 >= current_epoch
                          or store.unrealized_justifications[head].epoch + 1 >= current_epoch)
             ):
-                return confirmed_root
+                return canonical_roots[confirmed_idx]
 
-        # Use a confirmed block's voting source to ensure the block is not filtered out by other validators
-        # when at the beginning of the current epoch
+        # Advance LMD confirmed index as far as we can with previous epoch blocks
+        lmd_confirmed_idx = find_highest_lmd_confirmed_index(
+            store, canonical_roots, lmd_confirmed_idx, first_curr_epoch_block_idx)
+
+        # When at the beginning of the current epoch,
+        # attempt to use an LMD confirmed block to ensure the block is not filtered out by other validators
         if get_current_slot(store) % SLOTS_PER_EPOCH == 0:
-            while len(prev_epoch_roots) > 0:
-                block_root = prev_epoch_roots[0]
-                # If we reach the current epoch,
-                # we exit as this code is only for confirming blocks from the previous epoch
-                if get_block_epoch(store, block_root) == current_epoch:
-                    break
-                if store.unrealized_justifications[block_root].epoch + 2 < current_epoch:
-                    break
-                if not is_one_confirmed(store, block_root):
-                    break
+            lmd_confirmed_root = canonical_roots[lmd_confirmed_idx]
+            if store.unrealized_justifications[lmd_confirmed_root].epoch + 2 >= current_epoch:
+                confirmed_idx = lmd_confirmed_idx
 
-                # remove confirmed block from the chain suffix
-                confirmed_root = prev_epoch_roots.pop(0)
-
-        # Use prev_slot_head to ensure the block is not filtered out by other validators
-        # during the current epoch
-        if get_voting_source(store.prev_slot_head).epoch + 2 >= current_epoch:
-            while len(prev_epoch_roots) > 0:
-                block_root = prev_epoch_roots[0]
-                # If we reach the current epoch,
-                # we exit as this code is only for confirming blocks from the previous epoch
-                if get_block_epoch(store, block_root) == current_epoch:
-                    break
-                if not is_ancestor(store, store.prev_slot_head, block_root):
-                    break
-                if not is_one_confirmed(store, block_root):
-                    break
-
-                # remove confirmed block from the chain suffix
-                confirmed_root = prev_epoch_roots.pop(0)
-
-        # Use confirmed block from the current epoch
-        # to ensure the block is not filtered out by other validators
-        # during neither the current nor the next epochs
-        if (len(prev_epoch_roots) > 0
-            and len(curr_epoch_roots) > 0
-            and store.unrealized_justifications[head].epoch + 1 >= current_epoch
-            and is_one_confirmed(store, curr_epoch_roots[0])
+        # When either at the beginning or in the middle of the current epoch,
+        # attempt to use prev_slot_head to ensure the block is not filtered out by other validators
+        if (confirmed_idx < lmd_confirmed_idx
+            and get_voting_source(store, store.prev_slot_head).epoch + 2 >= current_epoch
         ):
-            while len(prev_epoch_roots) > 0:
-                block_root = prev_epoch_roots[0]
-                if not is_one_confirmed(store, block_root):
+            # Use the common ancestor of the prev_slot_head and current head
+            # if it belongs to the yet unconfirmed suffix of the chain
+            prev_slot_head_ancestor_idx = -1
+            for idx in range(confirmed_idx + 1, len(canonical_roots)):
+                if is_ancestor(store, store.prev_slot_head, canonical_roots[idx]):
+                    prev_slot_head_ancestor_idx = idx
+                else:
                     break
 
-                # remove confirmed block from the chain suffix
-                confirmed_root = prev_epoch_roots.pop(0)
+            if prev_slot_head_ancestor_idx > confirmed_idx:
+                confirmed_idx = max(lmd_confirmed_idx, prev_slot_head_ancestor_idx)
 
-    if len(curr_epoch_roots) > 0 and store.blocks[curr_epoch_roots[0]].parent == confirmed_root:
+        # When in the middle of the current epoch,
+        # attempt to use a confirmed block from the current epoch to ensure that the previous epoch block:
+        # 1) is not filtered out by other validators during the current epoch
+        # 2) will not get filtered out after moving to the next epoch
+        if (confirmed_idx < lmd_confirmed_idx
+            and first_curr_epoch_block_idx < len(canonical_roots)
+            and store.unrealized_justifications[head].epoch + 1 >= current_epoch
+        ):
+            if is_one_confirmed(store, canonical_roots[first_curr_epoch_block_idx]):
+                confirmed_idx = lmd_confirmed_idx
+                # Advance LMD confirmed index to the first block of the current epoch if possible
+                if lmd_confirmed_idx + 1 == first_curr_epoch_block_idx:
+                    lmd_confirmed_idx = first_curr_epoch_block_idx
+
+    if confirmed_idx + 1 == first_curr_epoch_block_idx < len(canonical_roots):
         # To start confirming blocks from the current epoch ensure
         # the current epoch checkpoint will be justified
+        confirmed_root = canonical_roots[confirmed_idx]
         if get_block_epoch(store, confirmed_root) < current_epoch:
             checkpoint_root = get_checkpoint_block(store, head, current_epoch)
             checkpoint = Checkpoint(checkpoint_root, current_epoch)
@@ -393,14 +408,12 @@ def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) 
 
         # Ensure current epoch blocks won't get filtered out after moving to the next epoch
         if store.unrealized_justifications[head].epoch + 1 >= current_epoch:
-            for block_root in curr_epoch_roots:
-                if not is_one_confirmed(store, block_root):
-                    break
+            # Set confirmed index to the highest LMD confirmed index
+            confirmed_idx = find_highest_lmd_confirmed_index(store, canonical_roots, lmd_confirmed_idx)
 
-                confirmed_root = block_root
+    return canonical_roots[confirmed_idx]
 
-    return confirmed_root        
-        
+
 def get_latest_confirmed(store: Store) -> Root:
     confirmed_root = store.confirmed_root
     current_epoch = get_current_store_epoch(store)
