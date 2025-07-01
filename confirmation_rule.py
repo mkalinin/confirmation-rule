@@ -328,8 +328,6 @@ def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) 
         # and stop when the first unconfirmed descendant is encountered        
         for block_root in canonical_roots:        
             block_epoch = compute_epoch_at_slot(store.blocks[block_root].slot)
-
-            confirmed_epoch = compute_epoch_at_slot(store.blocks[confirmed_root].slot)
             
             # If we reach the current epoch, we exit as this code is only for confirming blocks from the previous epoch
             if block_epoch == current_epoch:
