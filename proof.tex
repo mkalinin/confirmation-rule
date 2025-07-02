@@ -70,24 +70,14 @@ Let $\viewattime[val=v,time=\slotstart(s)]$ be the view of a validator $v$ at th
     $\head \gets \LMDGHOSTHFC(\viewattime[val=v,time=\slotstart(s)])$\;
     $\phead \gets \LMDGHOSTHFC(\viewattime[val=v,time=\slotstart(s-1)])$\;
     $\blmdconfirmed \gets \highestLMDConfirmedDesc_v(\bconfirmed, s)$\;
-    \uIf{$\epoch(s) = \epoch(\blmdconfirmed) = \epoch(\bconfirmed)$}{
-        \uIf{$\epoch(\gu(\head)) \geq \epoch(s) - 1$}{
+    \uIf{$\epoch(s) = \epoch(\blmdconfirmed)$ \textbf{and}
+        $\epoch(\gu(\head)) \geq \epoch(s) - 1$}{
+        \uIf{$\epoch(\blmdconfirmed) = \epoch(\bconfirmed)$ \textbf{or}
+            $\willChkpBeJustified_v(\chkp(\blmdconfirmed), s)$}{
             \Return{$\blmdconfirmed$}\;
         }
         \uElse{
-            \Return{$\bconfirmed$}\;
-        }
-    }
-    \uElseIf{$\epoch(s) = \epoch(\blmdconfirmed) > \epoch(\bconfirmed)$}{
-        \uIf{$\willChkpBeJustified_v(\chkp(\blmdconfirmed), s)$ \textbf{and}
-            $\epoch(\gu(\head)) \geq \epoch(s) - 1$}{
-            \Return{$\blmdconfirmed$}\;
-        }
-        \uElseIf{$\epoch(\gu(\head)) \geq \epoch(s) - 1$}{
-            \Return{$\max\left(\left\{b' \in \chain(\blmdconfirmed) : \epoch(b') = \epoch(s)-1\right\}\right)$}\;
-        }
-        \uElse{
-            \Return{$\bconfirmed$}\;
+            \Return{$\max\left(\left\{b' \in \chain(\blmdconfirmed) : \epoch(b') = \epoch(s)-1\right\}\right)$}\;            
         }
     }
     \uElseIf{$\epoch(s) > \epoch(\blmdconfirmed)$ \textbf{and}
