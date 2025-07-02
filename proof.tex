@@ -195,10 +195,104 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
 
 \subsection*{Roberto's suggested Lemmas}
 
+\SetKw{KwStateK}{State}
+\SetKwBlock{KwState}{State:}{}
+\SetKwFor{While}{while}{}{}%
+\SetKw{Break}{break}
+\SetKw{Const}{const}
+
+\begin{algorithm}[H]
+\caption{Full Algo}
+\label{alg:conffull}
+\SetAlgoNoLine
+% \DontPrintSemicolon
+% \KwStateK{$x \in \mathbb{R}$\\ $y \in \mathbb{R}$}\\
+\KwState{
+    $\varforvalattime[val=v]{\bconfirmed}$
+}
+\Fn{$\varforvalattime[val=v]{\mathit{next\_child}}(b,head)$}{
+    $extension = \{ b' \in \viewattime[time={\varforvalattime[val=v]{t}},val=v], b \prec b' \preceq head \}$\\
+    \uIf{$|extension| > 0$}
+    {
+        \Return{$\argmin_{b' \in extension} \slot(b')$}
+    }
+    \uElse{
+        \Return{$\bot$}
+    }
+}
+\Upon{$\varforvalattime[val=v]{t} = \varforvalattime[val=v]{\tinit}$}{
+    $\varforvalattime[val=v]{\bconfirmed}   \gets \block(\gfattime[time={\varforvalattime[val=v]{t}},val=v])$
+}
+\Upon{$\varforvalattime[val=v]{t} = \slotstartslot{\varforvalattime[val=v]{t}}$}{
+    $\varforvalattime[val=v]{\bconfirmed} \gets \varforvalattime[val=v]{\mathit{get\_latest\_confirmed}}(\varforvalattime[val=v]{\bconfirmed})$
+}
+\Proc{$\varforvalattime[val=v]{\mathit{get\_latest\_confirmed}}(b_c)$}{
+    $\bcand \gets b_c$\\
+    \uIf{$\ldots$}{
+        \Return{$\bcand$}
+    }
+
+    \uIf{$\ldots$}{
+        $\bcand \gets \block(\gfattime[val=v,time={\varforvalattime[val=v]{t}}])$
+    }
+
+    \uIf{$\ldots$}
+    {
+        $\bcand \gets \block(\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}])$
+    }
+
+    \uIf{$\ldots$}
+    {
+        $\bcand \gets \varforvalattime[val=v]{\mathit{find\_latest\_confirmed\_descendant}}(\bcand,s)$
+    }
+
+    \Return{$\bcand$}
+}
+\Fn{$\varforvalattime[val=v]{\mathit{find\_latest\_confirmed\_descendant}}(b_c)$}
+{
+    $\bcand \gets b_c$\\
+    \Const $head \gets \LMDGHOSTHFC(\viewattime[time={\varforvalattime[val=v]{t}},val=v])$\\
+    \Const $phead \gets \LMDGHOSTHFC(\viewattime[time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)},val=v])$\\
+    \While{$\varforvalattime[val=v]{\mathit{next\_child}}(\bcand,head) \neq \bot$}
+    {
+        $\btemp \gets \varforvalattime[val=v]{\mathit{next\_child}}(\bcand,head)$\\
+        \uIf{$\btemp \npreceq phead$}{
+            \Break
+        }
+        $\bcand \gets \btemp$
+    }
+    \Return{$\bcand$}
+}
+\end{algorithm}
+
+Let $\varforvalattime[time=t,val=v]{\bconfirmed}$ be the value of $\varforvalattime[val=v]{\bconfirmed}$ after the execution of any code that should be executed at timer $t$ as per \Cref{alg:conffull}.
+If $t < \varforvalattime[val=v]{\tinit}$, then $\varforvalattime[time=t,val=v]{\bconfirmed}$ corresponds to the value of $\varforvalattime[val=v]{\bconfirmed}$ after executing any code that should be executed at time $\varforvalattime[val=v]{\tinit}$.
+
 \begin{lemma}
     If
     \begin{enumerate}
-        \item $\epoch(\varforvalattime[val=v,time=t]{\banchor}) \geq \epoch(t)-1$
+        \item $\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) = \epoch(t)$
+    \end{enumerate},
+    then
+    \begin{enumerate}
+        \item $\exists b' \in \viewattime[val=v,time=\slotstartslot{t}], b' \succeq \varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed} \land \epoch(\gu(b')) \geq \epoch(t)-1$
+        % \item $\banchor^{v,\slotstart(\slot(t))} \succeq GJ^{v,t}$
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+    Assume we start executing the algorithm at time $t_0 = \slotstartslot{t_0}$.
+    By induction on $\slot(t)$.
+    Let $s := \slot(t)$.
+    \begin{description}
+        \item[Base Case: $s = \slot(t_0)$.] 
+    \end{description}
+\end{proof}
+
+\begin{lemma}
+    If
+    \begin{enumerate}
+        \item $\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) \geq \epoch(t)-1$
     \end{enumerate},
     then
     \begin{enumerate}
@@ -206,6 +300,54 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
         % \item $\banchor^{v,\slotstart(\slot(t))} \succeq GJ^{v,t}$
     \end{enumerate}
 \end{lemma}
+
+\begin{proof}(Sketch)
+    By induction on $\slot(t)$.
+    Let $s := \slot(t)$.
+    \begin{description}
+        \item[{Base Case: $\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed} = \block(\gfattime[time=\slotstart(s-1),val=v])$.}] Clearly, $\epoch(\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed} ) < \epoch(t) -1$. Assume then that $\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed} ) \geq \epoch(t)-1$.
+        This means that we restart the confirmation chain, which means that we know that $\epoch(\gjattime[time=\slotstart(s+1),val=v])=\epoch(t)=\epoch(s+1)-1$.
+        \item[Inductive Case.] 
+        We assume the Lemma holds for slot $s$ and prove that it also holds for slot $s+1$.
+        We also assume $\epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bconfirmed}) \geq \epoch(s+1)-1$  as the Lemma holds vacuously otherwise. 
+        Now, by cases.
+        \begin{description}
+            \item[{Case 1: $\epoch(\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed}) < \epoch(s)-1$}] Same reasoning as for the base case.
+            \item[{Case 2: $\epoch(\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed}) \geq \epoch(s)-1$}] 
+            By the induction hypothesis, we know that $\epoch(\gjattime[time=\slotstart(s),val=v]) \geq \epoch(s)-2$.
+            By cases again
+            \begin{description}
+                \item[Case 2.1: $\epoch(s+1) = \epoch(s)$.]  Then $\epoch(\gjattime[time=\slotstart(s+1),val=v])\geq\epoch(\gjattime[time=\slotstart(s),val=v])\geq \epoch(s)-2 = \epoch(s+1)-2$.
+                \item[Case 2.2: $\epoch(s+1) = \epoch(s) + 1$.] This implies that  $\epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bconfirmed}) = \epoch(s)$ as we are at the beginning of epoch $\epoch(s+1)$ so we cannot confirm any block from epoch $\epoch(s+1)$.
+            \end{description}
+        \end{description}
+    \end{description}
+    We prove the following equivalent statement inductively.
+    If $\epoch(\varforvalattime[val=v,time=\slotstartslot{t}]{\isOneConfirmed}) \geq \epoch(s+1)-1$,
+    then $\epoch(\gjattime[val=v,time=\slotstart(s+1)]) \geq \epoch(s+1)-2$.
+
+\end{proof}
+
+\begin{lemma}
+
+\end{lemma}
+
+\begin{lemma}
+    Let $\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}$ be any of the possible values assumed by $\bcand$ during the execution of \Cref{alg:conffull} by validator $v$ at time $\slotstartslot{t}$
+    If
+    \begin{enumerate}
+        \item $\epoch(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}) \geq \epoch(t)-1$
+    \end{enumerate},
+    then
+    \begin{enumerate}
+        \item $\epoch(\gjattime[val=v,time=\slotstart(\slot(t))]) \geq \epoch(t)-2$
+        % \item $\banchor^{v,\slotstart(\slot(t))} \succeq GJ^{v,t}$
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}(Sketch)
+    
+\end{proof}
 
 \begin{lemma}
     If
@@ -267,6 +409,21 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
     Take an honest validator $v$ and a block $b$.
     If
     \begin{enumerate}
+        \item $t = \slotstart(\epoch(t))$
+        \item $\epoch(b) = \epoch(t)-1$
+        \item $\varforvalattime[val=v,time=t]{\isOneConfirmed}(b, \gjattime[val=v,time=t])$
+        \item $\epoch(\gu(b)) \geq \epoch(t)-2$
+    \end{enumerate},
+    then for any honest validator $v'$ and time $t'$ such that $\epoch(t') \in \{\epoch(t),\epoch(t)+1\}$,
+    \begin{enumerate}
+        \item $b \in \filtered[time=t',val=v']$
+    \end{enumerate}
+\end{lemma}
+
+\begin{lemma}
+    Take an honest validator $v$ and a block $b$.
+    If
+    \begin{enumerate}
         \item $t = \slotstartslot{t}$
         \item $\epoch(b) = \epoch(t)-1$
         \item $\exists b' \in \viewattime[val=v,time=\slotstart(\slot(t)-1)], b' \succeq b \land \epoch(\votsource[blck=b',time=t]) \geq \epoch(t)-2$
@@ -283,7 +440,7 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
 \begin{lemma}
     If
     \begin{enumerate}
-        \item $\text{isOneConfirmed}_v(b, GJ^{v,\slotstart(\slot(t))}, \slotstart(\slot(t)))$
+        \item $\varforvalattime[val=v,time=\slotstart(\slot(t))]{\isOneConfirmed}(b, \gjattime[val=v,time=\slotstart(\slot(t))])$
         \item $\epoch(b) = \epoch(t)$
     \end{enumerate},
     then, for any honest validator $v'$ and time $t' \geq t$ such that $\epoch(t') = \epoch(t)$

@@ -39,6 +39,8 @@
 
 \usepackage[linesnumbered,ruled]{algorithm2e}
 \SetKwProg{Fn}{function}{}{end}
+\SetKwProg{Proc}{procedure}{}{end}
+\SetKwProg{Upon}{upon}{}{end}
 \SetNlSty{textbf}{}{:}
 
 % \usepackage{ulem}
@@ -443,6 +445,15 @@
     \ensuremath{\gjviewsym^{\gjattime@Time\ifthenelse{\equal{\gjattime@Val}{}}{}{,\gjattime@Val}}}%
 }%
 
+\define@key{gfattime}{time}{\def\gfattime@Time{#1}}
+\define@key{gfattime}{val}{\def\gfattime@Val{#1}}
+\setkeys{gfattime}{time=,val=}
+\newcommand{\gfattime}[1][]{%
+    \setkeys{gfattime}{time=,val=}%    
+    \setkeys{gfattime}{#1}%
+    \ensuremath{\mathsf{GF}^{\gfattime@Time\ifthenelse{\equal{\gfattime@Val}{}}{}{,\gfattime@Val}}}%
+}%
+
 \newcommand{\guviewsym}{\ensuremath{\mathsf{GU}}}
 
 \define@key{guattime}{time}{\def\guattime@Time{#1}}
@@ -527,8 +538,8 @@
         \ifthenelse%
         {\equal{\varforvalattime@Time}%
         {}}%
-        {{#2}_{\varforvalattime@Val}}
-        {{#2}_{\varforvalattime@Val}^{\varforvalattime@Time}}}%
+        {#2^{\varforvalattime@Val}}
+        {#2^{\varforvalattime@Val,\varforvalattime@Time}}}%
         \setkeys{varforvalattime}{time=,val=}%
 }%
 
@@ -543,6 +554,11 @@
 \crefname{assumption}{assumption}{assumptions}
 \Crefname{assumption}{Assumption}{Assumptions}
 \crefname{condition}{condition}{conditions}
+\crefname{algocf}{Algorithm}{Algorithms}
+\crefname{algocfline}{line}{lines}
+\Crefname{algocfline}{Line}{Lines}
+
+
 
 \newcounter{countersetupcrefforlines}
 \setcounter{countersetupcrefforlines}{1}
@@ -582,10 +598,10 @@
 \newcommand{\FILCUR}[0]{\ensuremath{\FIL_{\mathsf{cur}}}\xspace}
 \newcommand{\FILHFC}[0]{\ensuremath{\FIL_{\mathsf{hfc}}}\xspace}
 \newcommand{\FILLATE}[0]{\ensuremath{\FIL_{\mathsf{late}}}\xspace}
-\newcommand{\highestLMDConfirmedDesc}{\text{highestLMDConfirmedDesc}}
-\newcommand{\isOneConfirmed}{\text{isOneConfirmed}}
-\newcommand{\isLMDConfirmed}{\text{isLMDConfirmed}}
-\newcommand{\willChkpBeJustified}{\text{willChkpBeJustified}}
+\newcommand{\highestLMDConfirmedDesc}{\ensuremath{\mathit{highestLMDConfirmedDesc}}}
+\newcommand{\isOneConfirmed}{\ensuremath{\mathit{isOneConfirmed}}}
+\newcommand{\isLMDConfirmed}{\ensuremath{\mathit{isLMDConfirmed}}}
+\newcommand{\willChkpBeJustified}{\ensuremath{\mathit{willChkpBeJustified}}}
 
 
 
@@ -642,6 +658,12 @@
 % \newcommand{\children}{{\ensuremath{\mathit{children}}}}
 \newcommand{\receivedattime}{{\ensuremath{\mathit{rcvd\_time}}}}
 \newcommand{\banchor}{\ensuremath{b_\mathsf{anchor}}}
+\newcommand{\bconfirmed}{\ensuremath{b_\mathsf{confirmed}}}
+\newcommand{\bcand}{\ensuremath{b_\mathsf{cand}}}
+\newcommand{\btemp}{\ensuremath{b_\mathsf{temp}}}
+\newcommand{\tinit}{\ensuremath{t_\mathsf{init}}}
+
+
 
 % \newcommand{\synccondition}[1]{#1}
 % \newcommand{\synccondition}[1]{\ensuremath{\slotstart(\lastslot(\epoch(t)-2))\geq\GST}}
