@@ -90,25 +90,26 @@ Let $\viewattime[val=v,time=\slotstart(s)]$ be the view of a validator $v$ at th
     }
 }
 \Fn{highestConfirmedDesc$_v(\bconfirmed, s)$}{
-    $b_\mathsf{highest\_lmd\_confirmed} \gets \highestLMDConfirmedDesc_v(\bconfirmed, s)$\;    
-    \uIf{$\epoch(b_\mathsf{highest\_lmd\_confirmed}) > \epoch(\bconfirmed)$ \textbf{and}
+    $\blmdconfirmed \gets \highestLMDConfirmedDesc_v(\bconfirmed, s)$\;
+
+    \uIf{$\epoch(\blmdconfirmed) > \epoch(\bconfirmed)$ \textbf{and}
         $\neg \willChkpBeJustified_v(\chkp(\head), s)$} {
-        $\blmdconfirmed \gets \max\left(\left\{b' \in \chain(b_\mathsf{highest\_lmd\_confirmed}) : \epoch(b') = \epoch(s)-1\right\}\right)$
+        $candidates \gets \{b' \in \chain(\blmdconfirmed), b' \succ \bconfirmed :
+            \willNotBeFilteredOut_v(b', s) \wedge \epoch(b') = \epoch(s)-1\}$
     }
     \uElse {
-        $\blmdconfirmed \gets b_\mathsf{highest\_lmd\_confirmed}$
+        $candidates \gets \{b' \in \chain(\blmdconfirmed), b' \succ \bconfirmed :
+            \willNotBeFilteredOut_v(b', s)\}$
     }
 
-    \uIf{$\epoch(s) = \epoch(\blmdconfirmed)$ \textbf{or}
-        $s = \firstslot(epoch(s))$ \textbf{or}
-        $\willNoConflictingChkpBeJustified_v(C(\head, \epoch(s), s))$} {
-
-        $canidates \gets \left\{b' \in \chain(\blmdconfirmed) : b' \succ \bconfirmed \wedge
-        \willNotBeFilteredOut_v(b', s)\right\}$;\\        
-        \uIf{$canidates \ne \emptyset$}{
-            \Return{$\max(candidates)$}\;
+    \uIf{$candidates \ne \emptyset$}{
+        $\bcand \gets max(candidates)$\;
+        \uIf{$\epoch(s) = \epoch(\bcand)$ \textbf{or}
+            $s = \firstslot(epoch(s))$ \textbf{or}
+            $\willNoConflictingChkpBeJustified_v(C(\head, \epoch(s), s))$} {
+            \Return{$\bcand$}\;
         }
-        \uElse{
+        \uElse {
             \Return{$\bconfirmed$}\;
         }
     }
