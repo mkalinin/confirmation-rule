@@ -66,49 +66,53 @@ Let $\viewattime[val=v,time=\slotstart(s)]$ be the view of a validator $v$ at th
 \caption{Highest confirmed descendant}
 % \SetAlgoLined
 \SetAlgoNoLine
-\Fn{highestConfirmedDesc$_v(\bconfirmed, s)$}{
+\Fn{willNotBeFilteredOut$_v(b, s)$}{
     $\head \gets \LMDGHOSTHFC(\viewattime[val=v,time=\slotstart(s)])$\;
     $\phead \gets \LMDGHOSTHFC(\viewattime[val=v,time=\slotstart(s-1)])$\;
-    $\blmdconfirmed \gets \highestLMDConfirmedDesc_v(\bconfirmed, s)$\;
-    \uIf{$\epoch(s) = \epoch(\blmdconfirmed)$ \textbf{and}
-        $\epoch(\gu(\head)) \geq \epoch(s) - 1$}{
-        \uIf{$\epoch(\blmdconfirmed) = \epoch(\bconfirmed)$ \textbf{or}
-            $\willChkpBeJustified_v(\chkp(\blmdconfirmed), s)$}{
-            \Return{$\blmdconfirmed$}\;
+
+    \uIf{epoch(s) = epoch(b)}{
+        \Return{$b \preceq \head \wedge \epoch(\gu(head)) \geq \epoch(s)-1$}\;
+    }
+    \uElseIf{$s = \firstslot(\epoch(s))$}{
+        \Return{$\votsource[blck=b, time=\epoch(s)] \geq \epoch(s)-2 \lor
+                (b \preceq \phead \wedge \votsource[blck=\phead, time=\epoch(s)] \geq \epoch(s)-2)$}\;
+    }
+    \uElse {
+        \uIf{$b \preceq \head \wedge \epoch(\gu(\head)) \geq \epoch(s) - 1$} {
+            \Return{$\votsource[blck=b, time=\epoch(s)] \geq \epoch(s)-2 \lor
+                (b \preceq \phead \wedge \votsource[blck=\phead, time=\epoch(s)] \geq \epoch(s)-2)$}\;
         }
         \uElse{
-            \Return{$\max\left(\left\{b' \in \chain(\blmdconfirmed) : \epoch(b') = \epoch(s)-1\right\}\right)$}\;            
+            \Return{$b \preceq \phead \wedge 
+                    \epoch(\gu(\phead)) \geq \epoch(s) - 1 \wedge
+                    \votsource[blck=\phead, time=\epoch(s)] \geq \epoch(s)-2$}\;
         }
     }
-    \uElseIf{$\epoch(s) > \epoch(\blmdconfirmed)$ \textbf{and}
-            $s = \text{\firstslot}(\epoch(s))$}{
-        \uIf{$\votsource[blck=\blmdconfirmed,time=\epoch(s)] \geq epoch(s)-2$}{
-            \Return{$\blmdconfirmed$}\;
-        }
-        \uElseIf{$\votsource[time=\epoch(s),blck=\phead] \geq epoch(s)-2$ \textbf{and}
-                $\phead \succ \bconfirmed$}{
-            \Return{$\max\left(\left\{b' \in \chain(\blmdconfirmed) : b' \preceq \phead\right\}\right)$}\;
+}
+\Fn{highestConfirmedDesc$_v(\bconfirmed, s)$}{
+    $b_\mathsf{highest\_lmd\_confirmed} \gets \highestLMDConfirmedDesc_v(\bconfirmed, s)$\;    
+    \uIf{$\epoch(b_\mathsf{highest\_lmd\_confirmed}) > \epoch(\bconfirmed)$ \textbf{and}
+        $\neg \willChkpBeJustified_v(\chkp(\head), s)$} {
+        $\blmdconfirmed \gets \max\left(\left\{b' \in \chain(b_\mathsf{highest\_lmd\_confirmed}) : \epoch(b') = \epoch(s)-1\right\}\right)$
+    }
+    \uElse {
+        $\blmdconfirmed \gets b_\mathsf{highest\_lmd\_confirmed}$
+    }
+
+    \uIf{$\epoch(s) = \epoch(\blmdconfirmed)$ \textbf{or}
+        $s = \firstslot(epoch(s))$ \textbf{or}
+        $\willNoConflictingChkpBeJustified_v(C(\head, \epoch(s), s))$} {
+
+        $canidates \gets \left\{b' \in \chain(\blmdconfirmed) : b' \succ \bconfirmed \wedge
+        \willNotBeFilteredOut_v(b', s)\right\}$;\\        
+        \uIf{$canidates \ne \emptyset$}{
+            \Return{$\max(candidates)$}\;
         }
         \uElse{
             \Return{$\bconfirmed$}\;
         }
     }
-    \uElseIf{$\epoch(s) > \epoch(\blmdconfirmed)$ \textbf{and}
-            $\willNoConflictingChkpBeJustified_v(\chkp(\blmdconfirmed, \epoch(s)), s)$}{
-        \uIf{$\epoch(\gu(\head)) \geq \epoch(s)-1$ \textbf{and} 
-            $\exists b' \in \chain(\head): \epoch(b') = \epoch(s) \wedge \isOneConfirmed_v(b', s)$}{
-            \Return{$\blmdconfirmed$}\;
-        }
-        \uElseIf{$(\epoch(\gu(\head)) \geq \epoch(s)-1$ \textbf{or} $\epoch(\gu(\phead)) \geq \epoch(s)-1)$ \textbf{and}
-                $\votsource[time=\epoch(s),blck=\phead] \geq epoch(s)-2$ \textbf{and}
-                $\phead \succ \bconfirmed$}{
-            \Return{$\max\left(\left\{b' \in \chain(\blmdconfirmed) : b' \preceq \phead\right\}\right)$}\;
-        }
-        \uElse{
-            \Return{$\bconfirmed$}\;
-        }
-    }
-    \uElse{
+    \uElse {
         \Return{$\bconfirmed$}\;
     }
 }
