@@ -35,7 +35,7 @@ Let $\viewattime[val=v,time=\slotstart(s)]$ be the view of a validator $v$ at th
     $descs \gets \left\{b' \in \chain(\LMDGHOSTHFC(\viewattime[time=\slotstart(s),val=v])): b' \succ \bconfirmed\right\}$\\
     $confirmed\_descs \gets \left\{b' \in descs : \forall b'' \in descs, b'' \preceq b' \Rightarrow \isOneConfirmed_v(b'', s)\right\}$\\
     \uIf{$confirmed\_descs \ne \emptyset$}{
-        \Return{$\max(confirmed\_descs)$}\;
+        \Return{$\argmax_{b' \in confirmed\_descs}\slot(b')$}\;
     }
     \uElse{
         \Return{$\bconfirmed$}\;
@@ -94,27 +94,26 @@ Let $\viewattime[val=v,time=\slotstart(s)]$ be the view of a validator $v$ at th
 
     \uIf{$\epoch(\blmdconfirmed) > \epoch(\bconfirmed)$ \textbf{and}
         $\neg \willChkpBeJustified_v(\chkp(\head), s)$} {
-        $candidates \gets \{b' \in \chain(\blmdconfirmed), b' \succ \bconfirmed :
+        $\mathit{candidates} \gets \{b' \in \chain(\blmdconfirmed), b' \succ \bconfirmed :
             \willNotBeFilteredOut_v(b', s) \wedge \epoch(b') = \epoch(s)-1\}$
     }
     \uElse {
-        $candidates \gets \{b' \in \chain(\blmdconfirmed), b' \succ \bconfirmed :
+        $\mathit{candidates} \gets \{b' \in \chain(\blmdconfirmed), b' \succ \bconfirmed :
             \willNotBeFilteredOut_v(b', s)\}$
     }
 
-    \uIf{$candidates \ne \emptyset$}{
-        $\bcand \gets max(candidates)$\;
-        \uIf{$\epoch(s) = \epoch(\bcand)$ \textbf{or}
-            $s = \firstslot(epoch(s))$ \textbf{or}
-            $\willNoConflictingChkpBeJustified_v(C(\head, \epoch(s), s))$} {
-            \Return{$\bcand$}\;
-        }
-        \uElse {
-            \Return{$\bconfirmed$}\;
-        }
+    \uIf{$\mathit{candidates} = \emptyset$}{
+        \Return{$\bconfirmed$}\;
+    }
+
+    $\bcand \gets \argmax_{b' \in candidates}\slot(b')$\;
+    \uIf{$\epoch(s) > \epoch(\bcand)$ \textbf{and}
+        $s > \firstslot(epoch(s))$ \textbf{and}
+        $\neg \willNoConflictingChkpBeJustified_v(C(\head, \epoch(s), s))$} {
+        \Return{$\bconfirmed$}\;
     }
     \uElse {
-        \Return{$\bconfirmed$}\;
+        \Return{$\bcand$}\;
     }
 }
 \end{algorithm}
@@ -235,6 +234,70 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
 \SetKw{Const}{const}
 
 \begin{algorithm}[H]
+\caption{Find latest confirmed descendant}
+\SetAlgoNoLine
+\Fn{$\varforvalattime[val=v]{\mathit{find\_latest\_confirmed\_descendant}}(b_c)$}
+{
+    $\bcand \gets b_c$\\
+    \Const $head \gets \LMDGHOSTHFC(\viewattime[time={\varforvalattime[val=v]{t}},val=v])$\\
+    \Const $phead \gets \LMDGHOSTHFC(\viewattime[time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)},val=v])$\\
+    
+    \uIf{$\epoch(\bcand) = \epoch(\varforvalattime[val=v]{t}) - 1$ {\bf and}
+        $\votsource[blck=phead, time={\varforvalattime[val=v]{t}}] \geq \epoch(\varforvalattime[val=v]{t}) - 2$ {\bf and}
+        $(\slot(\varforvalattime[val=v]{t}) = \firstslot(\epoch(\varforvalattime[val=v]{t}))$ {\bf or}
+        $(\willNoConflictingChkpBeJustified_v(\chkp(head, \epoch(\varforvalattime[val=v]{t})))$ {\bf and}
+        $(\gu(phead) \geq \epoch(\varforvalattime[val=v]{t}) - 1$ {\bf or}
+        $\gu(head) \geq \epoch(\varforvalattime[val=v]{t}) - 1)))$}
+    {
+        \While{$\varforvalattime[val=v]{\mathit{next\_child}}(\bcand,head) \neq \bot$}
+        {
+            $\btemp \gets \varforvalattime[val=v]{\mathit{next\_child}}(\bcand,head)$\\
+            \uIf{$\epoch(\btemp) < \epoch(\varforvalattime[val=v]{t})$ {\bf and}
+                $\btemp \preceq phead$ {\bf and}
+                $\isOneConfirmed_v(\btemp)$}
+            {
+                $\bcand \gets \btemp$
+            }
+            \uElse { 
+                \Break 
+            }
+        }
+    }
+
+    \uIf{$\slot(\varforvalattime[val=v]{t}) = \firstslot(\epoch(\varforvalattime[val=v]{t}))$ {\bf or}
+        $\gu(head) \geq \epoch(\varforvalattime[val=v]{t}) - 1$}
+    {
+        $\btcand \gets \bcand$\\
+        \While{$\varforvalattime[val=v]{\mathit{next\_child}}(\btcand,head) \neq \bot$}
+        {
+            $\btemp \gets \varforvalattime[val=v]{\mathit{next\_child}}(\btcand,head)$\\
+            \uIf{$\epoch(\btemp) > \epoch(\btcand)$ {\bf and}
+                $\neg \willChkpBeJustified_v(\chkp(\btemp)))$}
+            {
+                \Break
+            }
+            \uIf{$\isOneConfirmed_v(\btemp)$} {
+                $\btcand \gets \btemp$
+            }
+            \uElse { 
+                \Break 
+            }
+        }
+
+        \uIf{$\epoch(\bcand) = \epoch(\varforvalattime[val=v]{t})$ {\bf or}
+            $(\votsource[blck=\btcand, time={\varforvalattime[val=v]{t}}] \geq \epoch(\varforvalattime[val=v]{t}) - 2$ {\bf and}
+            $(\slot(\varforvalattime[val=v]{t}) = \firstslot(\epoch(\varforvalattime[val=v]{t}))$ {\bf or}
+            $\willNoConflictingChkpBeJustified_v(\chkp(head, \epoch(\varforvalattime[val=v]{t})))))$}
+        {
+            $\bcand \gets \btcand$
+        }
+    }
+
+    \Return{$\bcand$}
+}
+\end{algorithm}
+
+\begin{algorithm}[H]
 \caption{Full Algo}
 \label{alg:conffull}
 \SetAlgoNoLine
@@ -261,39 +324,25 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
 }
 \Proc{$\varforvalattime[val=v]{\mathit{get\_latest\_confirmed}}(b_c)$}{
     $\bcand \gets b_c$\\
-    \uIf{$\ldots$}{
-        \Return{$\bcand$}
-    }
+    \Const $\head \gets \LMDGHOSTHFC(\viewattime[time={\varforvalattime[val=v]{t}},val=v])$\\
 
-    \uIf{$\ldots$}{
+    \uIf{$\epoch(\bcand) < \epoch(\varforvalattime[val=v]{t}) - 1$ {\bf or}
+        $\bcand \npreceq \head$}{
         $\bcand \gets \block(\gfattime[val=v,time={\varforvalattime[val=v]{t}}])$
     }
 
-    \uIf{$\ldots$}
+    \uIf{$\slot(\varforvalattime[val=v]{t}) = \firstslot(\epoch(\varforvalattime[val=v]{t}))$ {\bf and}
+        $\epoch(\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}]) = \epoch(\varforvalattime[val=v]{t})$ {\bf and}
+        $\slot(\bcand) < \slot(\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}])$}
     {
         $\bcand \gets \block(\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}])$
     }
 
-    \uIf{$\ldots$}
+    \uIf{$\epoch(\bcand) \geq \epoch(\varforvalattime[val=v]{t}) - 1$}
     {
-        $\bcand \gets \varforvalattime[val=v]{\mathit{find\_latest\_confirmed\_descendant}}(\bcand,s)$
+        $\bcand \gets \varforvalattime[val=v]{\mathit{find\_latest\_confirmed\_descendant}}(\bcand)$
     }
 
-    \Return{$\bcand$}
-}
-\Fn{$\varforvalattime[val=v]{\mathit{find\_latest\_confirmed\_descendant}}(b_c)$}
-{
-    $\bcand \gets b_c$\\
-    \Const $head \gets \LMDGHOSTHFC(\viewattime[time={\varforvalattime[val=v]{t}},val=v])$\\
-    \Const $phead \gets \LMDGHOSTHFC(\viewattime[time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)},val=v])$\\
-    \While{$\varforvalattime[val=v]{\mathit{next\_child}}(\bcand,head) \neq \bot$}
-    {
-        $\btemp \gets \varforvalattime[val=v]{\mathit{next\_child}}(\bcand,head)$\\
-        \uIf{$\btemp \npreceq phead$}{
-            \Break
-        }
-        $\bcand \gets \btemp$
-    }
     \Return{$\bcand$}
 }
 \end{algorithm}
