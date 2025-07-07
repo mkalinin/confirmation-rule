@@ -235,7 +235,19 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
 
 \begin{algorithm}[H]
 \caption{Find latest confirmed descendant}
+\label{alg:findlatestconf}
 \SetAlgoNoLine
+\Fn{$\varforvalattime[val=v]{\mathit{next\_child}}(b,head)$}{
+    $extension = \{ b' \in \viewattime[time={\varforvalattime[val=v]{t}},val=v], b \prec b' \preceq head \}$\\
+    \uIf{$|extension| > 0$}
+    {
+        \Return{$\argmin_{b' \in extension} \slot(b')$}
+    }
+    \uElse{
+        \Return{$\bot$}
+    }
+}
+
 \Fn{$\varforvalattime[val=v]{\mathit{find\_latest\_confirmed\_descendant}}(b_c)$}
 {
     $\bcand \gets b_c$\\
@@ -305,16 +317,6 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
 % \KwStateK{$x \in \mathbb{R}$\\ $y \in \mathbb{R}$}\\
 \KwState{
     $\varforvalattime[val=v]{\bconfirmed}$
-}
-\Fn{$\varforvalattime[val=v]{\mathit{next\_child}}(b,head)$}{
-    $extension = \{ b' \in \viewattime[time={\varforvalattime[val=v]{t}},val=v], b \prec b' \preceq head \}$\\
-    \uIf{$|extension| > 0$}
-    {
-        \Return{$\argmin_{b' \in extension} \slot(b')$}
-    }
-    \uElse{
-        \Return{$\bot$}
-    }
 }
 \Upon{$\varforvalattime[val=v]{t} = \varforvalattime[val=v]{\tinit}$}{
     $\varforvalattime[val=v]{\bconfirmed}   \gets \block(\gfattime[time={\varforvalattime[val=v]{t}},val=v])$
@@ -537,7 +539,7 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
 
 % \end{proof}
 
-\begin{lemma}
+\begin{lemma}\label{lem:vs-at-least-e-2}
     If
     \begin{enumerate}
         \item $\epoch(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}) \geq \epoch(t)-1$
@@ -582,7 +584,7 @@ By cases.
 % \end{description}
 % \end{proof}
 
-\begin{lemma}
+\begin{lemma}\label{lem:gj-at-least-e-2-curr-slot}
     If
     \begin{enumerate}
         \item $\text{\slotstart}(\text{\lastslot}(\text{\epoch}(t) - 1)) \geq \GST$
@@ -593,6 +595,21 @@ By cases.
         \item $\epoch(\gjattime[val=v',time=\slotstart(\slot(t))]) \geq \epoch(t)-2$
     \end{enumerate}
 \end{lemma}
+
+\begin{proof}
+Given Lemma's statement 1, we have $\slotstart(\slot(t) - 1) \geq \GST$.
+Then Lemma's statement 2 allows us to apply \Cref{lem:vs-at-least-e-2} which implies that
+$\exists b' \in \viewattime[time=\slotstart(\slot(t)-1),val=v], \epoch(\votsource[blck=b',time=\slotstartslot{t}])\geq \epoch(t)-2$.
+Given all this we have $b' \in \viewattime[time=\slotstart(\slot(t)),val=v']$. By cases
+\begin{description}
+    \item[Case 1: {$\epoch(b') < \epoch(t)$}.]
+    Thus $\votsource[blck=b',time=\slotstartslot{t}] = \gu(b') \geq \epoch(t) - 2$.
+    Clearly $\epoch(\gjattime[val=v',time=\slotstartslot{t}]) \geq \epoch(\gu(b')) \geq \epoch(t) - 2$ in this case.
+    \item[Case 2: {$\epoch(b') = \epoch(t)$}.]
+    Thus $\votsource[blck=b',time=\slotstartslot{t}] = \gjblock(b') \geq \epoch(t) - 2$.
+    Clearly $\epoch(\gjattime[val=v',time=\slotstartslot{t}]) \geq \epoch(\gjblock(b')) \geq \epoch(t) - 2$ in this case.
+\end{description}
+\end{proof}
 
 \begin{lemma}\label{lem:gj-at-least-e-2}
     If
@@ -606,6 +623,12 @@ By cases.
         \item $\epoch(\gjattime[val=v',time=\slotstart(\slot(t)-1)]) \geq \epoch(t)-2$
     \end{enumerate}
 \end{lemma}
+
+\begin{proof}
+Given Lemma's statements 2 and 3, and lines xxx of \Cref{alg:conffull} we can conclude that
+$\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bcand}) \geq \epoch(t)-1$.
+Then, apply \Cref{lem:gj-at-least-e-2-curr-slot}.
+\end{proof}
 
 \begin{lemma}
     Take an honest validator $v$ and a time $t$.
@@ -624,6 +647,15 @@ By cases.
         \end{enumerate}
     \end{enumerate}
 \end{lemma}
+
+\begin{proof}
+(Sketch). By cases
+\begin{description}
+    \item[Case 1: {$\epoch(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}) = \epoch(t)$}.]
+    From Line 23 of \Cref{alg:findlatestconf} follows that Statement 2 holds.
+    \item[Case 2: {$\epoch(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}) = \epoch(t) - 1$}.]
+\end{description}
+\end{proof}
 
 \begin{lemma}
     % Let $GU^{v,t-1} := GU(V^{v,\slotstart(\slot(t)-1)},\slotstart(\slot(t)-1))$.
