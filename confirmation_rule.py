@@ -55,9 +55,11 @@ def is_ancestor(store: Store, root: Root, ancestor: Root):
     
     return get_ancestor(store, root, store.block[ancestor].slot) == ancestor
 
+
 def get_block_slot(store: Store, root: Root) -> Slot:
     assert root in store.blocks
     return store.blocks[root].slot
+
 
 def get_block_epoch(store: Store, root: Root) -> Epoch:
     assert root in store.blocks
@@ -252,7 +254,8 @@ def will_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
         return will_current_epoch_checkpoint_be_justified(store, checkpoint)
 
     return False
-    
+
+
 def will_no_conflicting_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
     assert checkpoint.epoch == get_current_epoch_store(store)
 
@@ -308,11 +311,10 @@ def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) 
     # verify the latest confirmed block is not too old 
     assert compute_block_epoch(latest_confirmed_root) + 1 >= current_epoch
 
-
     head = get_head(store)
     confirmed_root = latest_confirmed_root
-    
-    if (get_block_epoch(confirmed_root) + 1 == current_epoch 
+
+    if (get_block_epoch(store, confirmed_root) + 1 == current_epoch
         and get_voting_source(store, store.prev_slot_head).epoch + 2 >= current_epoch 
         and (get_current_slot(store) % SLOTS_PER_EPOCH == 0
              or (will_no_conflicting_checkpoint_be_justified(store, get_checkpoint_block(store, head, current_epoch))
@@ -372,13 +374,15 @@ def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) 
             tentative_confirmed_root = block_root
             
         # the tentative_confirmed_root can only be confirmed if we can ensure that it is not going to be reorged out in either the current or next epoch.
-        if (get_block_epoch(tentative_confirmed_root) == current_epoch 
-            or (get_current_slot(store) % SLOTS_PER_EPOCH == 0 and store.unrealized_justifications[tentative_confirmed_root].epoch + 2 >= current_epoch)
-            or store.unrealized_justifications[tentative_confirmed_root].epoch + 1 >= current_epoch):
+        if (get_block_epoch(store, tentative_confirmed_root) == current_epoch
+            or (get_voting_source(store, tentative_confirmed_root).epoch + 2 >= current_epoch
+                and (get_current_slot(store) % SLOTS_PER_EPOCH == 0
+                     or will_no_conflicting_checkpoint_be_justified(store, get_checkpoint_block(store, head, current_epoch))))):
             confirmed_root = tentative_confirmed_root
             
     return confirmed_root        
-        
+
+
 def get_latest_confirmed(store: Store) -> Root:
     confirmed_root = store.confirmed_root
     current_epoch = get_current_store_epoch(store)
