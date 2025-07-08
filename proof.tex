@@ -334,8 +334,8 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
     }
 
     \uIf{$\slot(\varforvalattime[val=v]{t}) = \firstslot(\epoch(\varforvalattime[val=v]{t}))$ {\bf and}
-        $\epoch(\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}]) = \epoch(\varforvalattime[val=v]{t})$ {\bf and}
-        $\slot(\bcand) < \slot(\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}])$}
+        $\epoch(\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}]) = \epoch(\varforvalattime[val=v]{t})-1$ {\bf and}
+        $\slot(\bcand) < \slot(\block(\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}]))$}
     {
         $\bcand \gets \block(\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}])$
     }
@@ -365,7 +365,7 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
     \end{enumerate},
     then
     \begin{enumerate}
-        \item $\exists b' \in \viewattime[val=v,time=\slotstartslot{t}], b' \succeq \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed} \land \epoch(\gu(b')) \geq \epoch(t)-1$
+        \item $\exists b' \in \viewattime[val=v,time=\slotstartslot{t}], \epoch(\gu(b')) \geq \epoch(t)-1$
         % \item $\banchor^{v,\slotstart(\slot(t))} \succeq GJ^{v,t}$
     \end{enumerate}
 \end{lemma}
@@ -600,15 +600,9 @@ By cases.
 Given Lemma's statement 1, we have $\slotstart(\slot(t) - 1) \geq \GST$.
 Then Lemma's statement 2 allows us to apply \Cref{lem:vs-at-least-e-2} which implies that
 $\exists b' \in \viewattime[time=\slotstart(\slot(t)-1),val=v], \epoch(\votsource[blck=b',time=\slotstartslot{t}])\geq \epoch(t)-2$.
-Given all this we have $b' \in \viewattime[time=\slotstart(\slot(t)),val=v']$. By cases
-\begin{description}
-    \item[Case 1: {$\epoch(b') < \epoch(t)$}.]
-    Thus $\votsource[blck=b',time=\slotstartslot{t}] = \gu(b') \geq \epoch(t) - 2$.
-    Clearly $\epoch(\gjattime[val=v',time=\slotstartslot{t}]) \geq \epoch(\gu(b')) \geq \epoch(t) - 2$ in this case.
-    \item[Case 2: {$\epoch(b') = \epoch(t)$}.]
-    Thus $\votsource[blck=b',time=\slotstartslot{t}] = \gjblock(b') \geq \epoch(t) - 2$.
-    Clearly $\epoch(\gjattime[val=v',time=\slotstartslot{t}]) \geq \epoch(\gjblock(b')) \geq \epoch(t) - 2$ in this case.
-\end{description}
+Given all this we have $b' \in \viewattime[time=\slotstart(\slot(t)),val=v']$.
+By Definition 3 of the paper $\epoch(\gjattime[val=v',time=\slotstartslot{t}])
+\geq \epoch(\votsource[blck=b',time=\slotstartslot{t}]) \geq \epoch(t) - 2$.
 \end{proof}
 
 \begin{lemma}\label{lem:gj-at-least-e-2}
@@ -625,7 +619,9 @@ Given all this we have $b' \in \viewattime[time=\slotstart(\slot(t)),val=v']$. B
 \end{lemma}
 
 \begin{proof}
-Given Lemma's statements 2 and 3, and lines xxx of \Cref{alg:conffull} we can conclude that
+Given Lemma's statement 2 and lines xxx of \Cref{alg:conffull} we can conclude that
+$\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) \geq \epoch(t)-1$
+is the only possible case to satisfy Lemma's statement 3. From this we have
 $\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bcand}) \geq \epoch(t)-1$.
 Then, apply \Cref{lem:gj-at-least-e-2-curr-slot}.
 \end{proof}
@@ -651,9 +647,17 @@ Then, apply \Cref{lem:gj-at-least-e-2-curr-slot}.
 \begin{proof}
 (Sketch). By cases
 \begin{description}
-    \item[Case 1: {$\epoch(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}) = \epoch(t)$}.]
-    From Line 23 of \Cref{alg:findlatestconf} follows that Statement 2 holds.
-    \item[Case 2: {$\epoch(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}) = \epoch(t) - 1$}.]
+    \item[Case 1: {$\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) < \epoch(t)-1$}.]
+    Line 15 of \Cref{alg:conffull} must have been executed, otherwise, this case is unreachable.
+    From conditions in Line 14 and from Line 17 of \Cref{alg:conffull} we have
+    $\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand} \succeq \guattime[val=v,time=\slotstart(\slot(t)-1)]$.
+    Also with $\slot(t) = \firstslot(\epoch(t))$ we can conclude that
+    $\epoch(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}) = \epoch(t)-1$, thus
+    $\chkp(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}) = \guattime[val=v,time=\slotstart(\slot(t)-1)]$.
+    Given $\epoch(\guattime[val=v,time=\slotstart(\slot(t)-1)]) = \epoch(t)-1$ we have
+    $\gjattime[val=v,time=\slotstart(\slot(t))] = \guattime[val=v,time=\slotstart(\slot(t)-1)]$.
+    Thus Statement 1 of the Lemma is satisfied.
+    \item[Case 2: {$\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) \geq \epoch(t)-1$}.]
 \end{description}
 \end{proof}
 
