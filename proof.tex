@@ -109,7 +109,7 @@ Let $\viewattime[val=v,time=\slotstart(s)]$ be the view of a validator $v$ at th
     $\bcand \gets \argmax_{b' \in candidates}\slot(b')$\;
     \uIf{$\epoch(s) > \epoch(\bcand)$ \textbf{and}
         $s > \firstslot(epoch(s))$ \textbf{and}
-        $\neg \willNoConflictingChkpBeJustified_v(C(\head, \epoch(s), s))$} {
+        $\neg \willNoConflictingChkpBeJustified_v(\chkp(\head, \epoch(s), s))$} {
         \Return{$\bconfirmed$}\;
     }
     \uElse {
@@ -349,7 +349,7 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
 }
 \end{algorithm}
 
-\begin{definition}[Notation]\leavevmode
+\begin{definition}[Notation]\leavevmode\label{def:b-cand-is-b-conf}
     \begin{enumerate}
         \item Let $\varforvalattime[time=t,val=v]{\bconfirmed}$ be the value of $\varforvalattime[val=v]{\bconfirmed}$ after the execution of any code that should be executed at timer $t$ as per \Cref{alg:conffull}.
         If $t < \varforvalattime[val=v]{\tinit}$, then $\varforvalattime[time=t,val=v]{\bconfirmed}$ corresponds to the value of $\varforvalattime[val=v]{\bconfirmed}$ after executing any code that should be executed at time $\varforvalattime[val=v]{\tinit}$.
@@ -561,6 +561,30 @@ By cases.
 \end{description}
 \end{proof}
 
+\begin{lemma}\label{lem:prev-conf-at-least-e-1}
+    If
+    \begin{enumerate}
+        \item $\slot(t) > \text{\firstslot}(\epoch(t))$
+        \item $\epoch(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}) \geq \epoch(t)-1$
+    \end{enumerate},
+    then
+    \begin{enumerate}
+        \item $\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) \geq \epoch(t)-1$
+        \item $\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed} \preceq \LMDGHOSTHFC(\viewatstslottime[val=v,time=t])$
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+By \Cref{def:b-cand-is-b-conf} algorithm execution at $\slotstartslot{t}$ starts with
+$\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand} = \varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$.
+Given Condition 1 of the Lemma's statement, condition in line 14 of \Cref{alg:conffull}
+does not hold making code in line 15 unreachable.
+We also know that condition in line 12 does not hold, otherwise,
+$\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand} = \gfattime[time=\slotstartslot{t},val=v]$
+and $\epoch(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}) \leq \epoch(t) - 2$
+which contradicts Condition 2 of the Lemma's statement.
+\end{proof}
+
 % \begin{lemma}
 %     Let $\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}$ be any of the possible values assumed by $\bcand$ during the execution of \Cref{alg:conffull} by validator $v$ at time $\slotstartslot{t}$
 %     If
@@ -597,11 +621,11 @@ By cases.
 \end{lemma}
 
 \begin{proof}
-Given Lemma's statement 1, we have $\slotstart(\slot(t) - 1) \geq \GST$.
-Then Lemma's statement 2 allows us to apply \Cref{lem:vs-at-least-e-2} which implies that
+Given Condition 1 of the Lemma's statement, we have $\slotstart(\slot(t) - 1) \geq \GST$.
+Then Condition 2 of the Lemma's statement allows us to apply \Cref{lem:vs-at-least-e-2} which implies that
 $\exists b' \in \viewattime[time=\slotstart(\slot(t)-1),val=v], \epoch(\votsource[blck=b',time=\slotstartslot{t}])\geq \epoch(t)-2$.
 Given all this we have $b' \in \viewattime[time=\slotstart(\slot(t)),val=v']$.
-By Definition 3 of the paper $\epoch(\gjattime[val=v',time=\slotstartslot{t}])
+By Definition 3 of the paper $\epoch(\gjattime[val=v',time=\slotstartslot{t}]) = \epoch(\max(\{\votsource[blck=b,time=t]: b \in \viewatstslottime[val=v',time=t]\}))
 \geq \epoch(\votsource[blck=b',time=\slotstartslot{t}]) \geq \epoch(t) - 2$.
 \end{proof}
 
@@ -619,17 +643,19 @@ By Definition 3 of the paper $\epoch(\gjattime[val=v',time=\slotstartslot{t}])
 \end{lemma}
 
 \begin{proof}
-Given Lemma's statement 2 and lines xxx of \Cref{alg:conffull} we can conclude that
-$\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) \geq \epoch(t)-1$
-is the only possible case to satisfy Lemma's statement 3. From this we have
-$\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bcand}) \geq \epoch(t)-1$.
-Then, apply \Cref{lem:gj-at-least-e-2-curr-slot}.
+Given Condition 2 and 3 of the Lemma's statement we apply \Cref{lem:prev-conf-at-least-e-1} to conclude
+$\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) \geq \epoch(t)-1$.
+Thus $\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bcand}) \geq \epoch(t)-1$.
+With Condition 2 of the Lemma's statement we can also conclde that $\slotstart(\slot(t)-2) \geq \GST$.
+Then, by following the same reasoning that is used to proof \Cref{lem:gj-at-least-e-2-curr-slot}
+but for $\slot(t)-1$ instead of $\slot(t)$ we conclude the proof.
 \end{proof}
 
 \begin{lemma}
     Take an honest validator $v$ and a time $t$.
     If
     \begin{enumerate}
+        \item $\slotstart(\epoch(t)-1) \geq \GST$
         \item $\epoch(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}) \geq \epoch(t) - 1$
     \end{enumerate},
     then at least one of the following statements hold:
@@ -645,20 +671,85 @@ Then, apply \Cref{lem:gj-at-least-e-2-curr-slot}.
 \end{lemma}
 
 \begin{proof}
-(Sketch). By cases
-\begin{description}
-    \item[Case 1: {$\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) < \epoch(t)-1$}.]
-    Line 15 of \Cref{alg:conffull} must have been executed, otherwise, this case is unreachable.
-    From conditions in Line 14 and from Line 17 of \Cref{alg:conffull} we have
-    $\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand} \succeq \guattime[val=v,time=\slotstart(\slot(t)-1)]$.
-    Also with $\slot(t) = \firstslot(\epoch(t))$ we can conclude that
-    $\epoch(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}) = \epoch(t)-1$, thus
-    $\chkp(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}) = \guattime[val=v,time=\slotstart(\slot(t)-1)]$.
-    Given $\epoch(\guattime[val=v,time=\slotstart(\slot(t)-1)]) = \epoch(t)-1$ we have
-    $\gjattime[val=v,time=\slotstart(\slot(t))] = \guattime[val=v,time=\slotstart(\slot(t)-1)]$.
-    Thus Statement 1 of the Lemma is satisfied.
-    \item[Case 2: {$\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) \geq \epoch(t)-1$}.]
-\end{description}
+    By induction on $\slot(t)$.
+    Let $s := \slot(t)$.
+    \begin{description}
+        \item[Base Case: {$s = \slot(\varforvalattime[val=v]{\tinit})$}.] The Lemma is vacuously true.
+        \item[Inductive Case: {$s \geq \slot(\varforvalattime[val=v]{\tinit})$}.]
+            We assume that the Lemma holds for $s$ and prove that it also holds for $s+1$.
+            Given this, $\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}) \geq \epoch(s) - 1$.
+            We also know that $\epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand}) \leq \epoch(s+1)$.
+            With all this we proceed by cases.
+        \begin{description}
+            \item[{Case 1: $\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}) < \epoch(s+1) - 1$}.]
+                We assume condition in line 14 of \Cref{alg:conffull} holds, otherwise,
+                $\varforvalattime[val=v,time=\slotstartslot{s+1}]{\bcand} < \epoch(s+1) - 1$ and the Lemma is vacuously true.
+                That condition implies $\gjattime[val=v,time=\slotstart(s+1)] = \guattime[val=v,time=\slotstart(s)]$,
+                $\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand} \succeq \block(\guattime[val=v,time=\slotstart(s)]) = \block(\gjattime[val=v,time=\slotstart(s+1)])$,
+                $\epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand}) = \epoch(s+1)-1$.
+                Thus, $\gjattime[val=v,time=\slotstart(s+1)] = \chkp(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand},\epoch(s+1)-1)$
+                concluding Statement 1 of the Lemma.
+            \item[{Case 2: $\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}) = \epoch(s+1)-1$}]. By cases again.
+                \begin{description}
+                    \item[{Case 2.1: $\epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand}) = \epoch(s+1)-1$}].
+                        $\epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand}) = \epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bcand})$
+                        and $\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand} \succeq \varforvalattime[val=v,time=\slotstart(s)]{\bcand}$
+                        due to line 17 of \Cref{alg:conffull} imply $\chkp(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand}) = \chkp(\varforvalattime[val=v,time=\slotstart(s)]{\bcand})$.
+                        Then by subcases.
+                        \begin{description}
+                            \item[{Case 2.1.1: $\gjattime[val=v,time=\slotstart(s+1)] = \gjattime[val=v,time=\slotstart(s)]$}].
+                                By the inductive hypothesis assume Statement 1 holds for $\varforvalattime[val=v,time=\slotstart(s)]{\bcand}$,
+                                then it's clearly holds for $\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand}$.
+                                Now assume that only Statement 2 holds for $\varforvalattime[val=v,time=\slotstart(s)]{\bcand}$,
+                                then there must be $t' \leq st(s)$, $\epoch(t') = \epoch(s)-1 = \epoch(s+1)-1$
+                                for which $\varforvalattime[val=v,time=t']{\willChkpBeJustified}(\chkp(\varforvalattime[val=v,time=\slotstart(s)]{\bcand}))$.
+                                Then, clearly Statement 2 holds for slot $s+1$.
+                            \item[{Case 2.1.2: $\gjattime[val=v,time=\slotstart(s+1)] \ne \gjattime[val=v,time=\slotstart(s)]$}].
+                                From \Cref{lem:gj-at-least-e-2} it follows that
+                                $\epoch(\gjattime[val=v,time=\slotstart(s)]) \geq \epoch(s) - 2$.
+                                Then, by definition and monotonicity property of greatest justified checkpoint,
+                                we have $\epoch(\gjattime[val=v,time=\slotstart(s)]) = \epoch(s)-2$ and
+                                $\epoch(\gjattime[val=v,time=\slotstart(s+1)]) = \epoch(s)-1$.
+                                Thus, Statement 1 doesn't hold for slot $s$, and then by inductive hypothesis
+                                it must be that Statement 2 holds, which implies
+                                $\varforvalattime[val=v,time=t']{\willChkpBeJustified}(\chkp(\varforvalattime[val=v,time=\slotstart(s)]{\bcand}))$,
+                                $\epoch(t') = \epoch(s)-1$. Given that, the syncrhony assumption and the fact that
+                                $\epoch(\gjattime[val=v,time=\slotstart(s+1)]) = \epoch(s) - 1$ we conclude
+                                $\gjattime[val=v,time=\slotstart(s+1)] = \chkp(\varforvalattime[val=v,time=\slotstart(s)]{\bcand})$.
+                                Thus, Statement 1 of the Lemma holds for slot $s+1$.
+                        \end{description}
+                    \item[{Case 2.2: $\epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand}) = \epoch(s+1)$}].
+                        This case is only possible if condition in line 23 of \Cref{alg:findlatestconf}
+                        holds for $b' \in \viewattime[val=v,time=s+1]$, $\epoch(b') = \epoch(s+1)$,
+                        thus $\varforvalattime[val=v,time=\slotstart(s+1)]{\willChkpBeJustified}(\chkp(b'))$.
+                        By lines 1-7 and 22 of \Cref{alg:findlatestconf} we know that $\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand} \succeq b'$,
+                        this and the fact that $\epoch(b') = \epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand})$ implies
+                        $\chkp(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand}) = \chkp(b')$.
+                        From this it follows that Statement 2 of the Lemma holds for $t' = \slotstart(s+1)$.
+                \end{description}
+            \item[{Case 3: $\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}) = \epoch(s+1)$}].
+                By definition $\epoch(\gjattime[val=v,time=\slotstart(s+1)]) < \epoch(s+1)$, thus, Statement 1 of the Lemma cannot hold for this case.
+                Then, by the inductive hypothesis, we know that Statement 2 of the Lemma holds for $t' \leq \slotstart(s)$.
+                We also have $\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand} \succeq \varforvalattime[val=v,time=\slotstart(s)]{\bcand}$
+                due to line 17 of \Cref{alg:conffull}.
+                Thus, $\chkp(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand}) = \chkp(\varforvalattime[val=v,time=\slotstart(s)]{\bcand})$
+                which together with the inductive hypothesis concludes proof for the Statement 2 of the Lemma for slot $s+1$.
+        \end{description}
+    \end{description}    
+% (Sketch). By cases
+% \begin{description}
+%     \item[Case 1: {$\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) < \epoch(t)-1$}.]
+%     Line 15 of \Cref{alg:conffull} must have been executed, otherwise, this case is unreachable.
+%     From conditions in Line 14 and from Line 17 of \Cref{alg:conffull} we have
+%     $\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand} \succeq \guattime[val=v,time=\slotstart(\slot(t)-1)]$.
+%     Also with $\slot(t) = \firstslot(\epoch(t))$ we can conclude that
+%     $\epoch(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}) = \epoch(t)-1$, thus
+%     $\chkp(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}) = \guattime[val=v,time=\slotstart(\slot(t)-1)]$.
+%     Given $\epoch(\guattime[val=v,time=\slotstart(\slot(t)-1)]) = \epoch(t)-1$ we have
+%     $\gjattime[val=v,time=\slotstart(\slot(t))] = \guattime[val=v,time=\slotstart(\slot(t)-1)]$.
+%     Thus Statement 1 of the Lemma is satisfied.
+%     \item[Case 2: {$\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) \geq \epoch(t)-1$}.]
+% \end{description}
 \end{proof}
 
 \begin{lemma}
