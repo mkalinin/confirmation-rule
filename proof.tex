@@ -692,7 +692,8 @@ but for $\slot(t)-1$ instead of $\slot(t)$ we conclude the proof.
             \begin{description} 
                 \item[Case 2.1: {$\epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand}) = \epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bcand})$}.] 
                 This implies that $\chkp(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand}) = \chkp(\varforvalattime[val=v,time=\slotstart(s)]{\bcand})$.
-                The rest follows from the inductive hypothesis.
+                \sloppy{Note that if $\gjattime[time=\slotstartslot{t},val=v] = \chkp(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand})$, then $\varforvalattime[val=v,time=\slotstartslot{t}]{\willChkpBeJustified}(\chkp(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}))$.}
+                Then, the rest follows from the inductive hypothesis.
                 \item[Case 2.2: {$\epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand}) = \epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bcand}) + 1$}.] 
                 Given that $\epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand}) \leq \epoch(s+1)$, this implies that $\epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand}) = \epoch(s+1)$.
                 Then, it must be that the \KwSty{if} blocks at line 23 is executed proving the lemma.
