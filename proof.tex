@@ -670,6 +670,37 @@ but for $\slot(t)-1$ instead of $\slot(t)$ we conclude the proof.
     \end{enumerate}
 \end{lemma}
 
+\begin{proof}(by Roberto)
+    By induction on $\slot(t)$.
+    Let $s := \slot(t)$.
+    \begin{description}
+        \item[Base Case: {$s = \slot(\varforvalattime[val=v]{\tinit})$}.] The Lemma is vacuously true.
+        \item[Inductive Case: {$s \geq \slot(\varforvalattime[val=v]{\tinit})$}.]
+            We assume that the Lemma holds for $s$ and prove that it also holds for $s+1$.
+        \begin{description}
+            \item[{Case 1: $\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}) < \epoch(s+1) - 1$}.]
+                We assume condition in line 14 of \Cref{alg:conffull} holds, otherwise,
+                $\varforvalattime[val=v,time=\slotstartslot{s+1}]{\bcand} < \epoch(s+1) - 1$ and the Lemma is vacuously true.
+                That condition implies $\gjattime[val=v,time=\slotstart(s+1)] = \guattime[val=v,time=\slotstart(s)]$,
+                $\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand} \succeq \block(\guattime[val=v,time=\slotstart(s)]) = \block(\gjattime[val=v,time=\slotstart(s+1)])$,
+                $\epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand}) = \epoch(s+1)-1$.
+                Thus, $\gjattime[val=v,time=\slotstart(s+1)] = \chkp(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand},\epoch(s+1)-1)$
+                concluding Statement 1 of the Lemma.
+            \item[Case 2: {$\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}) \geq \epoch(s+1) - 1$}.]
+            Clearly $\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}) \geq \epoch(s) - 1$, so the inductive hypothesis holds non-vacuously for $s$.
+            By sub-cases.
+            \begin{description} 
+                \item[Case 2.1: {$\epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand}) = \epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bcand})$}.] 
+                This implies that $\chkp(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand}) = \chkp(\varforvalattime[val=v,time=\slotstart(s)]{\bcand})$.
+                The rest follows from the inductive hypothesis.
+                \item[Case 2.2: {$\epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand}) = \epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bcand}) + 1$}.] 
+                Given that $\epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand}) \leq \epoch(s+1)$, this implies that $\epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand}) = \epoch(s+1)$.
+                Then, it must be that the \KwSty{if} blocks at line 23 is executed proving the lemma.
+            \end{description}
+        \end{description}
+    \end{description}
+\end{proof}
+
 \begin{proof}
     By induction on $\slot(t)$.
     Let $s := \slot(t)$.
