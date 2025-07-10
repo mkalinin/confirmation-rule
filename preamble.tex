@@ -490,6 +490,15 @@
     \ensuremath{\mathsf{filt}_{\mathsf{hfc}}^{\filtered@Time\ifthenelse{\equal{\filtered@Val}{}}{}{,\filtered@Val}}}%
 }%
 
+\define@key{canonical}{time}{\def\canonical@Time{#1}}
+\define@key{canonical}{blck}{\def\canonical@Blck{#1}}
+\setkeys{canonical}{time=,blck=}
+\newcommand{\canonical}[1][]{%
+    \setkeys{canonical}{time=,blck=}%
+    \setkeys{canonical}{#1}%
+    \ensuremath{\square\mathsf{canonical}(\canonical@Blck,\canonical@Time)}%
+}%
+
 \define@key{votsource}{time}{\def\votsource@Time{#1}}
 \define@key{votsource}{blck}{\def\votsource@Blk{#1}}
 \define@key{votsource}{chkp}{\def\votsource@Chkp{#1}}

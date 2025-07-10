@@ -355,6 +355,7 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
         If $t < \varforvalattime[val=v]{\tinit}$, then $\varforvalattime[time=t,val=v]{\bconfirmed}$ corresponds to the value of $\varforvalattime[val=v]{\bconfirmed}$ after executing any code that should be executed at time $\varforvalattime[val=v]{\tinit}$.
         With this convention, we have the property that $\varforvalattime[val=v,time=\slotstart(\slot(t))]{get\_latest\_confirmed}(b_c)$ implies that $b_c = \varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$.
         \item Let $\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}$ be any of the possible values assumed by $\bcand$ during the execution of \Cref{alg:conffull} by validator $v$ at time $\slotstartslot{t}$
+        \item $\canonical[time=t,blck=b]$ means that any time time $t'\geq t$ block $b$ is canonical in the view of any honest validator.
     \end{enumerate}
 \end{definition}
 
@@ -820,7 +821,6 @@ but for $\slot(t)-1$ instead of $\slot(t)$ we conclude the proof.
         \item $\epoch(b) = \epoch(t)-1$
         \item $\exists b' \in \viewattime[val=v,time=\slotstart(\slot(t)-1)], b' \succeq b \land \epoch(\votsource[blck=b',time=t]) \geq \epoch(t)-2$
         \item $\exists b', b' \succeq b \land \epoch(\gu(b')) \geq \epoch(t)-1$
-        \item $\varforvalattime[val=v,time=\slotstartslot{t}]{\isLMDConfirmed(b)}$
         \item $\exists C, C \succeq b \land \epoch(C) = \epoch(t) \land \text{will\_no\_conflicting\_checkpoint\_be\_justified}(C)$
     \end{enumerate},
     then for any honest validator $v'$ and time $t' \geq t$ such that $\epoch(t') \in \{\epoch(t),\epoch(t)+1\}$,
@@ -850,9 +850,55 @@ but for $\slot(t)-1$ instead of $\slot(t)$ we conclude the proof.
 \end{proof}
 
 \begin{lemma}
-    
+    % Let $GU^{v,t-1} := GU(V^{v,\slotstart(\slot(t)-1)},\slotstart(\slot(t)-1))$.
+    If
+    \begin{enumerate}
+        \item $t = \slotstart(\epoch(t))$
+        \item $\epoch(\guattime[val=v,time=\slotstart(\slot(t)-1)]) = \epoch(t)-1$
+    \end{enumerate},
+    then, $\canonical[time=t,blck={\block(\guattime[val=v,time=\slotstart(\slot(t)-1)])}]$
 \end{lemma}
 
+\begin{lemma}
+    If
+    \begin{enumerate}
+        \item $t = \slotstart(\epoch(t))$
+        \item $\epoch(b) = \epoch(t)-1$
+        \item $\epoch(\gu(b)) \geq \epoch(t)-2$
+        \item $\canonical[time=t,blck=b_c]$
+        \item $\forall b': b_c \prec b' \preceq b \implies \varforvalattime[val=v,time=t]{\isOneConfirmed}(b', \gjattime[val=v,time=\slotstart(\slot(t)-1)])$
+    \end{enumerate},
+    then $\canonical[time=t,blck=b]$
+\end{lemma}
+
+\begin{lemma}
+    Take an honest validator $v$ and a block $b$.
+    If
+    \begin{enumerate}
+        \item $t = \slotstartslot{t}$
+        \item $\epoch(b) = \epoch(t)-1$
+        \item $\exists b' \in \viewattime[val=v,time=\slotstart(\slot(t)-1)], b' \succeq b \land \epoch(\votsource[blck=b',time=t]) \geq \epoch(t)-2$
+        \item $\exists b', b' \succeq b \land \epoch(\gu(b')) \geq \epoch(t)-1$
+        \item $\exists C, C \succeq b \land \epoch(C) = \epoch(t) \land \text{will\_no\_conflicting\_checkpoint\_be\_justified}(C)$
+        \item $\canonical[time=t,blck=b_c]$
+        \item $\forall b': b_c \prec b' \preceq b \implies \varforvalattime[val=v,time=t]{\isOneConfirmed}(b', \gjattime[val=v,time=\slotstart(\slot(t)-1)])$        
+    \end{enumerate},
+    then $\canonical[time=t,blck=b]$
+\end{lemma}
+
+\begin{lemma}
+    If
+    \begin{enumerate}
+        \item $\epoch(b) = \epoch(t)$
+        \item $\canonical[time=t,blck=b_c]$
+        \item $\forall b': b_c \prec b' \preceq b \implies \varforvalattime[val=v,time=t]{\isOneConfirmed}(b', \gjattime[val=v,time=\slotstart(\slot(t)-1)])$  
+    \end{enumerate},
+    then, $\canonical[time=t,blck=b]$.
+\end{lemma}
+
+\begin{lemma}
+    $\canonical[time=t,blck={\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}}]$
+\end{lemma}
 
 
 
