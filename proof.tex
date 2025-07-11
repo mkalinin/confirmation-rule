@@ -690,7 +690,7 @@ Then, by following the same reasoning that is used to proof \Cref{lem:gj-at-leas
 but for $\slot(t)-1$ instead of $\slot(t)$ we conclude the proof.
 \end{proof}
 
-\begin{lemma}
+\begin{lemma}\label{lem:no-conflict-chkp-is-justified}
     Take an honest validator $v$ and a time $t$.
     If
     \begin{enumerate}
@@ -807,25 +807,12 @@ but for $\slot(t)-1$ instead of $\slot(t)$ we conclude the proof.
 %                 which together with the inductive hypothesis concludes proof for the Statement 2 of the Lemma for slot $s+1$.
 %         \end{description}
 %     \end{description}    
-% % (Sketch). By cases
-% % \begin{description}
-% %     \item[Case 1: {$\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) < \epoch(t)-1$}.]
-% %     Line 15 of \Cref{alg:conffull} must have been executed, otherwise, this case is unreachable.
-% %     From conditions in Line 14 and from Line 17 of \Cref{alg:conffull} we have
-% %     $\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand} \succeq \guattime[val=v,time=\slotstart(\slot(t)-1)]$.
-% %     Also with $\slot(t) = \firstslot(\epoch(t))$ we can conclude that
-% %     $\epoch(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}) = \epoch(t)-1$, thus
-% %     $\chkp(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}) = \guattime[val=v,time=\slotstart(\slot(t)-1)]$.
-% %     Given $\epoch(\guattime[val=v,time=\slotstart(\slot(t)-1)]) = \epoch(t)-1$ we have
-% %     $\gjattime[val=v,time=\slotstart(\slot(t))] = \guattime[val=v,time=\slotstart(\slot(t)-1)]$.
-% %     Thus Statement 1 of the Lemma is satisfied.
-% %     \item[Case 2: {$\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) \geq \epoch(t)-1$}.]
-% % \end{description}
 % \end{proof}
 
 \begin{lemma}
     If
     \begin{enumerate}
+        \item $\text{\slotstart}(\text{\lastslot}(\text{\epoch}(t) - 1)) \geq \GST$
         \item $\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bcand}) \geq \epoch(t) - 1$
     \end{enumerate},
     then, for any honest validator $v'$,
@@ -836,13 +823,22 @@ but for $\slot(t)-1$ instead of $\slot(t)$ we conclude the proof.
 \end{lemma}
 
 \begin{proof}
-    
+    By \Cref{lem:no-conflict-chkp-is-justified} we know that
+    $\varforvalattime[val=v,time=t']{\willChkpBeJustified}(\chkp(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bcand}))$
+    for $t' \leq \slotstart(\slot(t)-1)$. Thus no checkpoint conflicting with $\chkp(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bcand})$
+    can ever be justified which proves Statement 1.
+    Due to Condition 2 of the Lemma's statement and line 10 of \Cref{alg:findlatestconf},
+    $\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bcand} \preceq \LMDGHOSTHFC(\viewattime[val=v,time=\slotstart(\slot(t)-1)])$
+    which implies
+    $\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bcand} \succeq \block(\gjattime[val=v, time=\slotstart(\slot(t)-1)])$.
+    This and Statement 1 of the Lemma together with the synchrony assumption concludes the proof for Statement 2.
 \end{proof}
 
 \begin{lemma}
     % Let $GU^{v,t-1} := GU(V^{v,\slotstart(\slot(t)-1)},\slotstart(\slot(t)-1))$.
     If
     \begin{enumerate}
+        \item $\text{\slotstart}(\text{\lastslot}(\text{\epoch}(t) - 1)) \geq \GST$
         \item $t = \slotstart(\epoch(t))$
         \item $\epoch(\guattime[val=v,time=\slotstart(\slot(t)-1)]) = \epoch(t)-1$
     \end{enumerate},
@@ -852,13 +848,28 @@ but for $\slot(t)-1$ instead of $\slot(t)$ we conclude the proof.
     \end{enumerate}
 \end{lemma}
 
+\begin{proof}
+    Consider time $t'', \epoch(t'') = \epoch(t)$.
+    $\gjattime[val=v',time=t''] = \guattime[val=v,time=\slotstart(\slot(t)-1)]$
+    follows from Conditions 1 and 3 of the Lemma's statement together with Definitions 1-3 of the paper.
+    Clearly, $\block(\guattime[val=v,time=\slotstart(\slot(t)-1)]) \in \filtered[time=t'',val=v']$
+    and $\canonical[blck={\block(\guattime[val=v,time=\slotstart(\slot(t)-1)])},time=t'']$.
+    Due to Condition 2 of the Lemma's statement all honest validators in the committee of $\epoch(t)$
+    will vote in the support of $\block(\guattime[val=v,time=\slotstart(\slot(t)-1)])$.
+    Then, by the Property 1.6 from the paper, no checkpoint $\chkp$ conflicting with $\block(\guattime[val=v,time=\slotstart(\slot(t)-1)])$
+    such that $\epoch(C) = \epoch(t)$ can ever be justified.
+    Thus, either $\gjattime[val=v',time=t'''] = \guattime[val=v,time=\slotstart(\slot(t)-1)]$
+    or $\gjattime[val=v',time=t'''] = \chkp(b', \epoch(t)), b' \succeq \block(\guattime[val=v,time=\slotstart(\slot(t)-1)])$,
+    $\epoch(t''') = \epoch(t) + 1$. In either case $\block(\guattime[val=v,time=\slotstart(\slot(t)-1)]) \in \filtered[time=t''',val=v']$.
+\end{proof}
+
 \begin{lemma}
     Take an honest validator $v$ and a block $b$.
     If
     \begin{enumerate}
         \item $t = \slotstart(\epoch(t))$
         \item $\epoch(b) = \epoch(t)-1$
-        \item $\varforvalattime[val=v,time=t]{\isOneConfirmed}(b, \gjattime[val=v,time=t])$
+        \item $\varforvalattime[val=v,time=t]{\isOneConfirmed}(b, \gjattime[val=v,time=t])$ [by Mikhail: $b := \varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}$]
         \item $\epoch(\gu(b)) \geq \epoch(t)-2$
     \end{enumerate},
     then for any honest validator $v'$ and time $t'$ such that $\epoch(t') \in \{\epoch(t),\epoch(t)+1\}$,
@@ -866,6 +877,19 @@ but for $\slot(t)-1$ instead of $\slot(t)$ we conclude the proof.
         \item $b \in \filtered[time=t',val=v']$
     \end{enumerate}
 \end{lemma}
+
+\begin{proof} (by Mikhail)
+    From \Cref{lem:no-conflict-chkp-is-justified} we know that no checkpoint conflicting with
+    $\chkp(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand})$ can be justified.
+    Given this, Condition 4 of the Lemma's statement together with the synchrony assumption
+    we know that $\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand} \succeq \block(\gjattime[val=v',time=\slotstartslot{t}])$
+    and $\votsource[blck={\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}},time=t] \geq \epoch(t)-2$.
+    Thus, $\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand} \in \filtered[time=t',val=v']$ for $\epoch(t')=\epoch(t)$.
+    Given the fact that $\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}$ remains canonical during the whole $\epoch(t)$
+    and Property 1.6 from the paper we know that no $\epoch(t)$ checkpoint conflicting with
+    $\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}$ can be justified.
+    Which concludes the proof for $\epoch(t') = \epoch(t)+1$.
+\end{proof}
 
 \begin{lemma}
     Take an honest validator $v$ and a block $b$.
