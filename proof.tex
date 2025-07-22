@@ -885,28 +885,46 @@ but for $\slot(t)-1$ instead of $\slot(t)$ we conclude the proof.
             We assume that the Lemma holds for $s$ and prove that it also holds for $s+1$.
             \begin{description}
                 \item[Case 1: {$\epoch(s+1) = \epoch(s)$}.]
-                    Clearly $s-1 > \firstslot(\epoch(s))$, otherwise,
-                    $\epoch(\varforvalattime[val=v,time=\slotstart(s-1)]{\bcand}) = \epoch(s)$ would be impossible.
+                    It must be that $s-1 > \firstslot(\epoch(s))$, otherwise,
+                    $\epoch(\varforvalattime[val=v,time=\slotstart(s-1)]{\bcand})$ cannot be equal to $\epoch(s)$.
                     By \Cref{lem:gj-at-least-e-2-curr-slot} $\epoch(\gjattime[val=v',time=\slotstart(s-1)]) \geq \epoch(s)-2$.
                     \begin{description}
                         \item[Subcase 1.1: {$\epoch(\gjattime[val=v,time=\slotstart(s-1)]) > \epoch(s)-2$}.]
-                            Clearly $\epoch(\gjattime[val=v,time=\slotstart(s-1)]) = \epoch(s)-1$ in this case.
+                            This condition implies $\epoch(\gjattime[val=v,time=\slotstart(s-1)]) = \epoch(s)-1$.
                             Due to line xxx of \Cref{alg:conffull}
                             $\varforvalattime[val=v,time=\slotstart(s-1)]{\bcand} \succeq \gjattime[val=v,time=\slotstart(s-1)]$,
                             thus $\gjattime[val=v,time=\slotstart(s-1)] = \chkp(\varforvalattime[val=v,time=\slotstart(s-1)]{\bcand}, \epoch(s)-1)$.
-                            In this case it must be that $\gjattime[val=v',time=\slotstart(s)] \nsucc \gjattime[val=v,time=\slotstart(s-1)]$
-                            as $\gjattime[val=v,time=\slotstart(s-1)]$ has the greatest possible epoch,
-                            thus by the inductive hypothesis $\gjattime[val=v',time=\slotstart(s)] = \gjattime[val=v,time=\slotstart(s-1)]$.
-                            Following the above reasoning $\gjattime[val=v',time=\slotstart(s+1)] = \gjattime[val=v,time=\slotstart(s)] = \gjattime[val=v,time=\slotstart(s-1)]$
-                            which proves Statement 2. Due to line xxx of \Cref{alg:conffull}
-                            $\varforvalattime[val=v,time=\slotstart(s)]{\bcand} \succeq \gjattime[val=v,time=\slotstart(s)]$
+                            Since $\gjattime[val=v,time=\slotstart(s-1)]$ is the greatest possible justified checkpoint during $\epoch(s)$,
+                            from the inductive hypothesis we have $\gjattime[val=v',time=\slotstart(s)] = \gjattime[val=v,time=\slotstart(s-1)]$.
+                            Givent that $\epoch(s+1) = \epoch(s)$, we can conclude the following:
+                            $\gjattime[val=v',time=\slotstart(s+1)] = \gjattime[val=v',time=\slotstart(s)] = \gjattime[val=v,time=\slotstart(s-1)]$
+                            and at the same time $\gjattime[val=v,time=\slotstart(s)] = \gjattime[val=v,time=\slotstart(s-1)]$
+                            which proves Statement 2 for the inductive case. Due to line xxx of \Cref{alg:conffull}
+                            $\varforvalattime[val=v,time=\slotstart(s)]{\bcand} \succeq \gjattime[val=v,time=\slotstart(s)] = \gjattime[val=v',time=\slotstart(s+1)]$
                             proving Statement 1.
                         \item[Subcase 1.2 (Sketch): {$\epoch(\gjattime[val=v,time=\slotstart(s-1)]) = \epoch(s)-2$}.]
-                            By the inductive hypothesis
-                            $\gjattime[val=v',time=\slotstart(s+1)] \in \{\gjattime[val=v,time=\slotstart(s-1)], \chkp(\varforvalattime[val=v,time=\slotstart(s-1)]{\bcand}, \epoch(s)-1)\}$,
-                            so does the $\gjattime[val=v,time=\slotstart(s)]$.
-                            $\varforvalattime[val=v,time=\slotstart(s)]{\bcand} \succeq \chkp(\varforvalattime[val=v,time=\slotstart(s-1)]{\bcand}, \epoch(s)-1) \succeq \gjattime[val=v,time=\slotstart(s-1)]$.
-                            Thus both statements hold.                            
+                            By the inductive hypothesis $\gjattime[val=v',time=\slotstart(s)] \succeq \gjattime[val=v,time=\slotstart(s-1)]$.
+                            By sub-cases.
+                            \begin{description}
+                                \item[Subcase 1.2.1: {$\gjattime[val=v',time=\slotstart(s)] \succ \gjattime[val=v,time=\slotstart(s-1)]$}.]
+                                    With this condition we have $\epoch(\gjattime[val=v',time=\slotstart(s)]) > \epoch(s) - 2$,
+                                    thus $\gjattime[val=v',time=\slotstart(s)]$ is the greatest possible justified checkpoint during $\epoch(s)$.
+                                    Therefore $\gjattime[val=v',time=\slotstart(s+1)] = \gjattime[val=v',time=\slotstart(s)]$,
+                                    by the inductive hypothesis we know that $\varforvalattime[val=v,time=\slotstart(s-1)]{\bcand} \succeq \gjattime[val=v',time=\slotstart(s)]$,
+                                    then $\epoch(\varforvalattime[val=v,time=\slotstart(s-1)]{\bcand}) = \epoch(s)$
+                                    implies that $\epoch(\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed}) = \epoch(s)$
+                                    thus due to lines xxx of \Cref{alg:conffull} $\varforvalattime[val=v,time=\slotstart(s)]{\bcand} \succeq \varforvalattime[val=v,time=\slotstart(s-1)]{\bcand} \succeq \gjattime[val=v',time=\slotstart(s)] = \gjattime[val=v',time=\slotstart(s+1)]$.
+                                    Thus Statement 1 of the Lemma holds.
+                                    
+                                    Then we have two cases, either $\epoch(\gjattime[val=v,time=\slotstart(s)]) = \epoch(\gjattime[val=v,time=\slotstart(s-1)])$
+                                    or $\epoch(\gjattime[val=v,time=\slotstart(s)]) > \epoch(\gjattime[val=v,time=\slotstart(s-1)])$.
+                                    In the case of the former $\gjattime[val=v,time=\slotstart(s)] = \gjattime[val=v,time=\slotstart(s-1)] \prec \gjattime[val=v',time=\slotstart(s)] = \gjattime[val=v',time=\slotstart(s+1)]$.
+                                    If the latter is true then $\gjattime[val=v,time=\slotstart(s)]$ must be equal to $\gjattime[val=v',time=\slotstart(s)] = \gjattime[val=v',time=\slotstart(s+1)]$.
+                                    In both cases Statement 2 of the Lemma hold.
+                                \item[Subcase 1.2.2: {$\gjattime[val=v',time=\slotstart(s)] = \gjattime[val=v,time=\slotstart(s-1)]$}.]
+                                    We need to show that if $\epoch(\gjattime[val=v',time=\slotstart(s+1)]) > \epoch(s) - 2$
+                                    then $\gjattime[val=v',time=\slotstart(s+1)] = \chkp(\varforvalattime[val=v,time=\slotstart(s-1)]{\bcand}, \epoch(s)-1)$.
+                            \end{description}
                     \end{description}
                 \item[Case 2: {$\epoch(s+1) > \epoch(s)$}.]
                     Then we have $\epoch(\varforvalattime[val=v,time=\slotstart((s+1)-1)]{\bcand}) = \epoch(s+1)-1$.
