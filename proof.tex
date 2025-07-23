@@ -10,10 +10,10 @@
 \section*{Confirmation Rule: Safety}
 
 See:
-\begin{itemize}
-    \item \href{https://github.com/mkalinin/confirmation-rule}{https://github.com/mkalinin/confirmation-rule}
-    \item \href{https://arxiv.org/abs/2405.00549}{https://arxiv.org/abs/2405.00549}
-\end{itemize}
+% \begin{itemize}
+%     \item \href{https://github.com/mkalinin/confirmation-rule}{https://github.com/mkalinin/confirmation-rule}
+%     \item \href{https://arxiv.org/abs/2405.00549}{https://arxiv.org/abs/2405.00549}
+% \end{itemize}
 
 \begin{definition}[LMD-GHOST Safety condition for a single block]
     Given $C \in AU(b):$
@@ -22,14 +22,24 @@ See:
     \]
 \end{definition}
 
+Let $\viewattime[val=v,time=\slotstart(s)]$ be the view of a validator $v$ at the start of slot $s$ to which all the votes cast and observed by $v$ before $\slotstart(s)$ are applied.
 
 \begin{algorithm}[H]
 \caption{Highest LMD-GHOST confirmed descendant}
 \SetAlgoNoLine
-\Fn{\highestLMDConfirmedDesc$_v(\banchor, t)$}{
-    blocks $\gets \left\{b'' \in \viewattime[time=t,val=v] : \banchor \preceq b'' \preceq \LMDGHOSTHFC(\viewattime[time=t,val=v], t)\right\}$\;
-    
-    \Return{$\max\left(\left\{b' \in \text{blocks} : \forall b'' \in \text{blocks}, b'' \preceq b' \Rightarrow \isOneConfirmed_v(b'', GJ^{\slotstart(\slot(t) - 1),v}, t)\right\}\right)$}\;
+\Fn{\isOneConfirmed$_v(b, s)$}{
+    \Return{$\isOneConfirmed_v(b, GJ(\viewattime[val=v, time=\slotstart(s-1)]), \slotstart(s))$}\;
+}
+
+\Fn{\highestLMDConfirmedDesc$_v(\bconfirmed, s)$}{
+    $descs \gets \left\{b' \in \chain(\LMDGHOSTHFC(\viewattime[time=\slotstart(s),val=v])): b' \succ \bconfirmed\right\}$\\
+    $confirmed\_descs \gets \left\{b' \in descs : \forall b'' \in descs, b'' \preceq b' \Rightarrow \isOneConfirmed_v(b'', s)\right\}$\\
+    \uIf{$confirmed\_descs \ne \emptyset$}{
+        \Return{$\argmax_{b' \in confirmed\_descs}\slot(b')$}\;
+    }
+    \uElse{
+        \Return{$\bconfirmed$}\;
+    }    
 }
 \end{algorithm}
 
@@ -50,40 +60,60 @@ then $b$ is canonical in the view of any honest validator $v'$ at time $t'$.
     TBD..
 \end{proof}
 
+Let $\viewattime[val=v,time=\slotstart(s)]$ be the view of a validator $v$ at the start of slot $s$ to which all the votes cast and observed by $v$ before $\slotstart(s)$ are applied.
 
 \begin{algorithm}[H]
 \caption{Highest confirmed descendant}
 % \SetAlgoLined
 \SetAlgoNoLine
-\Fn{highestConfirmedDesc$_v(\banchor, t)$}{
-    $b' \gets \highestLMDConfirmedDesc_v(\banchor, t)$\;
-    
-    \uIf{$\epoch(t) = \epoch(b') > \epoch(\banchor)$}{
-        \uIf{$\willChkpBeJustified_v(\chkp(b'))$ \textbf{and} $\exists b'' \succeq b' : \epoch(\gu(b'')) \geq \epoch(t) - 1$}{
-            \Return{$b'$}\;
+\Fn{willNotBeFilteredOut$_v(b, s)$}{
+    $\head \gets \LMDGHOSTHFC(\viewattime[val=v,time=\slotstart(s)])$\;
+    $\phead \gets \LMDGHOSTHFC(\viewattime[val=v,time=\slotstart(s-1)])$\;
+
+    \uIf{epoch(s) = epoch(b)}{
+        \Return{$b \preceq \head \wedge \epoch(\gu(head)) \geq \epoch(s)-1$}\;
+    }
+    \uElseIf{$s = \firstslot(\epoch(s))$}{
+        \Return{$\votsource[blck=b, time=\epoch(s)] \geq \epoch(s)-2 \lor
+                (b \preceq \phead \wedge \votsource[blck=\phead, time=\epoch(s)] \geq \epoch(s)-2)$}\;
+    }
+    \uElse {
+        \uIf{$b \preceq \head \wedge \epoch(\gu(\head)) \geq \epoch(s) - 1$} {
+            \Return{$\votsource[blck=b, time=\epoch(s)] \geq \epoch(s)-2 \lor
+                (b \preceq \phead \wedge \votsource[blck=\phead, time=\epoch(s)] \geq \epoch(s)-2)$}\;
         }
         \uElse{
-            \Return{$\max\left(\left\{b'' \in \viewattime[time=t,val=v] : \banchor \preceq b'' \prec b' \wedge \epoch(b'') = \epoch(\banchor)\right\}\right)$}\;
+            \Return{$b \preceq \phead \wedge 
+                    \epoch(\gu(\phead)) \geq \epoch(s) - 1 \wedge
+                    \votsource[blck=\phead, time=\epoch(s)] \geq \epoch(s)-2$}\;
         }
     }
-    \uElseIf{$\epoch(t) = \epoch(b') = \epoch(\banchor)$}{
-        \uIf{$\exists b'' \succeq b' : \epoch(\gu(b'')) \geq \epoch(t) - 1$}{
-            \Return{$b'$}\;
-        }
-        \uElse{
-            \Return{$\banchor$}\;
-        }
+}
+\Fn{highestConfirmedDesc$_v(\bconfirmed, s)$}{
+    $\blmdconfirmed \gets \highestLMDConfirmedDesc_v(\bconfirmed, s)$\;
+
+    \uIf{$\epoch(\blmdconfirmed) > \epoch(\bconfirmed)$ \textbf{and}
+        $\neg \willChkpBeJustified_v(\chkp(\head), s)$} {
+        $\mathit{candidates} \gets \{b' \in \chain(\blmdconfirmed), b' \succ \bconfirmed :
+            \willNotBeFilteredOut_v(b', s) \wedge \epoch(b') = \epoch(s)-1\}$
     }
-    \uElseIf{$\epoch(t) > \epoch(b')$ \textbf{and} $\slot(t) = \text{\firstslot}(\epoch(t))$}{
-        \uIf{$\epoch(\gu(b')) \geq \epoch(t) - 2$}{
-            \Return{$b'$}\;
-        }
-        \uElse{
-            \Return{$\banchor$}\;
-        }
+    \uElse {
+        $\mathit{candidates} \gets \{b' \in \chain(\blmdconfirmed), b' \succ \bconfirmed :
+            \willNotBeFilteredOut_v(b', s)\}$
     }
-    \uElse{
-        \Return{$b'$}\;
+
+    \uIf{$\mathit{candidates} = \emptyset$}{
+        \Return{$\bconfirmed$}\;
+    }
+
+    $\bcand \gets \argmax_{b' \in candidates}\slot(b')$\;
+    \uIf{$\epoch(s) > \epoch(\bcand)$ \textbf{and}
+        $s > \firstslot(epoch(s))$ \textbf{and}
+        $\neg \willNoConflictingChkpBeJustified_v(\chkp(\head, \epoch(s), s))$} {
+        \Return{$\bconfirmed$}\;
+    }
+    \uElse {
+        \Return{$\bcand$}\;
     }
 }
 \end{algorithm}
@@ -133,27 +163,29 @@ then $b$ is canonical in the view of any honest validator $v'$ at time $t' < \sl
 % \section*{Algorithm 102}
 % \textbf{(Highest confirmed)}
 
-Let $\viewatstslottime[val=v,time=t]$ be the view of a validator $v$ at the start of $\slot(t)$ to which all the votes cast and observed by $v$ before $\slotstart(\slot(t))$ are applied.
+Let $\viewattime[val=v,time=\slotstart(s)]$ be the view of a validator $v$ at the start of slot $s$ to which all the votes cast and observed by $v$ before $\slotstart(s)$ are applied.
 
 \begin{algorithm}[H]
 \SetAlgoNoLine
-\Fn{$\text{highestConfirmed}_v(\viewatstslottime[val=v,time=t])$}{
-    $b' \gets \text{highestConfirmed}(\viewatstslottime[val=v, time=\slotstart(\slot(t) - 1)])$\;
-    \uIf{$b' \preceq \LMDGHOSTHFC(\viewatstslottime[val=v,time=t])$ \textbf{and} $\epoch(b') \geq \epoch(t) - 1$}{
-        \Return{$\text{highestConfirmedDesc}_v(b', t)$}\;
+\Fn{$\text{highestConfirmed}_v(s)$}{
+    $\varforvalattime[val=v]{\bconfirmed} \gets \text{highestConfirmed}_v(s-1)$\\
+    \uIf{
+        $\epoch(\varforvalattime[val=v]{\bconfirmed}) \geq \epoch(s) - 1$ \textbf{and}\\
+        $\varforvalattime[val=v]{\bconfirmed} \preceq \LMDGHOSTHFC(\viewattime[val=v,time=\slotstart(s)])$}{
+        \Return{$\text{highestConfirmedDesc}_v(\varforvalattime[val=v]{\bconfirmed}, s)$}\;
     }
     \uElseIf{
-        $\epoch(\gu(\viewatstslottime[val=v,time=t])) = \epoch(t)$ \textbf{and} \\
-        $\epoch(\gjview[view={\viewattime[val=v, time=\slotstart(\slot(t) - 1)]}]) = \epoch(t) - 1$ \textbf{and} \\
-        $\gu(\viewatstslottime[val=v,time=t]) \succeq \gjattime[time=\slotstart(\slot(t) - 1), val=v]$
+        $s = \firstslot(\epoch(s))$ \textbf{and} \\
+        $\epoch(\gu(\viewattime[val=v,time=\slotstart(s-1)])) = \epoch(s) - 1$
     }{
-        \Return{$\text{highestConfirmedDesc}_v(\text{block}(\gu(\viewatstslottime[val=v,time=t])), t)$}\;
+        \Return{$\text{highestConfirmedDesc}_v(\text{block}(\gu(\viewattime[val=v,time=\slotstart(s-1)]), s)$}\;
     }
     \uElse{
         \Return{$b_{\text{fin}}$}\;
     }
 }
 \caption{Highest Confirmed Block Selection}
+\label{alg:highestconfirmed}
 \end{algorithm}
 
 \begin{lemma}
@@ -202,14 +234,9 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
 \SetKw{Const}{const}
 
 \begin{algorithm}[H]
-\caption{Full Algo}
-\label{alg:conffull}
+\caption{Find latest confirmed descendant}
+\label{alg:findlatestconf}
 \SetAlgoNoLine
-% \DontPrintSemicolon
-% \KwStateK{$x \in \mathbb{R}$\\ $y \in \mathbb{R}$}\\
-\KwState{
-    $\varforvalattime[val=v]{\bconfirmed}$
-}
 \Fn{$\varforvalattime[val=v]{\mathit{next\_child}}(b,head)$}{
     $extension = \{ b' \in \viewattime[time={\varforvalattime[val=v]{t}},val=v], b \prec b' \preceq head \}$\\
     \uIf{$|extension| > 0$}
@@ -220,140 +247,418 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
         \Return{$\bot$}
     }
 }
-\Upon{$\varforvalattime[val=v]{t} = \varforvalattime[val=v]{\tinit}$}{
-    $\varforvalattime[val=v]{\bconfirmed}   \gets \block(\gfattime[time={\varforvalattime[val=v]{t}},val=v])$
-}
-\Upon{$\varforvalattime[val=v]{t} = \slotstartslot{\varforvalattime[val=v]{t}}$}{
-    $\varforvalattime[val=v]{\bconfirmed} \gets \varforvalattime[val=v]{\mathit{get\_latest\_confirmed}}(\varforvalattime[val=v]{\bconfirmed})$
-}
-\Proc{$\varforvalattime[val=v]{\mathit{get\_latest\_confirmed}}(b_c)$}{
-    $\bcand \gets b_c$\\
-    \uIf{$\ldots$}{
-        \Return{$\bcand$}
-    }
 
-    \uIf{$\ldots$}{
-        $\bcand \gets \block(\gfattime[val=v,time={\varforvalattime[val=v]{t}}])$
-    }
-
-    \uIf{$\ldots$}
-    {
-        $\bcand \gets \block(\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}])$
-    }
-
-    \uIf{$\ldots$}
-    {
-        $\bcand \gets \varforvalattime[val=v]{\mathit{find\_latest\_confirmed\_descendant}}(\bcand,s)$
-    }
-
-    \Return{$\bcand$}
-}
 \Fn{$\varforvalattime[val=v]{\mathit{find\_latest\_confirmed\_descendant}}(b_c)$}
 {
     $\bcand \gets b_c$\\
     \Const $head \gets \LMDGHOSTHFC(\viewattime[time={\varforvalattime[val=v]{t}},val=v])$\\
     \Const $phead \gets \LMDGHOSTHFC(\viewattime[time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)},val=v])$\\
-    \While{$\varforvalattime[val=v]{\mathit{next\_child}}(\bcand,head) \neq \bot$}
-    {
-        $\btemp \gets \varforvalattime[val=v]{\mathit{next\_child}}(\bcand,head)$\\
-        \uIf{$\btemp \npreceq phead$}{
-            \Break
-        }
-        $\bcand \gets \btemp$
+    \uIf{$\slot(\varforvalattime[val=v]{t}) = \firstslot(\epoch(\varforvalattime[val=v]{t}))$} {
+        $\chkp_W \gets \guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}]$
     }
+    \uElse {
+        $\chkp_W \gets \gjattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}]$
+    }
+    
+
+    \uIf{$\epoch(\bcand) = \epoch(\varforvalattime[val=v]{t}) - 1$ {\bf and}
+        $\votsource[blck=phead, time={\varforvalattime[val=v]{t}}] \geq \epoch(\varforvalattime[val=v]{t}) - 2$ {\bf and}
+        $(\slot(\varforvalattime[val=v]{t}) = \firstslot(\epoch(\varforvalattime[val=v]{t}))$ {\bf or}
+        $(\willNoConflictingChkpBeJustified_v(\chkp(head, \epoch(\varforvalattime[val=v]{t})))$ {\bf and}
+        $(\gu(phead) \geq \epoch(\varforvalattime[val=v]{t}) - 1$ {\bf or}
+        $\gu(head) \geq \epoch(\varforvalattime[val=v]{t}) - 1)))$}
+    {
+        \While{$\varforvalattime[val=v]{\mathit{next\_child}}(\bcand,head) \neq \bot$}
+        {
+            $\btemp \gets \varforvalattime[val=v]{\mathit{next\_child}}(\bcand,head)$\\
+            \uIf{$\epoch(\btemp) < \epoch(\varforvalattime[val=v]{t})$ {\bf and}
+                $\btemp \preceq phead$ {\bf and}
+                $\isOneConfirmed_v(\btemp, \chkp_W)$}
+            {
+                $\bcand \gets \btemp$
+            }
+            \uElse { 
+                \Break 
+            }
+        }
+    }
+
+    \uIf{$\slot(\varforvalattime[val=v]{t}) = \firstslot(\epoch(\varforvalattime[val=v]{t}))$ {\bf or}
+        $\gu(head) \geq \epoch(\varforvalattime[val=v]{t}) - 1$\nllabel{ln:second-if}}
+    {
+        $\btcand \gets \bcand$\;
+        \While{$\varforvalattime[val=v]{\mathit{next\_child}}(\btcand,head) \neq \bot$}
+        {
+            $\btemp \gets \varforvalattime[val=v]{\mathit{next\_child}}(\btcand,head)$\\
+            \uIf{$\epoch(\btemp) > \epoch(\btcand)$ {\bf and}
+                $\neg \willChkpBeJustified_v(\chkp(\btemp)))$}
+            {
+                \Break
+            }
+            \uIf{$\isOneConfirmed_v(\btemp, \chkp_W)$} {
+                $\btcand \gets \btemp$
+            }
+            \uElse { 
+                \Break 
+            }
+        }
+
+        \uIf{$\epoch(\btcand) = \epoch(\varforvalattime[val=v]{t})$ {\bf or}
+            $(\votsource[blck=\btcand, time={\varforvalattime[val=v]{t}}] \geq \epoch(\varforvalattime[val=v]{t}) - 2$ {\bf and}
+            $(\slot(\varforvalattime[val=v]{t}) = \firstslot(\epoch(\varforvalattime[val=v]{t}))$ {\bf or}
+            $\willNoConflictingChkpBeJustified_v(\chkp(head, \epoch(\varforvalattime[val=v]{t})))))$}
+        {
+            $\bcand \gets \btcand$
+        }
+    }
+
+    \Return{$\bcand$}
+    \marklastline{lastline}
+}
+\end{algorithm}
+
+% \setcounter{algocf}{10}
+\addtocounter{algocf}{-1}
+
+\begin{algorithm}[H]
+\caption{Full Algo}
+\label{alg:conffull}
+\SetAlgoNoLine
+\continuefrom{lastline}
+% \DontPrintSemicolon
+% \KwStateK{$x \in \mathbb{R}$\\ $y \in \mathbb{R}$}\\
+\KwState{
+    $\varforvalattime[val=v]{\bconfirmed}$
+}
+\Upon{$\varforvalattime[val=v]{t} = \varforvalattime[val=v]{\tinit}$}{
+    $\varforvalattime[val=v]{\bconfirmed}   \gets \block(\gfattime[time={\varforvalattime[val=v]{t}},val=v])$
+}
+\Upon{$\varforvalattime[val=v]{t} = \slotstartslot{\varforvalattime[val=v]{t}} \land \varforvalattime[val=v]{t} \geq \varforvalattime[val=v]{\tinit}$}{
+    $\varforvalattime[val=v]{\bconfirmed} \gets \varforvalattime[val=v]{\mathit{get\_latest\_confirmed}}(\varforvalattime[val=v]{\bconfirmed})$
+}
+\Proc{$\varforvalattime[val=v]{\mathit{get\_latest\_confirmed}}(b_c)$}{
+    $\bcand \gets b_c$\\
+    \Const $\head \gets \LMDGHOSTHFC(\viewattime[time={\varforvalattime[val=v]{t}},val=v])$\\
+
+    \uIf{$\epoch(\bcand) < \epoch(\varforvalattime[val=v]{t}) - 1$ {\bf or}
+        $\bcand \npreceq \head$ \label{ln:if-bcand-npreceq-head}}{
+        $\bcand \gets \block(\gfattime[val=v,time={\varforvalattime[val=v]{t}}])$
+    }
+
+    \uIf{$\slot(\varforvalattime[val=v]{t}) = \firstslot(\epoch(\varforvalattime[val=v]{t}))$ {\bf and}
+        $\epoch(\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}]) = \epoch(\varforvalattime[val=v]{t})-1$ {\bf and}
+        $\slot(\bcand) < \slot(\block(\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}]))$}
+    {
+        $\bcand \gets \block(\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}])$
+    }
+
+    \uIf{$\epoch(\bcand) \geq \epoch(\varforvalattime[val=v]{t}) - 1$}
+    {
+        $\bcand \gets \varforvalattime[val=v]{\mathit{find\_latest\_confirmed\_descendant}}(\bcand)$
+    }
+
     \Return{$\bcand$}
 }
 \end{algorithm}
 
-Let $\varforvalattime[time=t,val=v]{\bconfirmed}$ be the value of $\varforvalattime[val=v]{\bconfirmed}$ after the execution of any code that should be executed at timer $t$ as per \Cref{alg:conffull}.
-If $t < \varforvalattime[val=v]{\tinit}$, then $\varforvalattime[time=t,val=v]{\bconfirmed}$ corresponds to the value of $\varforvalattime[val=v]{\bconfirmed}$ after executing any code that should be executed at time $\varforvalattime[val=v]{\tinit}$.
+\begin{definition}[Notation]\leavevmode\label{def:b-cand-is-b-conf}
+    \begin{enumerate}
+        \item Let $\varforvalattime[time=t,val=v]{\bconfirmed}$ be the value of $\varforvalattime[val=v]{\bconfirmed}$ after the execution of any code that should be executed at timer $t$ as per \Cref{alg:conffull}.
+        If $t < \varforvalattime[val=v]{\tinit}$, then $\varforvalattime[time=t,val=v]{\bconfirmed}$ corresponds to the value of $\varforvalattime[val=v]{\bconfirmed}$ after executing any code that should be executed at time $\varforvalattime[val=v]{\tinit}$.
+        With this convention, we have the property that $\varforvalattime[val=v,time=\slotstart(\slot(t))]{get\_latest\_confirmed}(b_c)$ implies that $b_c = \varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$.
+        \item Let $\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}$ be any of the possible values assumed by $\bcand$ during the execution of \Cref{alg:conffull} by validator $v$ at time $\slotstartslot{t}$
+        \item $\canonical[time=t,blck=b]$ means that any time time $t'\geq t$ block $b$ is canonical in the view of any honest validator.
+    \end{enumerate}
+\end{definition}
 
-\begin{lemma}
+\begin{lemma}\label{lem:conf-current-epoch-then-gu-curr-epoch}
     If
     \begin{enumerate}
-        \item $\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) = \epoch(t)$
+        \item $\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed}) = \epoch(t)$
     \end{enumerate},
     then
     \begin{enumerate}
-        \item $\exists b' \in \viewattime[val=v,time=\slotstartslot{t}], b' \succeq \varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed} \land \epoch(\gu(b')) \geq \epoch(t)-1$
+        \item $\exists b' \in \viewattime[val=v,time=\slotstartslot{t}], b' \succeq \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed} \land \epoch(\gu(b')) \geq \epoch(t)-1$
         % \item $\banchor^{v,\slotstart(\slot(t))} \succeq GJ^{v,t}$
     \end{enumerate}
 \end{lemma}
 
 \begin{proof}
-    Assume we start executing the algorithm at time $t_0 = \slotstartslot{t_0}$.
+    % Assume we start executing the algorithm at time $t_0 = \slotstartslot{t_0}$.
     By induction on $\slot(t)$.
     Let $s := \slot(t)$.
     \begin{description}
-        \item[Base Case: $s = \slot(t_0)$.] 
+        \item[Base Case: {$s = \slot(\varforvalattime[val=v]{\tinit})$}.] The Lemma is vacuously true.
+        \item[Inductive Case: {$s \geq \slot(\varforvalattime[val=v]{\tinit})$}.] We assume that the Lemma holds for $s$ and prove that it also holds for $s+1$.
+        We also assume that $\epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bconfirmed}) = \epoch(s+1)$ as the Lemma holds vacuously otherwise.
+        This implies that slot $s+1 \neq \firstslot(\epoch(s+1))$ as, if so, it could not be that  $\epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bconfirmed}) = \epoch(s+1)$.
+        This then implies that  $\epoch(s+1) = \epoch(s)$.
+        \begin{description}
+            \item[Case 1: {$\varforvalattime[val=v,time=\slotstart(s+1)]{\bconfirmed} = \varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}$}.]
+            Just apply the inductive hypothesis.
+            \item[Case 2: {$\varforvalattime[val=v,time=\slotstart(s+1)]{\bconfirmed} \neq \varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}$}.]
+            Given that we assume $\epoch(s+1) = \epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bconfirmed})$, it must be that the \KwSty{if} condition at \Cref{ln:second-if} is true.
+            Given that  $s+1 \neq \firstslot(\epoch(s+1))$, then $\gu(\head) \geq \epoch(s+1)-1$.
+            The \KwSty{if} block at \Cref{ln:if-bcand-npreceq-head} ensures that $\varforvalattime[val=v,time=\slotstart(s+1)]{\bconfirmed} \preceq \head$.
+        \end{description}
     \end{description}
 \end{proof}
 
-\begin{lemma}
+\begin{lemma}[Old. Now reaplced by \Cref{lem:conf-current-epoch-then-gu-curr-epoch}]
+    If
+    \begin{enumerate}
+        \item $\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed}) = \epoch(t)$
+    \end{enumerate},
+    then
+    \begin{enumerate}
+        \item $\exists b' \in \viewattime[val=v,time=\slotstartslot{t}], \epoch(\gu(b')) \geq \epoch(t)-1$
+        % \item $\banchor^{v,\slotstart(\slot(t))} \succeq GJ^{v,t}$
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+    % Assume we start executing the algorithm at time $t_0 = \slotstartslot{t_0}$.
+    By induction on $\slot(t)$.
+    Let $s := \slot(t)$.
+    \begin{description}
+        \item[Base Case: {$s = \slot(\varforvalattime[val=v]{\tinit})$}.] The Lemma is vacuously true.
+        \item[Inductive Case: {$s \geq \slot(\varforvalattime[val=v]{\tinit})$}.] We assume that the Lemma holds for $s$ and prove that it also holds for $s+1$.
+        We also assume that $\epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bconfirmed}) = \epoch(s+1)$ as the Lemma holds vacuously otherwise.
+        This implies that slot $s+1 \neq \firstslot(\epoch(s+1))$ as, if so, it could not be that  $\epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bconfirmed}) = \epoch(s+1)$.
+        This then implies that  $\epoch(s+1) = \epoch(s)$.
+        % This implies that $\epoch(s+1) = \epoch(s)$ as, otherwise, it would mean that we are the beginning of epoch $\epoch(s)+1$ and, therefore, it cannot be that $\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}) = \epoch(s+1)$ reaching a contradiction.
+        \begin{description}
+            \item[Case 1: {$\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}) = \epoch(s)$}.] Given that $\epoch(s+1) = \epoch(s)$, the proof for this case follows directly from the inductive hypothesis.
+            \item[Case 2: {$\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}) \neq \epoch(s)$}.] 
+            Given that $\epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bconfirmed}) = \epoch(s+1) = \epoch(s)$, it must be that condition at Line XXX is true which implies that the Lemma holds.
+        \end{description}
+    \end{description}
+\end{proof}
+
+% \begin{lemma}\label{lem:current-epoch-then-gu-prev-epoch}
+%     If
+%     \begin{enumerate}
+%         \item $\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) = \epoch(t)$
+%     \end{enumerate},
+%     then
+%     \begin{enumerate}
+%         \item $\exists b' \in \viewattime[val=v,time=\slotstartslot{t}], b' \succeq \varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed} \land \epoch(\gu(b')) \geq \epoch(t)-1$
+%         % \item $\banchor^{v,\slotstart(\slot(t))} \succeq GJ^{v,t}$
+%     \end{enumerate}
+% \end{lemma}
+
+% \begin{proof}
+%     % Assume we start executing the algorithm at time $t_0 = \slotstartslot{t_0}$.
+%     By induction on $\slot(t)$.
+%     Let $s := \slot(t)$.
+%     \begin{description}
+%         \item[Base Case: {$s = \slot(\varforvalattime[val=v]{\tinit})$}.] The Lemma is vacuously true.
+%         \item[Inductive Case: {$s \geq \slot(\varforvalattime[val=v]{\tinit})$}.] We assume that the Lemma holds for $s$ and prove that it also holds for $s+1$.
+%         We also assume that $\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}) = \epoch(s+1)$ as the Lemma holds vacuously otherwise.
+%         This implies that $\epoch(s+1) = \epoch(s)$ as, otherwise, it would mean that we are the beginning of epoch $\epoch(s)+1$ and, therefore, it cannot be that $\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}) = \epoch(s+1)$ reaching a contradiction.
+%         \begin{description}
+%             \item[Case 1: {$\epoch(\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed}) = \epoch(s)$}.] 
+%             Given that $\epoch(s+1) = \epoch(s)$, the proof for this case follows directly from the inductive hypothesis.
+%             \item[Case 2: {$\epoch(\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed}) \neq \epoch(s)$}.] 
+%             Given that $\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}) = \epoch(s+1) = \epoch(s)$, it must be that condition at Line XXX is true which implies that the Lemma holds.
+%         \end{description}
+%     \end{description}
+% \end{proof}
+
+\begin{lemma}\label{lem:when-restarting-vs-from-prev-epoch}
+    If
+    \begin{enumerate}
+        \item $\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) < \epoch(t)-1$
+        \item $\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed}) \geq \epoch(t)-1$
+    \end{enumerate},
+    then
+    \begin{enumerate}
+        \item $\exists b' \in \viewattime[time=\slotstart(\slot(t)-1),val=v], \epoch(\votsource[blck=b',time=\slotstartslot{t}])\geq \epoch(t)-1$
+    \end{enumerate}
+\end{lemma}
+\begin{proof}
+    Let $s:= \slot(t)$.
+    It must be that we restart the ``confirmation chain'' at time $\slotstart(s)$ as there is no other way to satisfy the conditions in the Lemma's statement.
+    This means that conditions at lines xxx are true.
+    Then, this implies that $\exists b' \in \viewattime[time=\slotstart(s-1),val=v], \epoch(\gu(b')) \geq \epoch(s)-1$.
+    From this, it follows that  $\epoch(\votsource[blck=b',time=\slotstart(s)])\geq \epoch(s)-1$
+\end{proof}
+
+\begin{lemma}\label{lem:conf-prev-epoch-then-vs-two-epochs-ago}
     If
     \begin{enumerate}
         \item $\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) \geq \epoch(t)-1$
     \end{enumerate},
     then
     \begin{enumerate}
-        \item $\epoch(\gjattime[val=v,time=\slotstart(\slot(t))]) \geq \epoch(t)-2$
+        \item $\exists b' \in \viewattime[time=\slotstart(\slot(t)-1),val=v], \epoch(\votsource[blck=b',time=\slotstartslot{t}])\geq \epoch(t)-2$
         % \item $\banchor^{v,\slotstart(\slot(t))} \succeq GJ^{v,t}$
     \end{enumerate}
 \end{lemma}
 
-\begin{proof}(Sketch)
+\begin{proof}
     By induction on $\slot(t)$.
     Let $s := \slot(t)$.
     \begin{description}
-        \item[{Base Case: $\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed} = \block(\gfattime[time=\slotstart(s-1),val=v])$.}] Clearly, $\epoch(\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed} ) < \epoch(t) -1$. Assume then that $\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed} ) \geq \epoch(t)-1$.
-        This means that we restart the confirmation chain, which means that we know that $\epoch(\gjattime[time=\slotstart(s+1),val=v])=\epoch(t)=\epoch(s+1)-1$.
-        \item[Inductive Case.] 
-        We assume the Lemma holds for slot $s$ and prove that it also holds for slot $s+1$.
-        We also assume $\epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bconfirmed}) \geq \epoch(s+1)-1$  as the Lemma holds vacuously otherwise. 
-        Now, by cases.
+        \item[Base Case: {$s = \slot(\varforvalattime[val=v]{\tinit})$}.] The Lemma is vacuously true.
+        \item[Inductive Case: {$s \geq \slot(\varforvalattime[val=v]{\tinit})$}.] We assume that the Lemma holds for $s$ and prove that it also holds for $s+1$.
+        We also assume that $\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}) \geq \epoch(s+1)-1$ as the Lemma holds vacuously otherwise.
+        % This implies that $\epoch(s+1) = \epoch(s)$ as, otherwise, it would mean that we are the beginning of epoch $\epoch(s)+1$ and, therefore, it cannot be that $\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}) = \epoch(s+1)$ reaching a contradiction.
         \begin{description}
-            \item[{Case 1: $\epoch(\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed}) < \epoch(s)-1$}] Same reasoning as for the base case.
+            \item[{Case 1: $\epoch(\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed}) < \epoch(s)-1$}.] Follows from \Cref{lem:when-restarting-vs-from-prev-epoch}.
             \item[{Case 2: $\epoch(\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed}) \geq \epoch(s)-1$}] 
-            By the induction hypothesis, we know that $\epoch(\gjattime[time=\slotstart(s),val=v]) \geq \epoch(s)-2$.
+            By the inductive hypothesis, we know that $\exists b' \in \viewattime[time=\slotstart(s-1),val=v], \epoch(\votsource[blck=b',time=\slotstart(s)])\geq \epoch(s)-2$.
             By cases again
             \begin{description}
-                \item[Case 2.1: $\epoch(s+1) = \epoch(s)$.]  Then $\epoch(\gjattime[time=\slotstart(s+1),val=v])\geq\epoch(\gjattime[time=\slotstart(s),val=v])\geq \epoch(s)-2 = \epoch(s+1)-2$.
-                \item[Case 2.2: $\epoch(s+1) = \epoch(s) + 1$.] This implies that  $\epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bconfirmed}) = \epoch(s)$ as we are at the beginning of epoch $\epoch(s+1)$ so we cannot confirm any block from epoch $\epoch(s+1)$.
+                \item[Case 2.1: $\epoch(s+1) = \epoch(s)$.]  Then $\epoch(\votsource[blck=b',time=\slotstart(s+1)])\geq\epoch(\votsource[blck=b',time=\slotstart(s)])\geq \epoch(s)-2 = \epoch(s+1)-2$.
+                \item[Case 2.2: $\epoch(s+1) = \epoch(s) + 1$.] From our assumption above, $\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}) \geq \epoch(s+1)-1 = \epoch(s)$.
+                Given that $\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}) \leq \epoch(s)$, we can conclude that $\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed})= \epoch(s)$.
+                Note also that  $\epoch(s+1) = \epoch(s) + 1$ implies that $s+1 = \firstslot(\epoch(s+1))$.
+                All of this together with  \Cref{lem:conf-current-epoch-then-gu-curr-epoch} implies that $\exists b' \in \viewattime[time=\slotstart(s-1),val=v], \epoch(\votsource[blck=b',time=\slotstart(s)])\geq \epoch(s)-1\geq\epoch(s+1)-2$.
             \end{description}
         \end{description}
     \end{description}
-    We prove the following equivalent statement inductively.
-    If $\epoch(\varforvalattime[val=v,time=\slotstartslot{t}]{\isOneConfirmed}) \geq \epoch(s+1)-1$,
-    then $\epoch(\gjattime[val=v,time=\slotstart(s+1)]) \geq \epoch(s+1)-2$.
-
 \end{proof}
 
-\begin{lemma}
+% \begin{lemma}\label{lem:conf-prev-epoch-then-gj-two-epochs-ago}
+%     If
+%     \begin{enumerate}
+%         \item $\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) \geq \epoch(t)-1$
+%     \end{enumerate},
+%     then
+%     \begin{enumerate}
+%         \item $\epoch(\gjattime[val=v,time=\slotstart(\slot(t))]) \geq \epoch(t)-2$
+%         % \item $\banchor^{v,\slotstart(\slot(t))} \succeq GJ^{v,t}$
+%     \end{enumerate}
+% \end{lemma}
 
-\end{lemma}
+% \begin{proof}
+%     By induction on $\slot(t)$.
+%     Let $s := \slot(t)$.
+%     \begin{description}
+%         \item[Base Case: {$s = \slot(\varforvalattime[val=v]{\tinit})$}.] The Lemma is vacuously true.
+%         \item[Inductive Case: {$s \geq \slot(\varforvalattime[val=v]{\tinit})$}.] We assume that the Lemma holds for $s$ and prove that it also holds for $s+1$.
+%         We also assume that $\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}) \geq \epoch(s+1)-1$ as the Lemma holds vacuously otherwise.
+%         % This implies that $\epoch(s+1) = \epoch(s)$ as, otherwise, it would mean that we are the beginning of epoch $\epoch(s)+1$ and, therefore, it cannot be that $\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}) = \epoch(s+1)$ reaching a contradiction.
+%         \begin{description}
+%             \item[{Case 1: $\epoch(\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed}) < \epoch(s)-1$}.] Given that we assume that $\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed} ) \geq \epoch(s)-1$, it must be that we restart ``confirmation chain'' at time $\slotstart(s)$. 
+%             Therefore $s = \firstslot(\epoch(s))$ and we know that $\epoch(\gjattime[time=\slotstart(s),val=v])=\epoch(s)-1$.
+%             This means that we know $\epoch(\gjattime[time=\slotstart(s+1),val=v])\geq\epoch(\gjattime[time=\slotstart(s),val=v])\geq\epoch(s)-1=\epoch(s+1)-1$.
+%             \item[{Case 2: $\epoch(\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed}) \geq \epoch(s)-1$}] 
+%             By the induction hypothesis, we know that $\epoch(\gjattime[time=\slotstart(s),val=v]) \geq \epoch(s)-2$.
+%             By cases again
+%             \begin{description}
+%                 \item[Case 2.1: $\epoch(s+1) = \epoch(s)$.]  Then $\epoch(\gjattime[time=\slotstart(s+1),val=v])\geq\epoch(\gjattime[time=\slotstart(s),val=v])\geq \epoch(s)-2 = \epoch(s+1)-2$.
+%                 \item[Case 2.2: $\epoch(s+1) = \epoch(s) + 1$.] From our assumption above, $\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}) \geq \epoch(s+1)-1 = \epoch(s)$.
+%                 Given that $\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}) \leq \epoch(s)$, we can conclude that $\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed})= \epoch(s)$.
+%                 Note also that  $\epoch(s+1) = \epoch(s) + 1$ implies that $s+1 = \firstslot(\epoch(s+1))$.
+%                 All of this together with  \Cref{lem:current-epoch-then-gu-curr-epoch} implies that $\epoch(\gjattime[val=v,time=\slotstart(s+1)]) \geq \epoch(s)-1 = \epoch(s+1)-2$.
+%             \end{description}
+%         \end{description}
+%     \end{description}
+% \end{proof}
 
-\begin{lemma}
-    Let $\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}$ be any of the possible values assumed by $\bcand$ during the execution of \Cref{alg:conffull} by validator $v$ at time $\slotstartslot{t}$
+% \begin{proof}(Sketch)
+%     By induction on $\slot(t)$.
+%     Let $s := \slot(t)$.
+%     \begin{description}
+%         \item[{Base Case: $\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed} = \block(\gfattime[time=\slotstart(s-1),val=v])$.}] Clearly, $\epoch(\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed} ) < \epoch(t) -1$. Assume then that $\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed} ) \geq \epoch(t)-1$.
+%         This means that we restart the confirmation chain, which means that we know that $\epoch(\gjattime[time=\slotstart(s+1),val=v])=\epoch(t)=\epoch(s+1)-1$.
+%         \item[Inductive Case.] 
+%         We assume the Lemma holds for slot $s$ and prove that it also holds for slot $s+1$.
+%         We also assume $\epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bconfirmed}) \geq \epoch(s+1)-1$  as the Lemma holds vacuously otherwise. 
+%         Now, by cases.
+%         \begin{description}
+%             \item[{Case 1: $\epoch(\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed}) < \epoch(s)-1$}] Same reasoning as for the base case.
+%             \item[{Case 2: $\epoch(\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed}) \geq \epoch(s)-1$}] 
+%             By the induction hypothesis, we know that $\epoch(\gjattime[time=\slotstart(s),val=v]) \geq \epoch(s)-2$.
+%             By cases again
+%             \begin{description}
+%                 \item[Case 2.1: $\epoch(s+1) = \epoch(s)$.]  Then $\epoch(\gjattime[time=\slotstart(s+1),val=v])\geq\epoch(\gjattime[time=\slotstart(s),val=v])\geq \epoch(s)-2 = \epoch(s+1)-2$.
+%                 \item[Case 2.2: $\epoch(s+1) = \epoch(s) + 1$.] This implies that  $\epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bconfirmed}) = \epoch(s)$ as we are at the beginning of epoch $\epoch(s+1)$ so we cannot confirm any block from epoch $\epoch(s+1)$.
+%             \end{description}
+%         \end{description}
+%     \end{description}
+%     We prove the following equivalent statement inductively.
+%     If $\epoch(\varforvalattime[val=v,time=\slotstartslot{t}]{\isOneConfirmed}) \geq \epoch(s+1)-1$,
+%     then $\epoch(\gjattime[val=v,time=\slotstart(s+1)]) \geq \epoch(s+1)-2$.
+
+% \end{proof}
+
+\begin{lemma}\label{lem:vs-at-least-e-2}
     If
     \begin{enumerate}
         \item $\epoch(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}) \geq \epoch(t)-1$
     \end{enumerate},
     then
     \begin{enumerate}
-        \item $\epoch(\gjattime[val=v,time=\slotstart(\slot(t))]) \geq \epoch(t)-2$
+        \item $\exists b' \in \viewattime[time=\slotstart(\slot(t)-1),val=v], \epoch(\votsource[blck=b',time=\slotstartslot{t}])\geq \epoch(t)-2$
         % \item $\banchor^{v,\slotstart(\slot(t))} \succeq GJ^{v,t}$
     \end{enumerate}
 \end{lemma}
 
-\begin{proof}(Sketch)
-    
+\begin{proof}
+By cases.
+\begin{description}
+    \item[Case 1: {$\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) \geq \epoch(s)-1$}.] Follows from \Cref{lem:conf-prev-epoch-then-vs-two-epochs-ago}.
+    \item[Case 2: {$\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) < \epoch(s)-1$}.] 
+    From $\epoch(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}) \geq \epoch(t)-1$, we can conclude that  $\epoch(\varforvalattime[val=v,time=\slotstartslot{t}]{\bconfirmed}) \geq \epoch(t)-1$.
+    Then, apply \Cref{lem:when-restarting-vs-from-prev-epoch}.
+\end{description}
 \end{proof}
 
-\begin{lemma}
+\begin{lemma}\label{lem:prev-conf-at-least-e-1}
+    If
+    \begin{enumerate}
+        \item $\slot(t) > \text{\firstslot}(\epoch(t))$
+        \item $\epoch(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}) \geq \epoch(t)-1$
+    \end{enumerate},
+    then
+    \begin{enumerate}
+        \item $\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) \geq \epoch(t)-1$
+        \item $\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed} \preceq \LMDGHOSTHFC(\viewatstslottime[val=v,time=t])$
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+By \Cref{def:b-cand-is-b-conf} algorithm execution at $\slotstartslot{t}$ starts with
+$\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand} = \varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$.
+Given Condition 1 of the Lemma's statement, condition in line 14 of \Cref{alg:conffull}
+does not hold making code in line 15 unreachable.
+We also know that condition in line 12 does not hold, otherwise,
+$\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand} = \gfattime[time=\slotstartslot{t},val=v]$
+and $\epoch(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}) \leq \epoch(t) - 2$
+which contradicts Condition 2 of the Lemma's statement.
+\end{proof}
+
+% \begin{lemma}
+%     Let $\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}$ be any of the possible values assumed by $\bcand$ during the execution of \Cref{alg:conffull} by validator $v$ at time $\slotstartslot{t}$
+%     If
+%     \begin{enumerate}
+%         \item $\epoch(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}) \geq \epoch(t)-1$
+%     \end{enumerate},
+%     then
+%     \begin{enumerate}
+%         \item $\epoch(\gjattime[val=v,time=\slotstart(\slot(t))]) \geq \epoch(t)-2$
+%         % \item $\banchor^{v,\slotstart(\slot(t))} \succeq GJ^{v,t}$
+%     \end{enumerate}
+% \end{lemma}
+
+% \begin{proof}(Sketch)
+% \begin{description}
+%     \item[Case 1: {$\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) \geq \epoch(s)-1$}.] Follows from \Cref{lem:conf-prev-epoch-then-gj-two-epochs-ago}.
+%     \item[Case 2: {$\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) < \epoch(s)-1$}.] 
+%     Assume that  $\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed} ) \geq \epoch(s)-1$ as, otherwise, the Lemma holds vacuously.
+%     Then, it must be that we restart ``confirmation chain'' at time $\slotstart(s)$. 
+%     Therefore $s = \firstslot(\epoch(s))$ and we know that $\epoch(\gjattime[time=\slotstart(s),val=v])=\epoch(s)-1$.
+% \end{description}
+% \end{proof}
+
+\begin{lemma}\label{lem:gj-at-least-e-2-curr-slot}
     If
     \begin{enumerate}
         \item $\text{\slotstart}(\text{\lastslot}(\text{\epoch}(t) - 1)) \geq \GST$
-        \item $\epoch(\varforvalattime[val=v,time=t]{\banchor}) \geq \epoch(t)-1$
+        \item $\epoch(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}) \geq \epoch(t)-1$
     \end{enumerate},
     then, for any honest validator $v'$,
     \begin{enumerate}
@@ -361,12 +666,21 @@ If $t < \varforvalattime[val=v]{\tinit}$, then $\varforvalattime[time=t,val=v]{\
     \end{enumerate}
 \end{lemma}
 
+\begin{proof}
+Given Condition 1 of the Lemma's statement, we have $\slotstart(\slot(t) - 1) \geq \GST$.
+Then Condition 2 of the Lemma's statement allows us to apply \Cref{lem:vs-at-least-e-2} which implies that
+$\exists b' \in \viewattime[time=\slotstart(\slot(t)-1),val=v], \epoch(\votsource[blck=b',time=\slotstartslot{t}])\geq \epoch(t)-2$.
+Given all this we have $b' \in \viewattime[time=\slotstart(\slot(t)),val=v']$.
+By Definition 3 of the paper $\epoch(\gjattime[val=v',time=\slotstartslot{t}]) = \epoch(\max(\{\votsource[blck=b,time=t]: b \in \viewatstslottime[val=v',time=t]\}))
+\geq \epoch(\votsource[blck=b',time=\slotstartslot{t}]) \geq \epoch(t) - 2$.
+\end{proof}
+
 \begin{lemma}\label{lem:gj-at-least-e-2}
     If
     \begin{enumerate}
         \item $\text{\slotstart}(\text{\lastslot}(\text{\epoch}(t) - 1)) \geq \GST$
         \item $\slot(t) > \text{\firstslot}(\epoch(t))$
-        \item $\epoch(\varforvalattime[val=v,time=t]{\banchor}) \geq \epoch(t)-1$
+        \item $\epoch(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}) \geq \epoch(t)-1$
     \end{enumerate},
     then, for any honest validator $v'$,
     \begin{enumerate}
@@ -374,28 +688,238 @@ If $t < \varforvalattime[val=v]{\tinit}$, then $\varforvalattime[time=t,val=v]{\
     \end{enumerate}
 \end{lemma}
 
-\begin{lemma}
+\begin{proof}
+Given Condition 2 and 3 of the Lemma's statement we apply \Cref{lem:prev-conf-at-least-e-1} to conclude
+$\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) \geq \epoch(t)-1$.
+Thus $\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bcand}) \geq \epoch(t)-1$.
+With Condition 2 of the Lemma's statement we can also conclde that $\slotstart(\slot(t)-2) \geq \GST$.
+Then, by following the same reasoning that is used to proof \Cref{lem:gj-at-least-e-2-curr-slot}
+but for $\slot(t)-1$ instead of $\slot(t)$ we conclude the proof.
+\end{proof}
+
+\begin{lemma}\label{lem:no-conflict-chkp-is-justified}
     Take an honest validator $v$ and a time $t$.
     If
     \begin{enumerate}
-        \item $\epoch(\varforvalattime[val=v,time=t]{\banchor}) \geq \epoch(t) - 1$
+        % \item $\slotstart(\epoch(t)-1) \geq \GST$
+        \item $\epoch(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}) \geq \epoch(t) - 1$
     \end{enumerate},
     then at least one of the following statements hold:
     \begin{enumerate}
-        \item $\gjattime[time=t,val=v] = \chkp(\banchor,\epoch(\varforvalattime[val=v,time=t]{\banchor}))$
+        \item $\gjattime[time=\slotstartslot{t},val=v] = \chkp(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand})$
         \item there exists a time $t' \leq t$ such that
         \begin{enumerate}
             \item $t' = \slotstartslot{t'}$
-            \item $\epoch(t') = \epoch(\varforvalattime[val=v,time=t]{\banchor})$
-            \item $\varforvalattime[val=v,time=t']{\willChkpBeJustified}(\chkp(\banchor,\epoch(\varforvalattime[val=v,time=t]{\banchor})))$
+            \item $\epoch(t') = \epoch(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand})$
+            \item $\varforvalattime[val=v,time=t']{\willChkpBeJustified}(\chkp(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}))$
         \end{enumerate}
     \end{enumerate}
 \end{lemma}
+
+\begin{proof}(by Roberto)
+    By induction on $\slot(t)$.
+    Let $s := \slot(t)$.
+    \begin{description}
+        \item[Base Case: {$s = \slot(\varforvalattime[val=v]{\tinit})$}.] The Lemma is vacuously true.
+        \item[Inductive Case: {$s \geq \slot(\varforvalattime[val=v]{\tinit})$}.]
+            We assume that the Lemma holds for $s$ and prove that it also holds for $s+1$.
+        \begin{description}
+            \item[{Case 1: $\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}) < \epoch(s+1) - 1$}.]
+                We assume condition in line 14 of \Cref{alg:conffull} holds, otherwise,
+                $\varforvalattime[val=v,time=\slotstartslot{s+1}]{\bcand} < \epoch(s+1) - 1$ and the Lemma is vacuously true.
+                That condition implies $\gjattime[val=v,time=\slotstart(s+1)] = \guattime[val=v,time=\slotstart(s)]$,
+                $\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand} \succeq \block(\guattime[val=v,time=\slotstart(s)]) = \block(\gjattime[val=v,time=\slotstart(s+1)])$,
+                $\epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand}) = \epoch(s+1)-1$.
+                Thus, $\gjattime[val=v,time=\slotstart(s+1)] = \chkp(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand},\epoch(s+1)-1)$
+                concluding Statement 1 of the Lemma.
+            \item[Case 2: {$\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}) \geq \epoch(s+1) - 1$}.]
+            Clearly $\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}) \geq \epoch(s) - 1$, so the inductive hypothesis holds non-vacuously for $s$.
+            By sub-cases.
+            \begin{description} 
+                \item[Case 2.1: {$\epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand}) = \epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bcand})$}.] 
+                This implies that $\chkp(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand}) = \chkp(\varforvalattime[val=v,time=\slotstart(s)]{\bcand})$.
+                \sloppy{Note that if $\gjattime[time=\slotstartslot{t},val=v] = \chkp(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand})$, then $\varforvalattime[val=v,time=\slotstartslot{t}]{\willChkpBeJustified}(\chkp(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}))$.}
+                Then, the rest follows from the inductive hypothesis.
+                \item[Case 2.2: {$\epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand}) = \epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bcand}) + 1$}.] 
+                Given that $\epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand}) \leq \epoch(s+1)$, this implies that $\epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand}) = \epoch(s+1)$.
+                Then, it must be that the \KwSty{if} blocks at line 23 is executed proving the lemma.
+            \end{description}
+        \end{description}
+    \end{description}
+\end{proof}
+
+% \begin{proof}
+%     By induction on $\slot(t)$.
+%     Let $s := \slot(t)$.
+%     \begin{description}
+%         \item[Base Case: {$s = \slot(\varforvalattime[val=v]{\tinit})$}.] The Lemma is vacuously true.
+%         \item[Inductive Case: {$s \geq \slot(\varforvalattime[val=v]{\tinit})$}.]
+%             We assume that the Lemma holds for $s$ and prove that it also holds for $s+1$.
+%             Given this, $\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}) \geq \epoch(s) - 1$.
+%             We also know that $\epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand}) \leq \epoch(s+1)$.
+%             With all this we proceed by cases.
+%         \begin{description}
+%             \item[{Case 1: $\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}) < \epoch(s+1) - 1$}.]
+%                 We assume condition in line 14 of \Cref{alg:conffull} holds, otherwise,
+%                 $\varforvalattime[val=v,time=\slotstartslot{s+1}]{\bcand} < \epoch(s+1) - 1$ and the Lemma is vacuously true.
+%                 That condition implies $\gjattime[val=v,time=\slotstart(s+1)] = \guattime[val=v,time=\slotstart(s)]$,
+%                 $\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand} \succeq \block(\guattime[val=v,time=\slotstart(s)]) = \block(\gjattime[val=v,time=\slotstart(s+1)])$,
+%                 $\epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand}) = \epoch(s+1)-1$.
+%                 Thus, $\gjattime[val=v,time=\slotstart(s+1)] = \chkp(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand},\epoch(s+1)-1)$
+%                 concluding Statement 1 of the Lemma.
+%             \item[{Case 2: $\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}) = \epoch(s+1)-1$}]. By cases again.
+%                 \begin{description}
+%                     \item[{Case 2.1: $\epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand}) = \epoch(s+1)-1$}].
+%                         $\epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand}) = \epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bcand})$
+%                         and $\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand} \succeq \varforvalattime[val=v,time=\slotstart(s)]{\bcand}$
+%                         due to line 17 of \Cref{alg:conffull} imply $\chkp(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand}) = \chkp(\varforvalattime[val=v,time=\slotstart(s)]{\bcand})$.
+%                         Then by subcases.
+%                         \begin{description}
+%                             \item[{Case 2.1.1: $\gjattime[val=v,time=\slotstart(s+1)] = \gjattime[val=v,time=\slotstart(s)]$}].
+%                                 By the inductive hypothesis assume Statement 1 holds for $\varforvalattime[val=v,time=\slotstart(s)]{\bcand}$,
+%                                 then it's clearly holds for $\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand}$.
+%                                 Now assume that only Statement 2 holds for $\varforvalattime[val=v,time=\slotstart(s)]{\bcand}$,
+%                                 then there must be $t' \leq st(s)$, $\epoch(t') = \epoch(s)-1 = \epoch(s+1)-1$
+%                                 for which $\varforvalattime[val=v,time=t']{\willChkpBeJustified}(\chkp(\varforvalattime[val=v,time=\slotstart(s)]{\bcand}))$.
+%                                 Then, clearly Statement 2 holds for slot $s+1$.
+%                             \item[{Case 2.1.2: $\gjattime[val=v,time=\slotstart(s+1)] \ne \gjattime[val=v,time=\slotstart(s)]$}].
+%                                 From \Cref{lem:gj-at-least-e-2} it follows that
+%                                 $\epoch(\gjattime[val=v,time=\slotstart(s)]) \geq \epoch(s) - 2$.
+%                                 Then, by definition and monotonicity property of greatest justified checkpoint,
+%                                 we have $\epoch(\gjattime[val=v,time=\slotstart(s)]) = \epoch(s)-2$ and
+%                                 $\epoch(\gjattime[val=v,time=\slotstart(s+1)]) = \epoch(s)-1$.
+%                                 Thus, Statement 1 doesn't hold for slot $s$, and then by inductive hypothesis
+%                                 it must be that Statement 2 holds, which implies
+%                                 $\varforvalattime[val=v,time=t']{\willChkpBeJustified}(\chkp(\varforvalattime[val=v,time=\slotstart(s)]{\bcand}))$,
+%                                 $\epoch(t') = \epoch(s)-1$. Given that, the syncrhony assumption and the fact that
+%                                 $\epoch(\gjattime[val=v,time=\slotstart(s+1)]) = \epoch(s) - 1$ we conclude
+%                                 $\gjattime[val=v,time=\slotstart(s+1)] = \chkp(\varforvalattime[val=v,time=\slotstart(s)]{\bcand})$.
+%                                 Thus, Statement 1 of the Lemma holds for slot $s+1$.
+%                         \end{description}
+%                     \item[{Case 2.2: $\epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand}) = \epoch(s+1)$}].
+%                         This case is only possible if condition in line 23 of \Cref{alg:findlatestconf}
+%                         holds for $b' \in \viewattime[val=v,time=s+1]$, $\epoch(b') = \epoch(s+1)$,
+%                         thus $\varforvalattime[val=v,time=\slotstart(s+1)]{\willChkpBeJustified}(\chkp(b'))$.
+%                         By lines 1-7 and 22 of \Cref{alg:findlatestconf} we know that $\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand} \succeq b'$,
+%                         this and the fact that $\epoch(b') = \epoch(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand})$ implies
+%                         $\chkp(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand}) = \chkp(b')$.
+%                         From this it follows that Statement 2 of the Lemma holds for $t' = \slotstart(s+1)$.
+%                 \end{description}
+%             \item[{Case 3: $\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}) = \epoch(s+1)$}].
+%                 By definition $\epoch(\gjattime[val=v,time=\slotstart(s+1)]) < \epoch(s+1)$, thus, Statement 1 of the Lemma cannot hold for this case.
+%                 Then, by the inductive hypothesis, we know that Statement 2 of the Lemma holds for $t' \leq \slotstart(s)$.
+%                 We also have $\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand} \succeq \varforvalattime[val=v,time=\slotstart(s)]{\bcand}$
+%                 due to line 17 of \Cref{alg:conffull}.
+%                 Thus, $\chkp(\varforvalattime[val=v,time=\slotstart(s+1)]{\bcand}) = \chkp(\varforvalattime[val=v,time=\slotstart(s)]{\bcand})$
+%                 which together with the inductive hypothesis concludes proof for the Statement 2 of the Lemma for slot $s+1$.
+%         \end{description}
+%     \end{description}    
+% \end{proof}
+
+\begin{lemma}\label{lem:gj-does-not-conflict-e-1}
+    If
+    \begin{enumerate}
+        \item $\text{\slotstart}(\text{\lastslot}(\text{\epoch}(t) - 1)) \geq \GST$
+        \item $\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bcand}) = \epoch(t) - 1$
+    \end{enumerate},
+    then, for any honest validator $v'$,
+    \begin{enumerate}
+        \item $\gjattime[time=\slotstartslot{t},val=v']$ does not conflict with $\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bcand}$
+        \item $\gjattime[val=v', time=\slotstart(\slot(t))] \succeq \gjattime[val=v, time=\slotstart(\slot(t)-1)]$
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+    By cases. Let $s := \slot(t)$.
+    \begin{description}
+        \item[Case 1: {$\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-2)]{\bconfirmed}) < \epoch(t) - 1$}.]
+            We must have restarted the confirmation chain, otherwise, Condition 2 of the Lemma wouldn't held.
+            Then from lines xxx of \Cref{alg:conffull} and because of the synchrony assumption we have
+            $\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bcand} \succeq \gjattime[val=v',time=\slotstartslot{t}]$
+            which makes Statement 1 and 2 hold.
+        \item[Case 2: {$\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-2)]{\bconfirmed}) >= \epoch(t) - 1$}.]
+            Due to lines xxx of \Cref{alg:conffull} we know that
+            $\exists b' \in \viewattime[val=v,time=\slotstart(s-1)], b' \succeq \varforvalattime[val=v,time=\slotstart(s-1)]{\bcand} \land \epoch(\gu(b')) \geq \epoch(s)-2$.
+            Because $\varforvalattime[val=v,time=\slotstart(s-1)]{\bcand} \preceq \varforvalattime[val=v,time=\slotstart(s-1)]{\LMDGHOSTHFC}$
+            we know that $\chkp(\varforvalattime[val=v,time=\slotstart(s-1)]{\bcand}) \succeq \gu(b') \succeq \gjattime[val=v,time=\slotstart(s-1)]$ for this case.
+            \begin{description}
+                \item[Subcase 1.1: {$\epoch(\gu(b')) > \epoch(s)-2$}].
+                    Thus, $\epoch(\gu(b')) = \epoch(s)-1$.
+                    It is clear that $\gu(b') = \chkp(\varforvalattime[val=v,time=\slotstart(s-1)]{\bcand})$.
+                    Then because of the synchrony assumption
+                    $\gjattime[val=v',time=\slotstart(s)] = \gu(b') = \chkp(\varforvalattime[val=v,time=\slotstart(s-1)]{\bcand}) \succ \gjattime[val=v,time=\slotstart(s-1)]$
+                    which proves Statement 1 and 2.
+                \item[Subcase 1.2: {$\epoch(\gu(b')) = \epoch(s)-2$}].
+                    Then because of the synchrony assumption $\epoch(\gjattime[val=v',time=\slotstart(s)]) \geq \epoch(s)-2$.
+                    Also note that $\chkp(\varforvalattime[val=v,time=\slotstart(s-1)]{\bcand}) \succ \gu(b')$ in this case.
+                    Suppose $\epoch(\gjattime[val=v',time=\slotstart(s)]) = \epoch(s)-2$,
+                    then clearly $\chkp(\varforvalattime[val=v,time=\slotstart(s-1)]{\bcand}) \succ \gjattime[val=v',time=\slotstart(s)] = \gu(b') \succeq  \gjattime[val=v,time=\slotstart(s-1)]$.
+                    Otherwise $\epoch(\gjattime[val=v',time=\slotstart(s)])$ must be equal to $\epoch(s)-1$ and then
+                    because of the \Cref{lem:no-conflict-chkp-is-justified}
+                    we have $\gjattime[val=v',time=\slotstart(s)] = \chkp(\varforvalattime[val=v,time=\slotstart(s-1)]{\bcand}) \succ \gu(b') \succeq \gjattime[val=v,time=\slotstart(s-1)]$.
+                    In both of these cases Statement 1 and 2 hold.
+            \end{description}
+
+    \end{description}
+\end{proof}
+
+\begin{lemma}\label{lem:gj-does-not-conflict}
+    If
+    \begin{enumerate}
+        \item $\slotstart(\firstslot(\epoch(t)-1)) \geq \GST$
+        \item $\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bcand}) = \epoch(t)$
+    \end{enumerate},
+    then, for any honest validator $v'$,
+    \begin{enumerate}
+        \item $\gjattime[time=\slotstartslot{t},val=v']$ does not conflict with $\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bcand}$
+        \item $\gjattime[val=v', time=\slotstart(\slot(t))] \succeq \gjattime[val=v, time=\slotstart(\slot(t)-1)]$
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+    By induction on $\slot(t)$.
+    Let $s := \slot(t)$.
+    \begin{description}
+        \item[Base Case: {$s = \slot(\varforvalattime[val=v]{\tinit})$}.] The Lemma is vacuously true.
+        \item[Inductive Case: {$s \geq \slot(\varforvalattime[val=v]{\tinit})$}.]
+            We assume that the Lemma holds for $s$ and prove that it also holds for $s+1$.
+            \begin{description}
+                \item[Case 1: {$\epoch(s+1) = \epoch(s)$}.]
+                    Clearly $s-1 > \firstslot(\epoch(s))$, otherwise,
+                    $\epoch(\varforvalattime[val=v,time=\slotstart(s-1)]{\bcand}) = \epoch(s)$ would be impossible.
+                    By \Cref{lem:gj-at-least-e-2-curr-slot} $\epoch(\gjattime[val=v',time=\slotstart(s-1)]) \geq \epoch(s)-2$.
+                    \begin{description}
+                        \item[Subcase 1.1: {$\epoch(\gjattime[val=v,time=\slotstart(s-1)]) > \epoch(s)-2$}.]
+                            Clearly $\epoch(\gjattime[val=v,time=\slotstart(s-1)]) = \epoch(s)-1$ in this case.
+                            Due to line xxx of \Cref{alg:conffull}
+                            $\varforvalattime[val=v,time=\slotstart(s-1)]{\bcand} \succeq \gjattime[val=v,time=\slotstart(s-1)]$,
+                            thus $\gjattime[val=v,time=\slotstart(s-1)] = \chkp(\varforvalattime[val=v,time=\slotstart(s-1)]{\bcand}, \epoch(s)-1)$.
+                            In this case it must be that $\gjattime[val=v',time=\slotstart(s)] \nsucc \gjattime[val=v,time=\slotstart(s-1)]$
+                            as $\gjattime[val=v,time=\slotstart(s-1)]$ has the greatest possible epoch,
+                            thus by the inductive hypothesis $\gjattime[val=v',time=\slotstart(s)] = \gjattime[val=v,time=\slotstart(s-1)]$.
+                            Following the above reasoning $\gjattime[val=v',time=\slotstart(s+1)] = \gjattime[val=v,time=\slotstart(s)] = \gjattime[val=v,time=\slotstart(s-1)]$
+                            which proves Statement 2. Due to line xxx of \Cref{alg:conffull}
+                            $\varforvalattime[val=v,time=\slotstart(s)]{\bcand} \succeq \gjattime[val=v,time=\slotstart(s)]$
+                            proving Statement 1.
+                        \item[Subcase 1.2 (Sketch): {$\epoch(\gjattime[val=v,time=\slotstart(s-1)]) = \epoch(s)-2$}.]
+                            By the inductive hypothesis
+                            $\gjattime[val=v',time=\slotstart(s+1)] \in \{\gjattime[val=v,time=\slotstart(s-1)], \chkp(\varforvalattime[val=v,time=\slotstart(s-1)]{\bcand}, \epoch(s)-1)\}$,
+                            so does the $\gjattime[val=v,time=\slotstart(s)]$.
+                            $\varforvalattime[val=v,time=\slotstart(s)]{\bcand} \succeq \chkp(\varforvalattime[val=v,time=\slotstart(s-1)]{\bcand}, \epoch(s)-1) \succeq \gjattime[val=v,time=\slotstart(s-1)]$.
+                            Thus both statements hold.                            
+                    \end{description}
+                \item[Case 2: {$\epoch(s+1) > \epoch(s)$}.]
+                    Then we have $\epoch(\varforvalattime[val=v,time=\slotstart((s+1)-1)]{\bcand}) = \epoch(s+1)-1$.
+                    Apply \Cref{lem:gj-does-not-conflict-e-1}.
+            \end{description}
+    \end{description}
+\end{proof}
 
 \begin{lemma}
     % Let $GU^{v,t-1} := GU(V^{v,\slotstart(\slot(t)-1)},\slotstart(\slot(t)-1))$.
     If
     \begin{enumerate}
+        \item $\text{\slotstart}(\text{\lastslot}(\text{\epoch}(t) - 1)) \geq \GST$
         \item $t = \slotstart(\epoch(t))$
         \item $\epoch(\guattime[val=v,time=\slotstart(\slot(t)-1)]) = \epoch(t)-1$
     \end{enumerate},
@@ -404,6 +928,21 @@ If $t < \varforvalattime[val=v]{\tinit}$, then $\varforvalattime[time=t,val=v]{\
         \item $\block(\guattime[val=v,time=\slotstart(\slot(t)-1)]) \in \filtered[time=t',val=v']$
     \end{enumerate}
 \end{lemma}
+
+\begin{proof}
+    Consider time $t'', \epoch(t'') = \epoch(t)$.
+    $\gjattime[val=v',time=t''] = \guattime[val=v,time=\slotstart(\slot(t)-1)]$
+    follows from Conditions 1 and 3 of the Lemma's statement together with Definitions 1-3 of the paper.
+    Clearly, $\block(\guattime[val=v,time=\slotstart(\slot(t)-1)]) \in \filtered[time=t'',val=v']$
+    and $\canonical[blck={\block(\guattime[val=v,time=\slotstart(\slot(t)-1)])},time=t'']$.
+    Due to Condition 2 of the Lemma's statement all honest validators in the committee of $\epoch(t)$
+    will vote in the support of $\block(\guattime[val=v,time=\slotstart(\slot(t)-1)])$.
+    Then, by the Property 1.6 from the paper, no checkpoint $\chkp$ conflicting with $\block(\guattime[val=v,time=\slotstart(\slot(t)-1)])$
+    such that $\epoch(C) = \epoch(t)$ can ever be justified.
+    Thus, either $\gjattime[val=v',time=t'''] = \guattime[val=v,time=\slotstart(\slot(t)-1)]$
+    or $\gjattime[val=v',time=t'''] = \chkp(b', \epoch(t)), b' \succeq \block(\guattime[val=v,time=\slotstart(\slot(t)-1)])$,
+    $\epoch(t''') = \epoch(t) + 1$. In either case $\block(\guattime[val=v,time=\slotstart(\slot(t)-1)]) \in \filtered[time=t''',val=v']$.
+\end{proof}
 
 \begin{lemma}
     Take an honest validator $v$ and a block $b$.
@@ -414,7 +953,36 @@ If $t < \varforvalattime[val=v]{\tinit}$, then $\varforvalattime[time=t,val=v]{\
         \item $\varforvalattime[val=v,time=t]{\isOneConfirmed}(b, \gjattime[val=v,time=t])$
         \item $\epoch(\gu(b)) \geq \epoch(t)-2$
     \end{enumerate},
-    then for any honest validator $v'$ and time $t'$ such that $\epoch(t') \in \{\epoch(t),\epoch(t)+1\}$,
+    then for any honest validator $v'$ and time $t'$ such that $\epoch(t') = \epoch(t)$,
+    \begin{enumerate}
+        \item $b \in \filtered[time=t',val=v']$
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof} (by Mikhail)
+    From \Cref{lem:no-conflict-chkp-is-justified} we know that no checkpoint conflicting with
+    $\chkp(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand})$ can be justified.
+    Given this, Condition 4 of the Lemma's statement together with the synchrony assumption
+    we know that $\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand} \succeq \block(\gjattime[val=v',time=\slotstartslot{t}])$
+    and $\votsource[blck={\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}},time=t] \geq \epoch(t)-2$.
+    Thus, $\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand} \in \filtered[time=t',val=v']$ for $\epoch(t')=\epoch(t)$.
+    Given the fact that $\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}$ remains canonical during the whole $\epoch(t)$
+    and Property 1.6 from the paper we know that no $\epoch(t)$ checkpoint conflicting with
+    $\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}$ can be justified.
+    Which concludes the proof for $\epoch(t') = \epoch(t)+1$.
+\end{proof}
+
+\begin{lemma}
+    Take an honest validator $v$ and a block $b$.
+    If
+    \begin{enumerate}
+        \item $t = \slotstart(\epoch(t))$
+        \item $\epoch(b) = \epoch(t)-1$
+        \item $\varforvalattime[val=v,time=t]{\isOneConfirmed}(b, \gjattime[val=v,time=t])$
+        \item $b \preceq \LMDGHOST(\viewattime[val=v',time=t''])$ for any $t''$ such that $\epoch(t'') = \epoch(t)$
+        \item $\epoch(\gu(b)) \geq \epoch(t)-2$
+    \end{enumerate},
+    then for any honest validator $v'$ and time $t'$ such that $\epoch(t') = \epoch(t)+1$,
     \begin{enumerate}
         \item $b \in \filtered[time=t',val=v']$
     \end{enumerate}
@@ -428,7 +996,6 @@ If $t < \varforvalattime[val=v]{\tinit}$, then $\varforvalattime[time=t,val=v]{\
         \item $\epoch(b) = \epoch(t)-1$
         \item $\exists b' \in \viewattime[val=v,time=\slotstart(\slot(t)-1)], b' \succeq b \land \epoch(\votsource[blck=b',time=t]) \geq \epoch(t)-2$
         \item $\exists b', b' \succeq b \land \epoch(\gu(b')) \geq \epoch(t)-1$
-        \item $\varforvalattime[val=v,time=\slotstartslot{t}]{\isLMDConfirmed(b)}$
         \item $\exists C, C \succeq b \land \epoch(C) = \epoch(t) \land \text{will\_no\_conflicting\_checkpoint\_be\_justified}(C)$
     \end{enumerate},
     then for any honest validator $v'$ and time $t' \geq t$ such that $\epoch(t') \in \{\epoch(t),\epoch(t)+1\}$,
@@ -457,6 +1024,56 @@ If $t < \varforvalattime[val=v]{\tinit}$, then $\varforvalattime[time=t,val=v]{\
     Hence, $b'$ is not filtered out by any honest validator at time $\slotstart(\slot(t))$ or after during epoch $\epoch(t)$.
 \end{proof}
 
+\begin{lemma}
+    % Let $GU^{v,t-1} := GU(V^{v,\slotstart(\slot(t)-1)},\slotstart(\slot(t)-1))$.
+    If
+    \begin{enumerate}
+        \item $t = \slotstart(\epoch(t))$
+        \item $\epoch(\guattime[val=v,time=\slotstart(\slot(t)-1)]) = \epoch(t)-1$
+    \end{enumerate},
+    then, $\canonical[time=t,blck={\block(\guattime[val=v,time=\slotstart(\slot(t)-1)])}]$
+\end{lemma}
+
+\begin{lemma}
+    If
+    \begin{enumerate}
+        \item $t = \slotstart(\epoch(t))$
+        \item $\epoch(b) = \epoch(t)-1$
+        \item $\epoch(\gu(b)) \geq \epoch(t)-2$
+        \item $\canonical[time=t,blck=b_c]$
+        \item $\forall b': b_c \prec b' \preceq b \implies \varforvalattime[val=v,time=t]{\isOneConfirmed}(b', \gjattime[val=v,time=\slotstart(\slot(t)-1)])$
+    \end{enumerate},
+    then $\canonical[time=t,blck=b]$
+\end{lemma}
+
+\begin{lemma}
+    Take an honest validator $v$ and a block $b$.
+    If
+    \begin{enumerate}
+        \item $t = \slotstartslot{t}$
+        \item $\epoch(b) = \epoch(t)-1$
+        \item $\exists b' \in \viewattime[val=v,time=\slotstart(\slot(t)-1)], b' \succeq b \land \epoch(\votsource[blck=b',time=t]) \geq \epoch(t)-2$
+        \item $\exists b', b' \succeq b \land \epoch(\gu(b')) \geq \epoch(t)-1$
+        \item $\exists C, C \succeq b \land \epoch(C) = \epoch(t) \land \text{will\_no\_conflicting\_checkpoint\_be\_justified}(C)$
+        \item $\canonical[time=t,blck=b_c]$
+        \item $\forall b': b_c \prec b' \preceq b \implies \varforvalattime[val=v,time=t]{\isOneConfirmed}(b', \gjattime[val=v,time=\slotstart(\slot(t)-1)])$        
+    \end{enumerate},
+    then $\canonical[time=t,blck=b]$
+\end{lemma}
+
+\begin{lemma}
+    If
+    \begin{enumerate}
+        \item $\epoch(b) = \epoch(t)$
+        \item $\canonical[time=t,blck=b_c]$
+        \item $\forall b': b_c \prec b' \preceq b \implies \varforvalattime[val=v,time=t]{\isOneConfirmed}(b', \gjattime[val=v,time=\slotstart(\slot(t)-1)])$  
+    \end{enumerate},
+    then, $\canonical[time=t,blck=b]$.
+\end{lemma}
+
+\begin{lemma}
+    $\canonical[time=t,blck={\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}}]$
+\end{lemma}
 
 
 

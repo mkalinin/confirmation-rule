@@ -17,6 +17,14 @@
 \usepackage{xspace}
 \usepackage[inkscapeformat=png]{svg}
 \usepackage{keyval}
+\usepackage{refcount}
+
+\usepackage[linesnumbered,ruled]{algorithm2e}
+\SetKwProg{Fn}{function}{}{end}
+\SetKwProg{Proc}{procedure}{}{end}
+\SetKwProg{Upon}{upon}{}{end}
+\SetNlSty{textbf}{}{:}
+
 \usepackage{hyperref}
 \hypersetup{
     colorlinks=false, % disables colored text, keeps colored boxes
@@ -37,11 +45,21 @@
 \pgfplotsset{compat=newest}
 \usepackage{etoolbox}
 
-\usepackage[linesnumbered,ruled]{algorithm2e}
-\SetKwProg{Fn}{function}{}{end}
-\SetKwProg{Proc}{procedure}{}{end}
-\SetKwProg{Upon}{upon}{}{end}
-\SetNlSty{textbf}{}{:}
+
+% Safe macro to resume line numbering from a previous algorithm label
+\newcommand{\continuefrom}[1]{%
+  \ifcsname r@#1\endcsname
+    \setcounterref{AlgoLine}{#1}%
+    \stepcounter{AlgoLine}%
+  \else
+    \setcounter{AlgoLine}{10}%
+  \fi
+}
+
+% Define macro to label the last line number of the algorithm
+\newcommand{\marklastline}[1]{%
+  \label{#1}%
+}
 
 % \usepackage{ulem}
 
@@ -490,6 +508,15 @@
     \ensuremath{\mathsf{filt}_{\mathsf{hfc}}^{\filtered@Time\ifthenelse{\equal{\filtered@Val}{}}{}{,\filtered@Val}}}%
 }%
 
+\define@key{canonical}{time}{\def\canonical@Time{#1}}
+\define@key{canonical}{blck}{\def\canonical@Blck{#1}}
+\setkeys{canonical}{time=,blck=}
+\newcommand{\canonical}[1][]{%
+    \setkeys{canonical}{time=,blck=}%
+    \setkeys{canonical}{#1}%
+    \ensuremath{\square\mathsf{canonical}(\canonical@Blck,\canonical@Time)}%
+}%
+
 \define@key{votsource}{time}{\def\votsource@Time{#1}}
 \define@key{votsource}{blck}{\def\votsource@Blk{#1}}
 \define@key{votsource}{chkp}{\def\votsource@Chkp{#1}}
@@ -554,9 +581,11 @@
 \crefname{assumption}{assumption}{assumptions}
 \Crefname{assumption}{Assumption}{Assumptions}
 \crefname{condition}{condition}{conditions}
-\crefname{algocf}{Algorithm}{Algorithms}
-\crefname{algocfline}{line}{lines}
-\Crefname{algocfline}{Line}{Lines}
+% \crefname{algocf}{Algorithm}{Algorithms}
+% \crefname{algocfline}{line}{lines}
+% \Crefname{algocfline}{Line}{Lines}
+
+\Crefname{AlgoLine}{Line}{Lines}
 
 
 
@@ -602,6 +631,8 @@
 \newcommand{\isOneConfirmed}{\ensuremath{\mathit{isOneConfirmed}}}
 \newcommand{\isLMDConfirmed}{\ensuremath{\mathit{isLMDConfirmed}}}
 \newcommand{\willChkpBeJustified}{\ensuremath{\mathit{willChkpBeJustified}}}
+\newcommand{\willNoConflictingChkpBeJustified}{\ensuremath{\mathit{willNoConflictingChkpBeJustified}}}
+\newcommand{\willNotBeFilteredOut}{\ensuremath{\mathit{willNotBeFilteredOut}}}
 
 
 
@@ -659,9 +690,14 @@
 \newcommand{\receivedattime}{{\ensuremath{\mathit{rcvd\_time}}}}
 \newcommand{\banchor}{\ensuremath{b_\mathsf{anchor}}}
 \newcommand{\bconfirmed}{\ensuremath{b_\mathsf{confirmed}}}
+\newcommand{\blmdconfirmed}{\ensuremath{b_\mathsf{lmd\_confirmed}}}
 \newcommand{\bcand}{\ensuremath{b_\mathsf{cand}}}
 \newcommand{\btemp}{\ensuremath{b_\mathsf{temp}}}
+\newcommand{\btcand}{\ensuremath{b_\mathsf{tentative\_cand}}}
 \newcommand{\tinit}{\ensuremath{t_\mathsf{init}}}
+\newcommand{\head}{\ensuremath{head}}
+\newcommand{\phead}{\ensuremath{prev\_head}}
+
 
 
 
