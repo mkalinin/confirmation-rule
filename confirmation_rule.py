@@ -165,8 +165,11 @@ def is_one_confirmed(store: Store, block_root: Root) -> bool:
     current_slot = get_current_slot(store)
     block = store.blocks[block_root]
     parent_block = store.blocks[block.parent_root]
-    prev_slot_justified_state = store.checkpoint_states[store.prev_slot_justified_checkpoint]
-    support = get_weight(store, block_root, prev_slot_justified_state)
+    if get_current_slot(store) % SLOTS_PER_EPOCH == 0:
+        weighting_checkpoint = store.prev_slot_unrealized_justified_checkpoint
+    else:
+        weighting_checkpoint = store.prev_slot_justified_checkpoint
+    support = get_weight(store, block_root, store.checkpoint_states[weighting_checkpoint])
     maximum_support = get_committee_weight_between_slots(
         prev_slot_justified_state, Slot(parent_block.slot + 1), Slot(current_slot - 1))
     proposer_score = get_proposer_score(store)
