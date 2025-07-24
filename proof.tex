@@ -1078,10 +1078,11 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
 % \end{proof}
 
 \begin{lemma}\label{lem:prev-conf-at-least-e-1}
+    Pick any $b_c \in  \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bcands}$.
     If
     \begin{enumerate}
         \item $\slot(t) > \text{\firstslot}(\epoch(t))$
-        \item $\epoch(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}) \geq \epoch(t)-1$
+        \item $\epoch(b_c) \geq \epoch(t)-1$
     \end{enumerate},
     then
     \begin{enumerate}
@@ -1092,12 +1093,12 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
 
 \begin{proof}
 By \Cref{def:b-cand-is-b-conf} algorithm execution at $\slotstartslot{t}$ starts with
-$\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand} = \varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$.
+$b_c = \varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$.
 Given Condition 1 of the Lemma's statement, condition at \Cref{ln:start-conf-chain}
 does not hold making code at \Cref{ln:set-bcan-on-start-conf-chain} unreachable.
 We also know that condition at \Cref{ln:if-bcand-npreceq-head} does not hold, otherwise,
-$\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand} = \gfattime[time=\slotstartslot{t},val=v]$
-and $\epoch(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}) \leq \epoch(t) - 2$
+$b_c = \gfattime[time=\slotstartslot{t},val=v]$
+and $\epoch(b_c) \leq \epoch(t) - 2$
 which contradicts Condition 2 of the Lemma's statement.
 \end{proof}
 
@@ -1308,7 +1309,7 @@ which contradicts Condition 2 of the Lemma's statement.
     \end{enumerate},
     then, for any honest validator $v'$,
     \begin{enumerate}
-        \item $\gjattime[time=\slotstartslot{t},val=v']$ does not conflict with $b_c$
+        \item $\gjattime[time=\slotstartslot{t},val=v'] \preceq b_c$
         % \item $\gjattime[val=v', time=\slotstart(\slot(t))] \succeq \gjattime[val=v, time=\slotstart(\slot(t)-1)]$
     \end{enumerate}
 \end{lemma}
@@ -1325,11 +1326,11 @@ which contradicts Condition 2 of the Lemma's statement.
         %     \item[Case 1.1: $\epoch(b_c) = \epoch(s)$.] 
         %             We can apply \Cref{lem:conf-current-epoch-then-gu-curr-epoch} to conclude that $\gjattime[time=\slotstart(s),val=v']$ does not conflict with $b_c$.
         %     \item[Case 1.2: $\epoch(b_c) = \epoch(s)-1$.] 
-            We can apply \Cref{lem:no-prev-epochconflict-chkp-is-justified} to conclude that $\gjattime[time=\slotstartslot{t},val=v']$ does not conflict with $b_c$.
+            We can apply \Cref{lem:no-prev-epochconflict-chkp-is-justified} to conclude that $\gjattime[time=\slotstartslot{t},val=v'] = \chkp(b_c, \epoch(s)-1)\preceq b_c$.
         % \end{description}
         \item[Case 2: {$\epoch(\gjattime[time=\slotstart(s),val=v']) = \epoch(s)-2$}.] This implies that $\epoch(\gjattime[time=\slotstart(s-1),val=v_h])= \epoch(s)-2$ which further implies that $\epoch(\votsource[blck=b',time=\slotstart(s)]) = \epoch(s)-2$.
         Hence, $\gjattime[time=\slotstartslot{t},val=v'] = \votsource[blck=b',time=\slotstart(s)]$.
-        Given that $b' \succeq b_c$, $\gjattime[time=\slotstartslot{t},val=v']$ does not conflict with $b_c$.
+        Given that $b' \succeq b_c$ and $\epoch(b_c) \geq \epoch(s)-1 > \epoch(\gjattime[time=\slotstartslot{t},val=v'])$, $\gjattime[time=\slotstartslot{t},val=v'] \preceq b_c$.
     \end{description}
 \end{proof}
 
@@ -1398,7 +1399,7 @@ which contradicts Condition 2 of the Lemma's statement.
 %     Just a property of how checkpoints are computed.
 % \end{proof}
 
-\begin{lemma}
+\begin{lemma}\label{lem:gu-prec-gj-start-epoch-when-prec-conf-from-at-least-prev-epoch}
     If
     \begin{enumerate}
         \item $\slotstart(\slot(t)-1)\geq \GST$
@@ -1426,6 +1427,32 @@ which contradicts Condition 2 of the Lemma's statement.
     \end{description}
 \end{proof}
 
+\begin{lemma}
+    Pick any $b_c \in  \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bcands}$. 
+    If
+    \begin{enumerate}
+        \item $\slotstart(\slot(t)-1)\geq \GST$
+        \item $\epoch(b_c) \geq \epoch(t) - 1$
+        \item $\slot(t) = \firstslot(\epoch(t))$
+    \end{enumerate},
+    then
+    \begin{enumerate}
+        \item $\guattime[time=\slotstart(\slot(t)-1),val=v] \preceq \gjattime[time=\slotstartslot{t},val=v']$
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+    Let $s:= \slot(t)$.
+    By cases.
+    \begin{description}
+        \item[Case 1: {$\epoch(\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed}) < \epoch(s) - 1$}.] 
+        Given that $\epoch(b_c) \geq \epoch(s)-1$, it must be that we restart the ``confirmation chain'' at time $\slotstart(s)$ as there is no other way to satisfy the conditions in the Lemma's statement.
+        This means that conditions at \Cref{ln:start-conf-chain} are true.
+        Therefore, due to the synchrony assumption, $\gjattime[time=\slotstartslot{t},val=v'] = \guattime[time=\slotstart(s-1),val=v]$.
+        \item[Case 2: {$\epoch(\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed}) \geq \epoch(s) - 1$}.] Apply \Cref{lem:gu-prec-gj-start-epoch-when-prec-conf-from-at-least-prev-epoch}.
+    \end{description}
+\end{proof}
+
 % \begin{lemma}%\label{prop:on-chkp-prec}
 %     If
 %     \begin{enumerate}
@@ -1444,8 +1471,8 @@ which contradicts Condition 2 of the Lemma's statement.
 % \end{proof}
 
 
-
-\begin{lemma}
+\RS{After all, \Cref{lem:prev-gj-prec-others-gj} is probably not needed :'(}
+\begin{lemma}\label{lem:prev-gj-prec-others-gj}
     If
     \begin{enumerate}
         \item $\slotstart(\slot(t)-1)\geq \GST$
@@ -1487,6 +1514,33 @@ which contradicts Condition 2 of the Lemma's statement.
             Then clearly $\gjattime[time=\slotstart(s-1),val=v'] = \chkp(\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed},\epoch(s-1)-1) \preceq \chkp(\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed}) = \gjattime[time=\slotstart(s),val=v']$.
         \end{description}
     \end{description}    
+\end{proof}
+
+\begin{lemma}
+    Pick any $b_c \in  \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bcands}$.
+    If
+    \begin{enumerate}
+        \item $\slotstart(\slot(t)-1)\geq \GST$
+        \item $\epoch(b_c) \geq \epoch(t)-1$
+        \item $\slot(t) \neq \firstslot(\epoch(t))$
+    \end{enumerate},
+    then
+    \begin{enumerate}
+        \item $\gjattime[time=\slotstart(\slot(t)-1),val=v] \preceq \gjattime[time=\slotstartslot{t},val=v']$
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+    \Cref{lem:prev-conf-at-least-e-1} implies that $\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) \geq \epoch(t)-1$.
+    Then apply \Cref{lem:prev-gj-prec-others-gj}.
+\end{proof}
+
+\begin{proof}(that does not require \Cref{lem:prev-gj-prec-others-gj})
+    \Cref{lem:prev-conf-at-least-e-1} implies that $\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) \geq \epoch(t)-1$ and $\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed} \preceq \LMDGHOSTHFC(\viewatstslottime[val=v,time=t])$.
+    \Cref{lem:no-curr-epochconflict-chkp-is-justified} then implies that $b_c \succeq \varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$.
+    Hence, $b_c \succeq \gjattime[time=\slotstart(\slot(t)-1),val=v]$.
+    Also, due to \Cref{lem:gj-does-not-conflict}, we have that  $b_c \succeq \gjattime[time=\slotstartslot{t},val=v']$.
+    Finally, the synchrony assumption implies that $\gjattime[time=\slotstart(\slot(t)-1),val=v] \leq \gjattime[time=\slotstartslot{t},val=v']$ which concludes the proof.
 \end{proof}
 
 % \begin{proof}
