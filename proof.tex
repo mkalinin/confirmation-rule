@@ -479,13 +479,12 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
     If 
     \begin{enumerate}
         \item $b_o \neq b_c$
-        \item $\epoch(b_o) \leq \epoch(t^v) - 1$
-        \item $\epoch(b_c) \geq \epoch(t^v) - 2$
+        \item $\epoch(b_o) = \epoch(\varforvalattime[val=v]{t}) - 1$
     \end{enumerate},
     then, there exists an honest validator $v'$ such that 
     \begin{enumerate}
-        \item $\exists b' \in \left(\viewattime[time=\slotstart(\slot({\varforvalattime[val=v]{t}})-1),val=v'] \cap \viewattime[time=\slotstart(\slot({\varforvalattime[val=v]{t}})),val=v]\right), b_o \succ \votsource[blck=b',time=\slotstartslot{t^v}] \land \epoch(\votsource[blck=b',time=\slotstartslot{{\varforvalattime[val=v]{t}}}])\geq \epoch({\varforvalattime[val=v]{t}})-2$
-        \RSfn{Must be at the voting time of $\slot(t^v)-1$ not at the beginning.}
+        \item $\exists b' \in \left(\viewattime[time=\slotstart(\slot({\varforvalattime[val=v]{t}})-1),val=v'] \cap \viewattime[time=\slotstart(\slot({\varforvalattime[val=v]{t}})),val=v]\right), b_o \succ \votsource[blck=b',time={\slotstartslot{\varforvalattime[val=v]{t}}}] \land \epoch(\votsource[blck=b',time=\slotstartslot{{\varforvalattime[val=v]{t}}}])\geq \epoch({\varforvalattime[val=v]{t}})-2$
+        \RSfn{Must be at the voting time of $\slot(\varforvalattime[val=v]{t})-1$ not at the beginning.}
     \end{enumerate}    
 \end{lemma}
 
@@ -496,11 +495,12 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
         \item[\Cref{ln:bcand-set-beginning-of-find-latest}.]  Impossible as this lines sets $\bcand$ to $b_c \neq b_o$.
         \item[\Cref{ln:set-bcand-in-prev-epoch-loop}.] 
         If $\bcand$ is set to $b_o$ here, then it must be that $b_o \preceq phead$ which also implies $phead \in \viewattime[time=\slotstart({\varforvalattime[val=v]{t}}-1),val=v] \subseteq \viewattime[time=\slotstart({\varforvalattime[val=v]{t}}),val=v]$.
-        Then, given \Cref{ln:if-prev-epoch}, $\votsource[blck=phead, time=\slotstart({\varforvalattime[val=v]{t}})] \geq \epoch({\varforvalattime[val=v]{t}}) - 2$.
-        \item[\Cref{ln:set-bcand-to-btcand}] If $\bcand$ is set to $b_o$ here, then, due to \Cref{ln:if-to-set-bcand-to-btcand}, $\votsource[blck=b_o, time={\varforvalattime[val=v]{t}}] \geq \epoch(\varforvalattime[val=v]{t}) - 2$.
+        Then, given \Cref{ln:if-prev-epoch} and the Lemma statement, $b_o \succ \votsource[blck=phead,time={\slotstartslot{\varforvalattime[val=v]{t}}}] \land \votsource[blck=phead, time={\slotstartslot{\varforvalattime[val=v]{t}}}] \geq \epoch({\varforvalattime[val=v]{t}}) - 2$.
+        \item[\Cref{ln:set-bcand-to-btcand}] If $\bcand$ is set to $b_o$ here, then, due to \Cref{ln:if-to-set-bcand-to-btcand}, $\votsource[blck=b_o, time={\slotstartslot{\varforvalattime[val=v]{t}}}] \geq \epoch(\varforvalattime[val=v]{t}) - 2$.
         Due to \Cref{ln:if-is-one-confirmed-second-loop,set-btcand-to-btemp}, $\isOneConfirmed(b_o, \cdot)$ which implies\RSfn{We should probably have a Lemma proving such an implication} that there exists an honest validator $v'$ such that
         $b_o \in \left(\viewattime[time=\slotstart({\varforvalattime[val=v]{t}}-1),val=v']\cap \viewattime[time=\slotstart({\varforvalattime[val=v]{t}}),val=v]\right)$.
-    \end{description}    
+        Obviously, $b_o \succ \votsource[blck=b_o,time={\slotstartslot{\varforvalattime[val=v]{t}}}]$.
+    \end{description}
 \end{proof}
 
 % \begin{lemma}\label{lem:output-find-latest-different-to-input}
@@ -549,7 +549,7 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
 
     \begin{description}
         \item[\Cref{ln:set-bcan-on-start-conf-chain}.] Obvious. \RSfn{Perhaps explain a bit more why in the future.} 
-        \item[\Cref{ln:set-bcand-to-output-find-latest}.] Obvious from \Cref{lem:output-find-latest-different-to-input}.
+        \item[\Cref{ln:set-bcand-to-output-find-latest}.] Given $\slot(t) = \firstslot(\epoch(t))$ and the assumption in the Lemma statement, we know that $\epoch(b_c) = \epoch(t) - 1$ and thus can apply \Cref{lem:output-find-latest-different-to-input} to conclude the proof.
     \end{description}
 \end{proof}
 
@@ -724,7 +724,18 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
                     Impossible, as at this line $\bcand = b_c$, but $b_c \neq \varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}$.
                     \item[\Cref{ln:set-bcand-to-fin}.] Impossible, as at this line $\epoch(\bcand) < \epoch(s+1)-1$, but we assume $\epoch(b_c) \geq \epoch(s+1)-1$.
                     \item[\Cref{ln:set-bcan-on-start-conf-chain}.] Obvious. \RSfn{Perhaps explain a bit more why in the future.} 
-                    \item[\Cref{ln:set-bcand-to-output-find-latest}.] Obvious from \Cref{lem:output-find-latest-different-to-input}.
+                    \item[\Cref{ln:set-bcand-to-output-find-latest}.]
+                    By sub cases again.
+                    \begin{description}
+                        \item[Case 2.2.1: $\epoch(b_c) = \epoch(s+1) - 1$.]
+                        Obvious from \Cref{lem:output-find-latest-different-to-input}.
+                        \item[Case 2.2.2: $\epoch(b_c) \neq \epoch(s+1) - 1$.]
+                        By the assumption in the Lemma statement, it must be that $\epoch(b_c) = \epoch(s+1)$.
+                        Also note that $b_c \succ \varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}$ for this case.
+                        Given all this, we conclude $\slot(s + 1) > \firstslot(\epoch(s+1))$ which implies $\epoch(s+1) = \epoch(s)$.
+                        Then we can apply the inductive hypothesis to conclude that there exists an honest validator $v'$ such that $\exists b' \in \left(\viewattime[time=\slotstart(s-1),val=v'] \cap \viewattime[time=\slotstart(s),val=v]\right), \varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed} \succ \votsource[blck=b',time=\slotstart(s)] \land \epoch(\votsource[blck=b',time=\slotstart(s)])\geq \epoch(s)-2 = \epoch(s+1)-2$.
+                        So, given that $\viewattime[time=\slotstart(s-1),val=v'] \subseteq \viewattime[time=\slotstart(s),val=v']$ and $\viewattime[time=\slotstart(s),val=v] \subseteq \viewattime[time=\slotstart(s+1),val=v]$ and $b_c \succ \varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}$, the proof for this case is concluded.
+                    \end{description}
                 \end{description}
             \end{description}
         \end{description}
