@@ -479,10 +479,12 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
     If 
     \begin{enumerate}
         \item $b_o \neq b_c$
+        \item $\epoch(b_o) \leq \epoch(t^v) - 1$
+        \item $\epoch(b_c) \geq \epoch(t^v) - 2$
     \end{enumerate},
     then, there exists an honest validator $v'$ such that 
     \begin{enumerate}
-        \item $\exists b' \in \left(\viewattime[time=\slotstart(\slot({\varforvalattime[val=v]{t}})-1),val=v'] \cap \viewattime[time=\slotstart(\slot({\varforvalattime[val=v]{t}})),val=v]\right), b' \succeq b_o \land \epoch(\votsource[blck=b',time=\slotstartslot{{\varforvalattime[val=v]{t}}}])\geq \epoch({\varforvalattime[val=v]{t}})-2$
+        \item $\exists b' \in \left(\viewattime[time=\slotstart(\slot({\varforvalattime[val=v]{t}})-1),val=v'] \cap \viewattime[time=\slotstart(\slot({\varforvalattime[val=v]{t}})),val=v]\right), b_o \succ \votsource[blck=b',time=\slotstartslot{t^v}] \land \epoch(\votsource[blck=b',time=\slotstartslot{{\varforvalattime[val=v]{t}}}])\geq \epoch({\varforvalattime[val=v]{t}})-2$
         \RSfn{Must be at the voting time of $\slot(t^v)-1$ not at the beginning.}
     \end{enumerate}    
 \end{lemma}
@@ -533,7 +535,7 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
     \end{enumerate},
     then, there exists an honest validator $v'$ such that 
     \begin{enumerate}
-        \item $\exists b' \in \viewattime[time=\slotstart(\slot(t)-1),val=v'], b' \succeq b_c \land \epoch(\votsource[blck=b',time=\slotstartslot{t}])\geq \epoch(t)-2$
+        \item $\exists b' \in \viewattime[time=\slotstart(\slot(t)-1),val=v'], b_c \succ \votsource[blck=b',time=\slotstartslot{t}] \land \epoch(\votsource[blck=b',time=\slotstartslot{t}])\geq \epoch(t)-2$
     \end{enumerate}
 \end{lemma}
 \begin{proof}
@@ -682,7 +684,7 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
     \end{enumerate},
     then, there exists an honest validator $v'$ such that
     \begin{enumerate}
-        \item $\exists b' \in \left(\viewattime[time=\slotstart(\slot(t)-1),val=v'] \cap \viewattime[time=\slotstart(\slot(t)),val=v]\right), b' \succeq  b_c \land \epoch(\votsource[blck=b',time=\slotstartslot{t}])\geq \epoch(t)-2$
+        \item $\exists b' \in \left(\viewattime[time=\slotstart(\slot(t)-1),val=v'] \cap \viewattime[time=\slotstart(\slot(t)),val=v]\right), b_c \succ \votsource[blck=b',time=\slotstartslot{t}] \land \epoch(\votsource[blck=b',time=\slotstartslot{t}])\geq \epoch(t)-2$
         % \item $\banchor^{v,\slotstart(\slot(t))} \succeq GJ^{v,t}$
     \end{enumerate}
 \end{lemma}
@@ -706,13 +708,14 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
                 \begin{description}
                     \item[Case 2.1.1: $\epoch(s+1) = \epoch(s).$] 
                     Given that $\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed} \in \varforvalattime[val=v,time=\slotstart(s)]{\bcands}$,
-                    we can apply the inductive hypothesis to conclude that there exists an honest validator $v'$ such that $\exists b' \in \left(\viewattime[time=\slotstart(s-1),val=v'] \cap \viewattime[time=\slotstart(s),val=v]\right), b' \succeq b_c \land \epoch(\votsource[blck=b',time=\slotstart(s)])\geq \epoch(s)-2 = \epoch(s+1)-2$.
+                    we can apply the inductive hypothesis to conclude that there exists an honest validator $v'$ such that $\exists b' \in \left(\viewattime[time=\slotstart(s-1),val=v'] \cap \viewattime[time=\slotstart(s),val=v]\right), b_c \succ \votsource[blck=b',time=\slotstart(s)] \land \epoch(\votsource[blck=b',time=\slotstart(s)])\geq \epoch(s)-2 = \epoch(s+1)-2$.
                     So, given that $\viewattime[time=\slotstart(s-1),val=v'] \subseteq \viewattime[time=\slotstart(s),val=v']$ and $\viewattime[time=\slotstart(s),val=v] \subseteq \viewattime[time=\slotstart(s+1),val=v]$, the proof for this case is concluded.
                     \item[Case 2.1.2: $\epoch(s+1) = \epoch(s) + 1.$]
                     This Case implies that $\epoch(b_c) = \epoch(s)$ as 
                     $\epoch(s) = \epoch(s+1) -1 \leq \epoch(b_c) < \epoch(s+1) = \epoch(s) + 1$.
                     Note also that  $\epoch(s+1) = \epoch(s) + 1$ implies that $s+1 = \firstslot(\epoch(s+1))$.
-                    All of this together with  \Cref{lem:conf-current-epoch-then-gu-curr-epoch} implies that $\exists b' \in \viewattime[time=\slotstart(s),val=v] \subseteq \viewattime[time=\slotstart(s+1),val=v], \epoch(\votsource[blck=b',time=\slotstart(s+1)])\geq \epoch(\gu(b')) \geq \epoch(s)-1\geq\epoch(s+1)-2$.
+                    All of this together with  \Cref{lem:conf-current-epoch-then-gu-curr-epoch} implies that $\exists b' \in \viewattime[time=\slotstart(s),val=v] \subseteq \viewattime[time=\slotstart(s+1),val=v], b' \succeq b_c \land \epoch(\votsource[blck=b',time=\slotstart(s+1)])\geq \epoch(\gu(b')) \geq \epoch(s)-1\geq\epoch(s+1)-2$.
+                    Then from $\epoch(b_c) = \epoch(s)$ and $b_c \preceq b'$ we conclude $b_c \succ \votsource[blck=b',time=\slotstart(s+1)]$.
                 \end{description}
                 \item[Case 2.2: {$b_c \neq \varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}$}.]
                 Now by cases on the first line, in order of execution of the Fast Confirmation Rule algorithm at time $\slotstart(s+1)$, where $\bcand = b_c$. 
@@ -1319,7 +1322,7 @@ which contradicts Condition 2 of the Lemma's statement.
 
 \begin{proof}
     Let $s := \slot(t)$.
-    Due to \Cref{lem:vs-at-least-e-2}, we know that there exists an honest validator $v_h$ such that $\exists b' \in \viewattime[time=\slotstart(s-1),val=v_h], b' \succeq  b_c \land \epoch(\votsource[blck=b',time=\slotstart(s)])\geq \epoch(s)-2$.
+    Due to \Cref{lem:vs-at-least-e-2}, we know that there exists an honest validator $v_h$ such that $\exists b' \in \viewattime[time=\slotstart(s-1),val=v_h], b_c \succ \votsource[blck=b',time=\slotstart(s)] \land \epoch(\votsource[blck=b',time=\slotstart(s)])\geq \epoch(s)-2$.
     Due to synchrony this implies that $\epoch(s)-2 \leq \epoch(\votsource[blck=b',time=\slotstart(s)]) \leq \epoch(\gjattime[time=\slotstart(s-1),val=v_h]) \leq \epoch(\gjattime[time=\slotstart(s),val=v']) \leq \epoch(s)-1$.
     By cases.
     \begin{description}
@@ -1333,7 +1336,7 @@ which contradicts Condition 2 of the Lemma's statement.
         % \end{description}
         \item[Case 2: {$\epoch(\gjattime[time=\slotstart(s),val=v']) = \epoch(s)-2$}.] This implies that $\epoch(\gjattime[time=\slotstart(s-1),val=v_h])= \epoch(s)-2$ which further implies that $\epoch(\votsource[blck=b',time=\slotstart(s)]) = \epoch(s)-2$.
         Hence, $\gjattime[time=\slotstartslot{t},val=v'] = \votsource[blck=b',time=\slotstart(s)]$.
-        Given that $b' \succeq b_c$ and $\epoch(b_c) \geq \epoch(s)-1 > \epoch(\gjattime[time=\slotstartslot{t},val=v'])$, $\gjattime[time=\slotstartslot{t},val=v'] \preceq b_c$.
+        Given that $b_c \succ \votsource[blck=b',time=\slotstart(s)]$, $\gjattime[time=\slotstartslot{t},val=v'] \preceq b_c$.
     \end{description}
 \end{proof}
 
