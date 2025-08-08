@@ -169,9 +169,10 @@ def is_one_confirmed(store: Store, block_root: Root) -> bool:
         weighting_checkpoint = store.prev_slot_unrealized_justified_checkpoint
     else:
         weighting_checkpoint = store.prev_slot_justified_checkpoint
-    support = get_weight(store, block_root, store.checkpoint_states[weighting_checkpoint])
+    weighting_checkpoint_state = store.checkpoint_states[weighting_checkpoint]
+    support = get_weight(store, block_root, weighting_checkpoint_state)
     maximum_support = get_committee_weight_between_slots(
-        prev_slot_justified_state, Slot(parent_block.slot + 1), Slot(current_slot - 1))
+        weighting_checkpoint_state, Slot(parent_block.slot + 1), Slot(current_slot - 1))
     proposer_score = get_proposer_score(store)
 
     # Returns whether the following condition is true using only integer arithmetic
