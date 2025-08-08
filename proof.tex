@@ -674,14 +674,51 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
 %     \end{description}
 % \end{proof}
 
-\begin{lemma}\label{lem:bcand-less-than-current-slot}
-    Pick any $b_c \in  \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bcands}$.
-    $\slot(b_c) < \slot(t)$
+\begin{lemma}\label{lem:output-find-latest-different-to-input-then-output-older-than-current-slot}
+    Let $b_o := \varforvalattime[val=v]{\mathit{find\_latest\_confirmed\_descendant}}(b_c)$.
+    If 
+    \begin{enumerate}
+        \item $b_o \neq b_c$
+    \end{enumerate},
+    then, 
+    \begin{enumerate}
+        \item $\slot(b_o) < \slot(\varforvalattime[val=v]{t})$
+    \end{enumerate}    
 \end{lemma}
 
 \begin{proof}(Sketch)
     Every time that we set $\bcand$, we set it to a block that has received at least a vote from an honest node and honest nodes never vote for blocks in the future.
 \end{proof}
+
+\begin{lemma}\label{lem:bcand-less-than-current-slot}
+    Pick any $b_c \in  \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bcands}$.
+    Then, $\slot(b_c) < \slot(t)$
+\end{lemma}
+
+\begin{proof}
+    By induction on $\slot(t)$.
+    Let $s := \slot(t)$.
+    \begin{description}
+        \item[Base Case: {$s = \slot(\varforvalattime[val=v]{\tinit})$}.] Obvious.
+        \item[Inductive Case: {$s \geq \slot(\varforvalattime[val=v]{\tinit})$}.]
+            We assume that the Lemma holds for $s$ and prove that it also holds for $s+1$.
+            Pick any $b_c \in \varforvalattime[val=v,time=\slotstart(s+1)]{\bcands}$.
+            By cases.
+            \begin{description}
+                \item[Case 1: {$b_c = \varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}$}.] Then, we can apply the inductive hypothesis and conclude that $\slot(b_c) < s < s+1$.
+                \item[Case 2: {$b_c \neq \varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}$}.]
+                Now by cases on the first line, in order of execution of the Fast Confirmation Rule algorithm at time $\slotstart(s+1)$, where $\bcand = b_c$. 
+                \begin{description}
+                    \item[\Cref{ln:set-bcand-beginning-of-get-latest-confirmed}.] 
+                    Impossible, as at this line $\bcand = b_c$, but $b_c \neq \varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}$.
+                    \item[\Cref{ln:set-bcand-to-fin}.] $\epoch(\bcand) < \epoch(s+1)-1 < \epoch(s+1)$.
+                    \item[\Cref{ln:set-bcan-on-start-conf-chain}.] $\epoch(\bcand) = \epoch(s+1)-1 < \epoch(s+1)$. 
+                    \item[\Cref{ln:set-bcand-to-output-find-latest}.] Apply \Cref{lem:output-find-latest-different-to-input-then-output-older-than-current-slot}.
+                \end{description}
+            \end{description}
+    \end{description}
+\end{proof}
+
 
 \begin{lemma}\label{lem:bcand-current-epoch-then-no-first-slot}
     Pick any $b_c \in  \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bcands}$.
@@ -703,21 +740,65 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
         \item[Inductive Case: {$s \geq \slot(\varforvalattime[val=v]{\tinit})$}.]
             We assume that the Lemma holds for $s$ and prove that it also holds for $s+1$.
             Pick any $b_c \in \varforvalattime[val=v,time=\slotstart(s+1)]{\bcands}$ such that $\epoch(b_c) = \epoch(s+1)$.
-            This implies $s+1 \neq \firstslot(\epoch(s+1))$ and therfore $\epoch(s) = \epoch(s+1)$.
             By cases.
             \begin{description}
-                \item[Case 1: {$\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}) = \epoch(s)$}.] 
-                % This implies that $s \neq \firstslot(\epoch(s))$.
-                \Cref{lem:prev-conf-at-least-e-1} implies that $\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed} \preceq \LMDGHOSTHFC(\viewattime[val=v,time=\slotstart(s+1)])$.
-                This implies that $b_c \succeq \varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}$.
-                Given that $\epoch(b_c) = \epoch(s) = \epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed})$, $\chkp(b_c) = \chkp(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed})$.
-                Then apply the inductive hypothesis.
-                \item[Case 2: {$\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}) < \epoch(s)$}.] 
-                Given that $\epoch(b_c) = \epoch(s+1)$, condition at line \Cref{ln:check-will-chkp-be-justified} must be true for a $\btemp = b'$ such that $b' \preceq b_c \land \epoch(b') = \epoch(b_c)$.
-                Hence, $\chkp(b') = \chkp(b_c)$.
-                This implies that $\varforvalattime[val=v,time=\slotstart(s+1)]{\willChkpBeJustified}(\chkp(b_c))$.
+                \item[Case 1: {$b_c = \varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}$}.] From \Cref{lem:bcand-less-than-current-slot} we have that $\slot(b_c) < s$.
+                Given that $\firstslot(\epoch(s+1)) \leq \slot(b_c)$, this implies that $\epoch(s) = \epoch(s+1)$.
+                By applying the inductive hypothesis, we get $s  \geq \firstslot(\epoch(s)) = \firstslot(\epoch(s+1))$.
+                Therefore, $s+1 > s \geq \firstslot(\epoch(s+1))$.
+                \item[Case 2: {$b_c \neq \varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}$}.]
+                Now by cases on the first line, in order of execution of the Fast Confirmation Rule algorithm at time $\slotstart(s+1)$, where $\bcand = b_c$. 
+                \begin{description}
+                    \item[\Cref{ln:set-bcand-beginning-of-get-latest-confirmed}.] 
+                    Impossible, as at this line $\bcand = b_c$, but $b_c \neq \varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}$.
+                    \item[\Cref{ln:set-bcand-to-fin}.] Impossible, as at this line $\epoch(\bcand) < \epoch(s+1)-1$, but we assume $\epoch(b_c) = \epoch(s+1)$.
+                    \item[\Cref{ln:set-bcan-on-start-conf-chain}.] Impossible, as at this line $\epoch(\bcand) = \epoch(s+1)-1$. 
+                    \item[\Cref{ln:set-bcand-to-output-find-latest}.] From \Cref{lem:bcand-less-than-current-slot}, we have that $\slot(b_c) < \slot(s+1)$. Then, $\slot(s+1) > \slot(b_c) \geq \firstslot(\epoch(s+1))$.
+                \end{description}
             \end{description}
     \end{description}
+\end{proof}
+
+\begin{lemma}\label{lem:out-find-latest-conf-prec-head}
+    Let $b_o := \varforvalattime[val=v]{\mathit{find\_latest\_confirmed\_descendant}}(b_c)$.
+    If 
+    \begin{enumerate}
+        \item $b_o \neq b_c$
+    \end{enumerate},
+    then, 
+    \begin{enumerate}
+        \item $b_o \preceq \LMDGHOSTHFC(\viewatstslottime[val=v,time=t])$
+    \end{enumerate}
+\end{lemma}
+\begin{proof}
+    Obvious.
+\end{proof}
+
+\begin{lemma}
+    $\varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed} \preceq \LMDGHOSTHFC(\viewatstslottime[val=v,time=t])$
+\end{lemma}
+\begin{proof}\RSfn{I know that this looks like a very complicated proof to establish something obvious. It's because reasoningon program executions in a manual way is very pedantic in nature.}
+    By contradiction, assume that $\varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed} \npreceq \LMDGHOSTHFC(\viewatstslottime[val=v,time=t])$.
+    Note that must be that $\bcand \gets \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed}$ at some point during the execution of  $\mathit{find\_latest\_confirmed\_descendant}$ and $\bcand$ is not set any other value (expect for potentially setting it to $\varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed}$ again) until the \KwSty{return} statement.
+    Below by cases on the line  of $\mathit{find\_latest\_confirmed\_descendant}$ where this occurs.
+    \begin{description}
+        \item[\Cref{ln:set-bcand-beginning-of-get-latest-confirmed}.] 
+        If $\bcand = \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed} \npreceq \LMDGHOSTHFC(\viewatstslottime[val=v,time=t])$, then \Cref{ln:set-bcand-to-fin} is also executed.
+        This line sets $\bcand$ to $\block(\gfattime[val=v,time={\varforvalattime[val=v]{t}}]) \preceq \LMDGHOSTHFC(\viewatstslottime[val=v,time=t])$. 
+        Given the above, this implies that \Cref{ln:set-bcand-to-fin} sets $\bcand$ to a value different from $\varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed}$.
+        Therefore \Cref{ln:set-bcand-beginning-of-get-latest-confirmed} is not the last line where $\bcand$ is set $\varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed}$ and any successive line setting $\bcand$ sets it to $\varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed}$.\RSfn{Perhaps improve the English here :)}
+        \item[\Cref{ln:set-bcand-to-fin}.] Obvious\RSfn{Pehaps explain a bit more why}.
+        \item[\Cref{ln:set-bcan-on-start-conf-chain}.] In this case $\bcand = \gjattime[val=v,time=\slot(t)]$ which implies $\varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed} \preceq \LMDGHOSTHFC(\viewatstslottime[val=v,time=t])$ reaching a contradiction.
+        \item[\Cref{ln:set-bcand-to-output-find-latest}.]  \Cref{lem:out-find-latest-conf-prec-head} implies that if this line is executed, then the value of $\bcand$ is not updated which means that there exists a previous line where $\bcand \gets \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed}$ reaching a contradiction.
+    \end{description}
+\end{proof}
+
+
+\begin{lemma}\label{lem:out-find-latest-conf-descendant-output}
+    $\varforvalattime[val=v]{\mathit{find\_latest\_confirmed\_descendant}}(b_c) \succeq b_c$
+\end{lemma}
+\begin{proof}
+    Obvious.
 \end{proof}
 
 \begin{lemma}\label{lem:prev-conf-at-least-e-1}
@@ -735,7 +816,7 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
     \end{enumerate}
 \end{lemma}
 
-\begin{proof}(to be improved and to add proof for condiiton 3)
+\begin{proof}\RSfn{I think that the structure of this proof should be improved}
 By \Cref{def:b-cand-is-b-conf} algorithm execution at $\slotstartslot{t}$ starts with
 $b_c = \varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$.
 Given Condition 1 of the Lemma's statement, condition at \Cref{ln:start-conf-chain}
@@ -744,6 +825,21 @@ We also know that condition at \Cref{ln:if-bcand-npreceq-head} does not hold, ot
 $b_c = \gfattime[time=\slotstartslot{t},val=v]$
 and $\epoch(b_c) \leq \epoch(t) - 2$
 which contradicts Condition 2 of the Lemma's statement.
+
+Let's now move to proving Conclusion 3.
+By cases.
+\begin{description}
+    \item[Case 1: {$b_c = \varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bcands}$}.]  Obvious.
+    \item[Case 2: {$b_c \neq \varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bcands}$}.]
+    Now by cases on the first line, in order of execution of the Fast Confirmation Rule algorithm at time $\slotstart(s+1)$, where $\bcand = b_c$. 
+    \begin{description}
+        \item[\Cref{ln:set-bcand-beginning-of-get-latest-confirmed}.] 
+        Impossible, as at this line $\bcand = b_c$, but $b_c \neq \varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$.
+        \item[\Cref{ln:set-bcand-to-fin}.] Impossible, as at this line $\epoch(\bcand) < \epoch(\slot(t)+1)-1$, but we assume $\epoch(b_c) \geq \epoch(\slot(t)+1) -1$.
+        \item[\Cref{ln:set-bcan-on-start-conf-chain}.] Impossible, as at this line cannot be executed if $\slot(t) \neq \firstslot(\epoch(t))$.
+        \item[\Cref{ln:set-bcand-to-output-find-latest}.] Given that this is the only line where $\bcand \gets b_c$, \Cref{lem:out-find-latest-conf-descendant-output} implies that $\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed} \preceq b_c$.
+    \end{description}
+\end{description}
 \end{proof}
 
 \begin{lemma}%[Replacement for \Cref{lem:conf-prev-epoch-then-vs-two-epochs-ago-old}]
