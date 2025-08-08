@@ -674,6 +674,78 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
 %     \end{description}
 % \end{proof}
 
+\begin{lemma}\label{lem:bcand-less-than-current-slot}
+    Pick any $b_c \in  \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bcands}$.
+    $\slot(b_c) < \slot(t)$
+\end{lemma}
+
+\begin{proof}(Sketch)
+    Every time that we set $\bcand$, we set it to a block that has received at least a vote from an honest node and honest nodes never vote for blocks in the future.
+\end{proof}
+
+\begin{lemma}\label{lem:bcand-current-epoch-then-no-first-slot}
+    Pick any $b_c \in  \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bcands}$.
+    If
+    \begin{enumerate}
+        \item $\epoch(b_c) = \epoch(t)$
+    \end{enumerate}
+    , then
+    \begin{enumerate}
+        \item  $\slot(t) > \text{\firstslot}(\epoch(t))$
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}(under-construction)\\
+    By induction on $\slot(t)$.
+    Let $s := \slot(t)$.
+    \begin{description}
+        \item[Base Case: {$s = \slot(\varforvalattime[val=v]{\tinit})$}.] The Lemma is vacuously true.
+        \item[Inductive Case: {$s \geq \slot(\varforvalattime[val=v]{\tinit})$}.]
+            We assume that the Lemma holds for $s$ and prove that it also holds for $s+1$.
+            Pick any $b_c \in \varforvalattime[val=v,time=\slotstart(s+1)]{\bcands}$ such that $\epoch(b_c) = \epoch(s+1)$.
+            This implies $s+1 \neq \firstslot(\epoch(s+1))$ and therfore $\epoch(s) = \epoch(s+1)$.
+            By cases.
+            \begin{description}
+                \item[Case 1: {$\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}) = \epoch(s)$}.] 
+                % This implies that $s \neq \firstslot(\epoch(s))$.
+                \Cref{lem:prev-conf-at-least-e-1} implies that $\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed} \preceq \LMDGHOSTHFC(\viewattime[val=v,time=\slotstart(s+1)])$.
+                This implies that $b_c \succeq \varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}$.
+                Given that $\epoch(b_c) = \epoch(s) = \epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed})$, $\chkp(b_c) = \chkp(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed})$.
+                Then apply the inductive hypothesis.
+                \item[Case 2: {$\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}) < \epoch(s)$}.] 
+                Given that $\epoch(b_c) = \epoch(s+1)$, condition at line \Cref{ln:check-will-chkp-be-justified} must be true for a $\btemp = b'$ such that $b' \preceq b_c \land \epoch(b') = \epoch(b_c)$.
+                Hence, $\chkp(b') = \chkp(b_c)$.
+                This implies that $\varforvalattime[val=v,time=\slotstart(s+1)]{\willChkpBeJustified}(\chkp(b_c))$.
+            \end{description}
+    \end{description}
+\end{proof}
+
+\begin{lemma}\label{lem:prev-conf-at-least-e-1}
+    Pick any $b_c \in  \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bcands}$.
+    If
+    \begin{enumerate}
+        \item $\slot(t) > \text{\firstslot}(\epoch(t))$
+        \item $\epoch(b_c) \geq \epoch(t)-1$
+    \end{enumerate},
+    then
+    \begin{enumerate}
+        \item $\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) \geq \epoch(t)-1$
+        \item $\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed} \preceq \LMDGHOSTHFC(\viewatstslottime[val=v,time=t])$
+        \item $\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed} \preceq b_c$
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}(to be improved and to add proof for condiiton 3)
+By \Cref{def:b-cand-is-b-conf} algorithm execution at $\slotstartslot{t}$ starts with
+$b_c = \varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$.
+Given Condition 1 of the Lemma's statement, condition at \Cref{ln:start-conf-chain}
+does not hold making code at \Cref{ln:set-bcan-on-start-conf-chain} unreachable.
+We also know that condition at \Cref{ln:if-bcand-npreceq-head} does not hold, otherwise,
+$b_c = \gfattime[time=\slotstartslot{t},val=v]$
+and $\epoch(b_c) \leq \epoch(t) - 2$
+which contradicts Condition 2 of the Lemma's statement.
+\end{proof}
+
 \begin{lemma}%[Replacement for \Cref{lem:conf-prev-epoch-then-vs-two-epochs-ago-old}]
     \label{lem:conf-prev-epoch-then-vs-two-epochs-ago}
      \label{lem:vs-at-least-e-2}
@@ -731,10 +803,9 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
                         Obvious from \Cref{lem:output-find-latest-different-to-input}.
                         \item[Case 2.2.2: $\epoch(b_c) \neq \epoch(s+1) - 1$.]
                         By the assumption in the Lemma statement, it must be that $\epoch(b_c) = \epoch(s+1)$.
-                        Also note that $b_c \succ \varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}$ for this case.
-                        Given all this, we conclude $\slot(s + 1) > \firstslot(\epoch(s+1))$ which implies $\epoch(s+1) = \epoch(s)$.
+                        From \Cref{lem:bcand-current-epoch-then-no-first-slot,lem:prev-conf-at-least-e-1}, we can conclude that $b_c \succeq \varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}$.
                         Then we can apply the inductive hypothesis to conclude that there exists an honest validator $v'$ such that $\exists b' \in \left(\viewattime[time=\slotstart(s-1),val=v'] \cap \viewattime[time=\slotstart(s),val=v]\right), \varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed} \succ \votsource[blck=b',time=\slotstart(s)] \land \epoch(\votsource[blck=b',time=\slotstart(s)])\geq \epoch(s)-2 = \epoch(s+1)-2$.
-                        So, given that $\viewattime[time=\slotstart(s-1),val=v'] \subseteq \viewattime[time=\slotstart(s),val=v']$ and $\viewattime[time=\slotstart(s),val=v] \subseteq \viewattime[time=\slotstart(s+1),val=v]$ and $b_c \succ \varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}$, the proof for this case is concluded.
+                        So, given that $\viewattime[time=\slotstart(s-1),val=v'] \subseteq \viewattime[time=\slotstart(s),val=v']$ and $\viewattime[time=\slotstart(s),val=v] \subseteq \viewattime[time=\slotstart(s+1),val=v]$ and $b_c \succeq \varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}$, the proof for this case is concluded.
                     \end{description}
                 \end{description}
             \end{description}
@@ -1093,30 +1164,11 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
 %     \end{description}
 % \end{proof}
 
-\begin{lemma}\label{lem:prev-conf-at-least-e-1}
-    Pick any $b_c \in  \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bcands}$.
-    If
-    \begin{enumerate}
-        \item $\slot(t) > \text{\firstslot}(\epoch(t))$
-        \item $\epoch(b_c) \geq \epoch(t)-1$
-    \end{enumerate},
-    then
-    \begin{enumerate}
-        \item $\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) \geq \epoch(t)-1$
-        \item $\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed} \preceq \LMDGHOSTHFC(\viewatstslottime[val=v,time=t])$
-    \end{enumerate}
-\end{lemma}
 
-\begin{proof}
-By \Cref{def:b-cand-is-b-conf} algorithm execution at $\slotstartslot{t}$ starts with
-$b_c = \varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$.
-Given Condition 1 of the Lemma's statement, condition at \Cref{ln:start-conf-chain}
-does not hold making code at \Cref{ln:set-bcan-on-start-conf-chain} unreachable.
-We also know that condition at \Cref{ln:if-bcand-npreceq-head} does not hold, otherwise,
-$b_c = \gfattime[time=\slotstartslot{t},val=v]$
-and $\epoch(b_c) \leq \epoch(t) - 2$
-which contradicts Condition 2 of the Lemma's statement.
-\end{proof}
+
+
+
+
 
 \begin{lemma}\label{lem:no-curr-epochconflict-chkp-is-justified}
     Pick any $b_c \in  \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bcands}$.
