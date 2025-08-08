@@ -775,7 +775,7 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
 \end{proof}
 
 \begin{lemma}
-    $\varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed} \preceq \LMDGHOSTHFC(\viewatstslottime[val=v,time=t])$
+    $\varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed} \preceq \LMDGHOSTHFC(\viewatstslottime[val=v,time=t])$\label{lem:bconf-always-canonical}
 \end{lemma}
 \begin{proof}\RSfn{I know that this looks like a very complicated proof to establish something obvious. It's because reasoningon program executions in a manual way is very pedantic in nature.}
     By contradiction, assume that $\varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed} \npreceq \LMDGHOSTHFC(\viewatstslottime[val=v,time=t])$.
@@ -1652,7 +1652,7 @@ By cases.
 
 \begin{proof}
     By cases.
-    From \Cref{lem:conf-prev-epoch-then-vs-two-epochs-ago}, we know that $\exists b' \in \viewattime[time=\slotstart(s-1),val=v], b' \succeq  \varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed} \land \epoch(\votsource[blck=b',time=\slotstart(s-1)])\geq \epoch(s-1)-2$.
+    From \Cref{lem:conf-prev-epoch-then-vs-two-epochs-ago}, we know that $\exists b' \in \viewattime[time=\slotstart(s-1),val=v], \epoch(\votsource[blck=b',time=\slotstart(s-1)])\geq \epoch(s-1)-2 \land \varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed} \succ \votsource[blck=b',time=\slotstart(s-1)]$.
     We have $ \epoch(s-1)-2 \leq \epoch(\votsource[blck=b',time=\slotstart(s-1)]) \leq  \epoch(\gjattime[time=\slotstart(s-1),val=v]) \leq   \epoch(s-1)-1$.
     \begin{description}
         \item[Case 1: {$\epoch(\gjattime[time=\slotstart(s),val=v']) \leq \epoch(s-1)-1$}.]
@@ -1662,8 +1662,8 @@ By cases.
             \item[Case 1.1: {$\epoch(\gjattime[time=\slotstart(s-1),val=v]) =  \epoch(\gjattime[time=\slotstart(s),val=v'])$}.] Obvious.
             \item[Case 1.2: {$\epoch(\gjattime[time=\slotstart(s-1),val=v]) \neq  \epoch(\gjattime[time=\slotstart(s),val=v'])$}.]
             This case implies that $\epoch(\gjattime[time=\slotstart(s-1),val=v]) = \epoch(s-1)-2 = \epoch(\votsource[blck=b',time=\slotstart(s-1)])$ and $\epoch(\gjattime[time=\slotstart(s),val=v']) = \epoch(s-1)-1$.
-            Because $\epoch(\votsource[blck=b',time=\slotstart(s-1)]) = \epoch(s-1) -2 < \epoch(s-1) -1 \leq \epoch(s)-1 \leq \epoch(\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed})$,  $b' \succeq \varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed}$ and $\votsource[blck=b',time=\slotstart(s-1)]\preceq b'$, we can appy \Cref{prop:on-chkp-prec} to conclude that $\votsource[blck=b',time=\slotstart(s-1)] \preceq \chkp(\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed},\epoch(s-1)-1)$.
-            From $\epoch(\votsource[blck=b',time=\slotstart(s-1)]) = \epoch(\gjattime[time=\slotstart(s-1),val=v] )$ and \Cref{lem:no-prev-epochconflict-chkp-is-justified}, it follows that $\gjattime[time=\slotstart(s-1),val=v] =\votsource[blck=b',time=\slotstart(s-1)] \preceq  \chkp(\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed},\epoch(s-1)-1) =  \gjattime[time=\slotstartslot{t},val=v']$.
+            Because $\epoch(\votsource[blck=b',time=\slotstart(s-1)]) = \epoch(s-1) -2 < \epoch(s-1) -1 \leq \epoch(s)-1 \leq \epoch(\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed})$,  $\votsource[blck=b',time=\slotstart(s-1)] \prec \varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed}$, we can apply \Cref{prop:on-chkp-prec} to conclude that $\votsource[blck=b',time=\slotstart(s-1)] \preceq \chkp(\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed},\epoch(s-1)-1)$.
+            From $\epoch(\votsource[blck=b',time=\slotstart(s-1)]) = \epoch(\gjattime[time=\slotstart(s-1),val=v] )$ and \Cref{lem:no-prev-epochconflict-chkp-is-justified}, it follows that $\gjattime[time=\slotstart(s-1),val=v] =\votsource[blck=b',time=\slotstart(s-1)] \prec  \chkp(\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed},\epoch(s-1)-1) =  \gjattime[time=\slotstartslot{t},val=v']$.
         \end{description}
         \item[Case 2: {$\epoch(\gjattime[time=\slotstart(s),val=v']) > \epoch(s-1)-1$}.]
         This case implies that $\epoch(\gjattime[time=\slotstart(s),val=v']) = \epoch(s-1) = \epoch(s)-1$ and $s = \firstslot(\epoch(s))$.
@@ -1673,7 +1673,7 @@ By cases.
         \begin{description}
             \item[Case 2.1: {$\epoch(\gjattime[time=\slotstart(s-1),val=v])= \epoch(s-1)-2$}.] 
             This case implies that $\epoch(\gjattime[time=\slotstart(s-1),val=v])= \epoch(s-1)-2 = \epoch(\votsource[blck=b',time=\slotstart(s-1)])$ which further imples that $\gjattime[time=\slotstart(s-1),val=v] = \votsource[blck=b',time=\slotstart(s-1)]$.
-            Because $\epoch(\votsource[blck=b',time=\slotstart(s-1)]) = \epoch(s-1) -2 < \epoch(s-1) = \epoch(\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed})$,  $b' \succeq \varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed}$ and $\votsource[blck=b',time=\slotstart(s-1)]\preceq b'$, we can appy \Cref{prop:on-chkp-prec} which, together with $\epoch(\gjattime[time=\slotstart(s),val=v']) = \epoch(s-1)$, allows us to conclude that $\gjattime[time=\slotstart(s-1),val=v] = \votsource[blck=b',time=\slotstart(s-1)] \preceq \chkp(\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed},\epoch(s-1))= \chkp(\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed})= \gjattime[time=\slotstart(s),val=v']$.
+            Because $\epoch(\votsource[blck=b',time=\slotstart(s-1)]) = \epoch(s-1) -2 < \epoch(s-1) = \epoch(\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed})$,  $\votsource[blck=b',time=\slotstart(s-1)] \prec \varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed}$, we can appy \Cref{prop:on-chkp-prec} which, together with $\epoch(\gjattime[time=\slotstart(s),val=v']) = \epoch(s-1)$, allows us to conclude that $\gjattime[time=\slotstart(s-1),val=v] = \votsource[blck=b',time=\slotstart(s-1)] \preceq \chkp(\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed},\epoch(s-1))= \chkp(\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed})= \gjattime[time=\slotstart(s),val=v']$.
             \item[Case 2.2: {$\epoch(\gjattime[time=\slotstart(s-1),val=v])= \epoch(s-1)-1$}.] 
             \Cref{lem:no-prev-epochconflict-chkp-is-justified} implies that $\gjattime[time=\slotstart(s-1),val=v'] = \chkp(\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed},\epoch(s-1)-1)$.
             Then clearly $\gjattime[time=\slotstart(s-1),val=v'] = \chkp(\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed},\epoch(s-1)-1) \preceq \chkp(\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed}) = \gjattime[time=\slotstart(s),val=v']$.
@@ -1701,9 +1701,7 @@ By cases.
 \end{proof}
 
 \begin{proof}(that does not require \Cref{lem:prev-gj-prec-others-gj})
-    \Cref{lem:prev-conf-at-least-e-1} implies that $\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) \geq \epoch(t)-1$ and $\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed} \preceq \LMDGHOSTHFC(\viewatstslottime[val=v,time=t])$.
-    \Cref{lem:no-curr-epochconflict-chkp-is-justified} then implies that $b_c \succeq \varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$.
-    Hence, $b_c \succeq \gjattime[time=\slotstart(\slot(t)-1),val=v]$.
+    \Cref{lem:prev-conf-at-least-e-1} together with \Cref{lem:bconf-always-canonical} imply $b_c \succeq \varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed} \succeq \gjattime[time=\slotstart(\slot(t)-1),val=v]$.
     Also, due to \Cref{lem:gj-does-not-conflict}, we have that  $b_c \succeq \gjattime[time=\slotstartslot{t},val=v']$.
     Finally, the synchrony assumption implies that $\gjattime[time=\slotstart(\slot(t)-1),val=v] \leq \gjattime[time=\slotstartslot{t},val=v']$ which concludes the proof.
 \end{proof}
