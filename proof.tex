@@ -1345,8 +1345,8 @@ By cases.
     then at least one of the following statements hold:
     \begin{enumerate}
         % \item $\gjattime[time=\slotstartslot{t},val=v] = \chkp(b_c,\epoch(t) - 1)$
-        \item $\chkp(b_c,\epoch(t) - 1) \in \allU(\viewattime[time=\slotstartslot{t},val=v])$
-        \item there exists a time $t' \leq t$ such that
+        \item $\chkp(b_c,\epoch(t) - 1) \in \allU(\viewattime[time=\slotstart(\slot(t)-1),val=v])$
+        \item there exists a time $t' \leq \slotstart(\lastslot(\epoch(t)-1))$ such that
         \begin{enumerate}
             \item $t' = \slotstartslot{t'}$
             \item $\epoch(t') = \epoch(t)-1$
@@ -1826,10 +1826,11 @@ By cases.
 \RS{Done till here. Some of the Lemmas below might not be necessary anymore. Possibly because they have been replaced by a stronger Lemma above.}
 
 \begin{lemma}\label{lem:gj-at-least-e-2-curr-slot}
+    Pick any $b_c \in  \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bcands}$.
     If
     \begin{enumerate}
-        \item $\text{\slotstart}(\text{\lastslot}(\text{\epoch}(t) - 1)) \geq \GST$
-        \item $\epoch(\varforvalattime[val=v,time=\slotstartslot{t}]{\bcand}) \geq \epoch(t)-1$
+        \item $\slotstart(\slot(t)-1) \geq \GST$
+        \item $\epoch(b_c) \geq \epoch(t)-1$
     \end{enumerate},
     then, for any honest validator $v'$,
     \begin{enumerate}
@@ -1838,14 +1839,320 @@ By cases.
 \end{lemma}
 
 \begin{proof}
-Given Condition 1 of the Lemma's statement, we have $\slotstart(\slot(t) - 1) \geq \GST$.
-Then Condition 2 of the Lemma's statement allows us to apply \Cref{lem:vs-at-least-e-2} which implies that
-$\exists b' \in \viewattime[time=\slotstart(\slot(t)-1),val=v], \epoch(\votsource[blck=b',time=\slotstartslot{t}])\geq \epoch(t)-2$.
-Given all this we have $b' \in \viewattime[time=\slotstart(\slot(t)),val=v']$.
-By Definition 3 of the paper $\epoch(\gjattime[val=v',time=\slotstartslot{t}]) = \epoch(\max(\{\votsource[blck=b,time=t]: b \in \viewatstslottime[val=v',time=t]\}))
+From \Cref{lem:conf-prev-epoch-then-vs-two-epochs-ago} we know that there exists an honest validator $v_h$ such that $\exists b' \in \viewattime[time=\slotstart(\slot(t)-1),val=v_h], \epoch(\votsource[blck=b',time=\slotstartslot{t}])\geq \epoch(t)-2$.
+Then, because of the synchrony assumption, $b' \in \viewattime[time=\slotstart(\slot(t)),val=v']$.
+Finally, by the Definition 3 of the paper $\epoch(\gjattime[val=v',time=\slotstartslot{t}]) = \epoch(\max(\{\votsource[blck=b,time=t]: b \in \viewatstslottime[val=v',time=t]\}))
 \geq \epoch(\votsource[blck=b',time=\slotstartslot{t}]) \geq \epoch(t) - 2$.
 \end{proof}
 
+\begin{lemma}\label{lem:gu-e-1-canonical}
+    If
+    \begin{enumerate}
+        \item $\slotstart(\slot(t)-1) \geq \GST$
+        \item $\epoch(\guattime[val=v,time=\slotstart(\slot(t)-1)]) = \epoch(t)-1$
+    \end{enumerate},
+    then,
+    \begin{enumerate}
+        \item $\canonical[blck={\block(\guattime[val=v,time=\slotstart(\slot(t)-1)])},time=t]$.
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+    (Sketch)
+    Given the synchrony assumption $\gjattime[val=v',time=t'] = \guattime[val=v,time=\slotstart(\slot(t)-1)]$ for any honest validator $v'$ and time $t'$ such that $\epoch(t') = \epoch(t)$.
+    Then all honest validators will cast their FFG votes with $\guattime[val=v,time=\slotstart(\slot(t)-1)]$ as the source throughout $epoch(t)$.
+    Therefore, $\gfattime[val=v',time=\slotstart(\epoch(t)+1)] = \guattime[val=v,time=\slotstart(\slot(t)-1)]$.
+\end{proof}
+
+\begin{lemma}\label{lem:canonical-at-st-t}
+    Pick any $b_c \in  \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bcands}$.
+    If
+    \begin{enumerate}
+        \item $\slotstart(\lastslot(\epoch(t)-2)) \geq \GST$
+        \item $\epoch(b_c) \geq \epoch(t)-1$
+    \end{enumerate},
+    then,
+    \begin{enumerate}
+        \item $b_c \preceq \LMDGHOSTHFC(\viewattime[val=v',time=\slotstartslot{t}])$ for any honest validator $v'$.
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+    (Sketch)
+    By induction on $\slot(t)$. Let $s := \slot(t)$.
+    \begin{description}
+        \item[Base case: {$s = \slot(\varforvalattime[val=v]{\tinit})$}.] The Lemma is vacuously true.
+        \item[Inductive case: {$s \geq \slot(\varforvalattime[val=v]{\tinit})$}.] We assume that the Lemma holds for slot $s$ and prove that it also holds for $s+1$.
+        Now by cases on the first line, in order of execution of the Fast Confirmation Rule algorithm at time $\slotstart(s+1)$, where $\bcand = b_c$. 
+        \begin{description}
+            \item[\Cref{ln:set-bcand-beginning-of-get-latest-confirmed}.] By the inductive hypothesis we know that $b_c \preceq \LMDGHOSTHFC(\viewattime[val=v',time=\slotstart(s)])$.
+            Thus all honest validators voted in the support of $b_c$ in slot $s$. This together with the synchrony assumption implies $b_c \preceq \LMDGHOSTHFC(\viewattime[val=v',time=\slotstart(s+1)])$.
+            \item[\Cref{ln:set-bcand-to-fin}.] Impossible, as at this line $\epoch(\bcand) < \epoch(s+1)-1$, but we assume $\epoch(b_c) \geq \epoch(s+1)-1$.
+            \item[\Cref{ln:set-bcan-on-start-conf-chain}.] Apply \Cref{lem:gu-e-1-canonical}.
+            \item[\Cref{ln:set-bcand-to-output-find-latest}.] TBD.
+        \end{description}
+    \end{description}
+\end{proof}
+
+\begin{lemma}\label{lem:gj-does-not-conflict-during-e}
+    Pick any $b_c \in  \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bcands}$, any honest validator $v'$ and time $t' \geq \slotstartslot{t}$ such that $\epoch(t') = \epoch(t)$.
+    If
+    \begin{enumerate}
+        \item $\slotstart(\epoch(t)-1) \geq \GST$
+        \item $\epoch(b_c) \geq \epoch(t)-1$
+    \end{enumerate},
+    then,
+    \begin{enumerate}
+        \item $b_c \succeq \gjattime[val=v',time=t']$
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+    (Sketch)
+    By induction on $t'$.
+    \begin{description}
+        \item[Base case: {$t' = \slotstartslot{t}$}.] Apply \Cref{lem:gj-does-not-conflict}.
+        \item[Inductive case: {$t' \geq \slotstartslot{t}$}.] We assume that the Lemma holds for any $t''$ such that $\slotstartslot{t} \leq t'' < t'$ and we prove that it holds at time $t'$ as well.
+        By cases.
+        \begin{description}
+            \item[Case 1: {$\epoch(\gjattime[val=v',time=t']) = \epoch(\gjattime[val=v',time=t''])$}.] Apply the inductive hypothesis.
+            \item[Case 2: {$\epoch(\gjattime[val=v',time=t']) \neq \epoch(\gjattime[val=v',time=t''])$}.]
+            Then \Cref{lem:gj-at-least-e-2-curr-slot} implies $\epoch(t)-2 = \epoch(\gjattime[val=v',time=t'']) < \epoch(\gjattime[val=v',time=t']) = \epoch(t)-1$.
+            Due to \Cref{lem:no-prev-epochconflict-chkp-is-justified} and the synchrony assumption we know that no checkpoint conflicting with $\chkp(b_c, \epoch(t)-1)$ can be justified for $\epoch(t)-1$.
+            Thus, $\gjattime[val=v',time=t'] = \chkp(b_c, \epoch(t)-1) \preceq b_c$.
+        \end{description}
+    \end{description}
+\end{proof}
+
+\begin{lemma}\label{lem:not-filtered-during-e}
+    Pick any $b_c \in  \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bcands}$, any honest validator $v'$ and time $t' \geq \slotstartslot{t}$ such that $\epoch(t') = \epoch(t)$.
+    If
+    \begin{enumerate}
+        \item $\slotstart(\epoch(t)-1) \geq \GST$
+        \item $\epoch(b_c) \geq \epoch(t)-1$
+    \end{enumerate},
+    then,
+    \begin{enumerate}
+        \item $b_c \in \filtered[val=v',time=t']$
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+    From \Cref{lem:gj-does-not-conflict-during-e} we know that $b_c$ does not conflict with $\gjattime[val=v',time=t']$.
+    Then \Cref{lem:conf-prev-epoch-then-vs-two-epochs-ago} together with the synchrony assumption implies $\exists b' \in \viewattime[time=t',val=v'], b_c \succ \votsource[blck=b',time=t'] \land \epoch(\votsource[blck=b',time=t'])\geq \epoch(t')-2$ which concludes the proof.
+\end{proof}
+
+\begin{lemma}\label{lem:canonical-during-e}
+    Pick any $b_c \in  \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bcands}$, any honest validator $v'$ and time $t' \geq \slotstartslot{t}$ such that $\epoch(t') = \epoch(t)$.
+    If
+    \begin{enumerate}
+        \item $\slotstart(\lastslot(\epoch(t)-2)) \geq \GST$
+        \item $\epoch(b_c) \geq \epoch(t)-1$
+    \end{enumerate},
+    then,
+    \begin{enumerate}
+        \item $b_c \preceq \LMDGHOSTHFC(\viewattime[val=v',time=t'])$
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+    (Sketch)
+    By induction on $t'$.
+    \begin{description}
+        \item[Base case: {$t' = \slotstartslot{t}$}.] Apply \Cref{lem:canonical-at-st-t}. 
+        \item[Inductive case: {$t' \geq \slotstartslot{t}$}.] We assume that the Lemma holds for any $t''$ such that $\slotstartslot{t} \leq t'' < t'$ and we prove that it holds at time $t'$ as well.
+        Consider $\varforvalattime[val=v,time=t]{\isOneConfirmed}(b_c, \chkp)$ such that $\chkp \in \left\{\guattime[val=v,time=\slotstart(\slot(t)-1)],\gjattime[val=v,time=\slotstart(\slot(t)-1)]\right\}$, show that $\chkp \preceq \gjattime[val=v',time=t']$.
+        Then use Lemmas from the Paper to show that $b_c$ outweighs all other blocks at any slot of $\epoch(t')$ and finally apply \Cref{lem:not-filtered-during-e} to conclude the proof.
+    \end{description}
+\end{proof}
+
+\begin{lemma}\label{lem:gj-does-not-conflict-during-e+1}
+    Pick any $b_c \in  \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bcands}$, any honest validator $v'$ and time $t' \geq \slotstartslot{t}$ such that $\epoch(t') \in \left\{\epoch(t),\epoch(t)+1\right\}$.
+    If
+    \begin{enumerate}
+        \item $\slotstart(\epoch(t)-1) \geq \GST$
+        \item $\epoch(b_c) \geq \epoch(t)-1$
+    \end{enumerate},
+    then,
+    \begin{enumerate}
+        \item $b_c$ does not conflict with $\gjattime[val=v',time=t']$
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+    (Sketch)
+    By induction on $t'$.
+    \begin{description}
+        \item[Base case: {$\epoch(t') = \epoch(t)$}.] Apply \Cref{lem:gj-does-not-conflict-during-e}.
+        \item[Inductive case: {$\epoch(t') = \epoch(t)+1$}.] We assume that the Lemma holds for any $t'' < t'$ and we prove that it holds at time $t'$ as well.
+        By cases.
+        \begin{description}
+            \item[Case 1: {$\epoch(\gjattime[val=v',time=t']) = \epoch(\gjattime[val=v',time=t''])$}.] Apply the inductive hypothesis.
+            \item[Case 2: {$\epoch(\gjattime[val=v',time=t']) \neq \epoch(\gjattime[val=v',time=t''])$}.] This and \Cref{lem:gj-at-least-e-2-curr-slot} implies $\epoch(t)-2 \leq \epoch(\gjattime[val=v',time=t'']) < \epoch(\gjattime[val=v',time=t']) \leq \epoch(t)$.
+            By sub cases.
+            \begin{description}
+                \item[Case 1.1: {$\epoch(\gjattime[val=v',time=t']) = \epoch(t)-1$}.]
+                Due to \Cref{lem:no-prev-epochconflict-chkp-is-justified} and the synchrony assumption we know that no checkpoint conflicting with $\chkp(b_c, \epoch(t)-1)$ can be justified for $\epoch(t)-1$.
+                Thus $\gjattime[val=v',time=t'] = \chkp(b_c, \epoch(t)-1) \preceq b_c$.
+                \item[Case 1.2: {$\epoch(\gjattime[val=v',time=t']) \neq \epoch(t)-1$}.] Implies $\epoch(\gjattime[val=v',time=t']) = \epoch(t)$.
+                By sub cases again.
+                \begin{description}
+                    \item[Case 1.2.1: {$\epoch(b_c) = \epoch(t)-1$}.] By sub cases again.
+                    \begin{description}
+                        \item[Case 1.2.1.1: {$\slot(t) = \firstslot(\epoch(t))$}.]
+                        From \Cref{lem:canonical-during-e} we know that $b_c \preceq \LMDGHOSTHFC(\viewattime[val=v',time=t'''])$, $\epoch(t''') = \epoch(t)$,
+                        thus all honest validators in the committees of $\epoch(t)$ will send their FFG votes targeting a checkpoint that is a descendant of $b_c$.
+                        Then Property 1.6 of the Paper together with the synchrony assumption implies that no checkpoint $\chkp'$
+                        such that $\epoch(\chkp') = \epoch(t)$ conflicting with $b_c$ can ever be justified.
+                        \item[Case 1.2.1.2: {$\slot(t) \neq \firstslot(\epoch(t))$}.] By contradiction.
+                        Suppose $\exists b', \chkp(b',\epoch(t)) \in \allU(\viewattime[val=v',time=t'])$ and $b_c \npreceq \chkp(b',\epoch(t))$.
+                        Then, given the synchrony assumption and $\epoch(b_c)=\epoch(t)-1$, $\willNoConflictingChkpBeJustified_v(\chkp(b', \epoch(t)))$ check in \Cref{ln:if-prev-epoch} and \Cref{ln:if-to-set-bcand-to-btcand} must have never be true,
+                        thus either $\slot(t) = \firstslot(\epoch(t))$ or $\epoch(b_c) \neq \epoch(t)-1$.
+                    \end{description}
+                    \item[Case 1.2.2: {$\epoch(b_c) \neq \epoch(t)-1$}.] Implies $\epoch(b_c) = \epoch(t)$.
+                    Due to \Cref{lem:no-curr-epochconflict-chkp-is-justified} and the synchrony assumption, no checkpoint $\chkp'$ such that $\epoch(\chkp') = \epoch(t)$ conflicting with $b_c$ can ever be justified.
+                    Thus $\gjattime[val=v',time=t'] = \chkp(b_c, \epoch(t)) \preceq b_c$.
+                \end{description}
+            \end{description}
+        \end{description}
+    \end{description}
+\end{proof}
+
+\begin{lemma}\label{lem:not-filtered-during-e+1}
+    Pick any $b_c \in  \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bcands}$, any honest validator $v'$ and time $t' \geq \slotstartslot{t}$ such that $\epoch(t') \in \left\{\epoch(t), \epoch(t)+1\right\}$.
+    If
+    \begin{enumerate}
+        \item $\slotstart(\lastslot(\epoch(t)-2)) \geq \GST$
+        \item $\epoch(b_c) \geq \epoch(t)-1$
+    \end{enumerate},
+    then,
+    \begin{enumerate}
+        \item $b_c \in \filtered[val=v',time=t']$
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+    (Sketch)
+    From \Cref{lem:gj-does-not-conflict-during-e+1} we know that $b_c$ does not conflict with $\gjattime[val=v',time=t']$.
+    By cases.
+    \begin{description}
+        \item[Case 1: {$\epoch(t') = \epoch(t)$}.] Apply \Cref{lem:not-filtered-during-e}.
+        \item[Case 2: {$\epoch(t') = \epoch(t)+1$}.] 
+        By sub cases.
+        \begin{description}
+            \item[Case 2.1: {$\slot(t) = \firstslot(\epoch(t))$}.]
+            From \Cref{lem:canonical-during-e} we know that $b_c \preceq \LMDGHOSTHFC(\viewattime[val=v',time=t''])$, $\epoch(t'') = \epoch(t)$,
+            thus all honest validators in the committees of $\epoch(t)$ will send their FFG votes targeting a checkpoint that is a descendant of $b_c$.
+            Then Property 1.6 of the Paper together with the synchrony assumption implies that $\gjattime[val=v',time=\slotstart(\epoch(t'))] = \chkp(b',\epoch(t')-1)$ such that $b' \succeq b_c$. Then obviously $b_c \in \filtered[val=v',time=t']$.
+            \item[Case 2.2: {$\slot(t) \neq \firstslot(\epoch(t))$}.]
+            If statements at \Cref{ln:if-prev-epoch} and \Cref{ln:second-if} ensure that $\exists b' \in \viewatstslottime[val=v,time=t], b' \succeq b_c$ such that $\gu(b') \geq \epoch(t)-1 = \epoch(t')-2$, thus $\epoch(\votsource[blck=b',time=\epoch(t')]) = \epoch(\gu(b')) \geq \epoch(t')-2$.
+            This together with the synchrony assumption implies $\exists b' \in \viewattime[time=t',val=v'], b' \succeq b_c$ such that $\epoch(\votsource[blck=b',time=\epoch(t')]) \geq \epoch(t')-2$ concluding the proof.
+        \end{description}
+    \end{description}
+\end{proof}
+
+\begin{lemma}\label{lem:canonical-during-e+1}
+    Pick any $b_c \in  \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bcands}$, any honest validator $v'$ and time $t' \geq \slotstartslot{t}$ such that $\epoch(t') \in \left\{\epoch(t),\epoch(t)+1\right\}$.
+    If
+    \begin{enumerate}
+        \item $\slotstart(\lastslot(\epoch(t)-2)) \geq \GST$
+        \item $\epoch(b_c) \geq \epoch(t)-1$
+    \end{enumerate},
+    then,
+    \begin{enumerate}
+        \item $b_c \preceq \LMDGHOSTHFC(\viewattime[val=v',time=t'])$
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+    (Sketch)
+    By induction on $t'$.
+    \begin{description}
+        \item[Base case: {$\epoch(t') = \epoch(t)$}.] Apply \Cref{lem:canonical-during-e}.
+        \item[Inductive case: {$\epoch(t') = \epoch(t)+1$}.] We assume that the Lemma holds for any $t'' < t'$ and we prove that it holds at time $t'$ as well.
+        Consider $\varforvalattime[val=v,time=t]{\isOneConfirmed}(b_c, \chkp)$ such that $\chkp \in \left\{\guattime[val=v,time=\slotstart(\slot(t)-1)],\gjattime[val=v,time=\slotstart(\slot(t)-1)]\right\}$, show that $\chkp \preceq \gjattime[val=v',time=t']$.
+        Then use Lemmas from the Paper to show that $b_c$ outweighs all other blocks at any slot of $\epoch(t)+1$.
+        Finally, \Cref{lem:not-filtered-during-e+1} concludes the proof.
+    \end{description}
+\end{proof}
+
+\begin{lemma}\label{lem:bcand-canonical}
+    Pick any $b_c \in \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bcands}$.
+    If
+    \begin{enumerate}
+        \item $\slotstart(\lastslot(\epoch(t)-2)) \geq \GST$
+        \item $\epoch(b_c) \geq \epoch(t)-1$
+    \end{enumerate},
+    then,
+    \begin{enumerate}
+        \item $\canonical[blck=b_c,time=t]$
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+    (Sketch)
+    From \Cref{lem:canonical-during-e+1} we know that $b_c \preceq \LMDGHOSTHFC(\viewattime[val=v',time=t'])$
+    for any honest validator $v'$ and time $t' \geq \slotstartslot{t}$ such that $\epoch(t') \in \left\{\epoch(t), \epoch(t)+1\right\}$.
+    Thus all honest validators in the committees of $\epoch(t)+1$ will send their FFG votes targeting checkpoint $\chkp(b', \epoch(t)+1)$ such that $b' \succeq b_c$.
+    Then Property 1.6 of the Paper together with the synchrony assumption implies $\gjattime[val=v',time=\slotstart(\epoch(t)+2)] = \chkp(b', \epoch(t)+1)$.
+    This implies $b'$ remaining canonical throughout $epoch(t)+2$. Finally, by following the same reasoning show that $\gfattime[val=v',time=\slotstart(\epoch(t)+3)] = \chkp(b', \epoch(t)+1)$.
+\end{proof}
+
+\begin{lemma}
+    Take $b = \varforvalattime[val=v,time=\slotstartslot{t}]{\bconfirmed}$.
+    If
+    \begin{enumerate}
+        \item $\slotstart(\lastslot(\epoch(t)-2)) \geq \GST$
+        \item $\epoch(b) \geq \epoch(t)-1$
+    \end{enumerate},
+    then,
+    \begin{enumerate}
+        \item $\canonical[blck=b,time=t]$
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+    Follows from \Cref{lem:bcand-canonical} and the fact that $\varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed} \in \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bcands}$.
+\end{proof}
+
+\MK{Done till here. The rest of the lemmas must be revisited as might not be needed.}
+
+\begin{lemma}\label{lem:bcand-prev-epoch-no-conflict-with-gj}
+    Pick any $b_c \in  \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bcands}$.
+    If
+    \begin{enumerate}
+        \item $\slotstart(\firstslot(\epoch(t)-1)) \geq \GST$
+        \item $\epoch(b_c) = \epoch(t)-1$
+    \end{enumerate},
+    then for any honest validator $v'$ and time $t' \geq \slotstartslot{t}$ such that $\epoch(t') \in \left\{\epoch(t), \epoch(t)+1\right\}$,
+    \begin{enumerate}
+        \item $b_c$ does not conflict with $\gjattime[val=v',time=t']$
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+    By induction on $t'$.
+    \begin{description}
+        \item[Base case: {$t' = \slotstartslot{t}$}.]
+        Due to \Cref{lem:gj-does-not-conflict} for any $b_c \in \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bcands}$, $\epoch(b_c) = \epoch(t)-1$, $b_c \succeq \gjattime[val=v',time=\slotstartslot{t}]$ which concludes the proof for the base case.
+        \item[Inductive case: {$t' \geq \slotstartslot{t}$}.] We assume that the Lemma holds for any time $t''$ such that $t \leq t'' < t'$ and prove that it holds at time $t'$ as well.
+        By cases.
+        \begin{description}
+            \item[Case 1: {$\epoch(\gjattime[val=v',time=t']) = \epoch(\gjattime[val=v',time=t''])$}.]
+            It implies $\gjattime[val=v',time=t'] = \gjattime[val=v',time=t'']$ and then the inductive hypothesis concludes the proof for this case.
+            \item[Case 2: {$\epoch(\gjattime[val=v',time=t']) \neq \epoch(\gjattime[val=v',time=t''])$}.]
+            \Cref{lem:gj-at-least-e-2-curr-slot} implies $\epoch(t)-2 \leq \epoch(\gjattime[val=v',time=t'']) < \epoch(\gjattime[val=v',time=t']) \leq \epoch(t)$.
+            By sub cases.
+            \begin{description}
+                \item[Case 2.1: {$\epoch(\gjattime[val=v',time=t']) = \epoch(t)-1$}.]
+                Apply \Cref{lem:bcand-prev-epoch-descendant-of-gj-eq-e-1}.
+                \item[Case 2.2: {$\epoch(\gjattime[val=v',time=t']) \neq \epoch(t)-1$}.]
+                Given that $\epoch(\gjattime[val=v',time=t']) \neq \epoch(\gjattime[val=v',time=t''])$ and $\epoch(t)-2 \leq \epoch(\gjattime[val=v',time=t'']) \leq \epoch(\gjattime[val=v',time=t']) \leq \epoch(t)$,
+                it must be that $\epoch(\gjattime[val=v',time=t']) = \epoch(t)$, it implies $\exists b' \in \viewattime[val=v',time=t'], \chkp(b', \epoch(t)) \in \allU(\viewattime[val=v',time=t'])$. Then apply \Cref{lem:bcand-prev-epoch-descendant-of-gj-eq-e}.
+            \end{description}
+        \end{description}
+    \end{description}
+\end{proof}
 
 \begin{lemma}\label{lem:gj-at-least-e-2}
     If
