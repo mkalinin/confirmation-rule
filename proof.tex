@@ -1848,6 +1848,7 @@ Finally, by the Definition 3 of the paper $\epoch(\gjattime[val=v',time=\slotsta
 \begin{lemma}\label{lem:gu-e-1-canonical}
     If
     \begin{enumerate}
+        \item \RS{$t = \firstslot(\epoch(t))$}
         \item $\slotstart(\slot(t)-1) \geq \GST$
         \item $\epoch(\guattime[val=v,time=\slotstart(\slot(t)-1)]) = \epoch(t)-1$
     \end{enumerate},
@@ -1988,7 +1989,7 @@ Finally, by the Definition 3 of the paper $\epoch(\gjattime[val=v',time=\slotsta
         By cases.
         \begin{description}
             \item[Case 1: {$\epoch(\gjattime[val=v',time=t']) = \epoch(\gjattime[val=v',time=t''])$}.] Apply the inductive hypothesis.
-            \item[Case 2: {$\epoch(\gjattime[val=v',time=t']) \neq \epoch(\gjattime[val=v',time=t''])$}.] This and \Cref{lem:gj-at-least-e-2-curr-slot} implies $\epoch(t)-2 \leq \epoch(\gjattime[val=v',time=t'']) < \epoch(\gjattime[val=v',time=t']) \leq \epoch(t)$.
+            \item[Case 2: {$\epoch(\gjattime[val=v',time=t']) \neq \epoch(\gjattime[val=v',time=t''])$}.] This \RSfn{and the synchrony assumption} and \Cref{lem:gj-at-least-e-2-curr-slot} implies $\epoch(t)-2 \leq \epoch(\gjattime[val=v',time=t'']) < \epoch(\gjattime[val=v',time=t']) \leq \epoch(t)$.
             By sub cases.
             \begin{description}
                 \item[Case 1.1: {$\epoch(\gjattime[val=v',time=t']) = \epoch(t)-1$}.]
@@ -2001,7 +2002,7 @@ Finally, by the Definition 3 of the paper $\epoch(\gjattime[val=v',time=\slotsta
                     \begin{description}
                         \item[Case 1.2.1.1: {$\slot(t) = \firstslot(\epoch(t))$}.]
                         From \Cref{lem:canonical-during-e} we know that $b_c \preceq \LMDGHOSTHFC(\viewattime[val=v',time=t'''])$, $\epoch(t''') = \epoch(t)$,
-                        thus all honest validators in the committees of $\epoch(t)$ will send their FFG votes targeting a checkpoint that is a descendant of $b_c$.
+                        thus all honest validators in the committees of $\epoch(t)$ will send their FFG votes targeting a checkpoint that is a descendant \RSfn{ancestor} of $b_c$.
                         Then Property 1.6 of the Paper together with the synchrony assumption implies that no checkpoint $\chkp'$
                         such that $\epoch(\chkp') = \epoch(t)$ conflicting with $b_c$ can ever be justified.
                         \item[Case 1.2.1.2: {$\slot(t) \neq \firstslot(\epoch(t))$}.] By contradiction.
