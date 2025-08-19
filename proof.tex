@@ -336,12 +336,23 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
 \Upon{$\varforvalattime[val=v]{t} = \slotstartslot{\varforvalattime[val=v]{t}} \land \varforvalattime[val=v]{t} \geq \varforvalattime[val=v]{\tinit}$}{
     $\varforvalattime[val=v]{\bconfirmed} \gets \varforvalattime[val=v]{\mathit{get\_latest\_confirmed}}(\varforvalattime[val=v]{\bconfirmed})$
 }
+\Fn{$\varforvalattime[val=v]{\mathit{is\_chain\_one\_confirmed}}(b_c, C)$}{
+    $b \gets b_c$\\
+    \While{$b \neq \block(C) \land \isOneConfirmed_v(b_c, C)$}{
+        $b \gets \parent(b)$
+    }
+
+    \Return{$b = \block(C)$}
+}
 \Proc{$\varforvalattime[val=v]{\mathit{get\_latest\_confirmed}}(b_c)$}{
     $\bcand \gets b_c$\label{ln:set-bcand-beginning-of-get-latest-confirmed}\\
     \Const $\head \gets \LMDGHOSTHFC(\viewattime[time={\varforvalattime[val=v]{t}},val=v])$\\
 
     \uIf{$\epoch(\bcand) < \epoch(\varforvalattime[val=v]{t}) - 1$ {\bf or}
-        $\bcand \npreceq \head$ \label{ln:if-bcand-npreceq-head}}{
+        $\bcand \npreceq \head$ {\bf or}
+        $(\slot(\varforvalattime[val=v]{t}) = \firstslot(\epoch(\varforvalattime[val=v]{t}))$ {\bf and}
+        $\epoch(\bcand) \geq \epoch(t)-1$  {\bf and}
+        $\neg \varforvalattime[val=v]{\mathit{is\_chain\_one\_confirmed}}(b_c, \guattime[val=v,time=\slotstart(\slot(t)-1)]))$\label{ln:if-bcand-npreceq-head}}{
         $\bcand \gets \block(\gfattime[val=v,time={\varforvalattime[val=v]{t}}])$\label{ln:set-bcand-to-fin}
     }
 
@@ -1848,8 +1859,8 @@ Finally, by the Definition 3 of the paper $\epoch(\gjattime[val=v',time=\slotsta
 \begin{lemma}\label{lem:gu-e-1-canonical}
     If
     \begin{enumerate}
-        \item \RS{$t = \firstslot(\epoch(t))$}
         \item $\slotstart(\slot(t)-1) \geq \GST$
+        \item $\slot(t) = \firstslot(\epoch(t))$
         \item $\epoch(\guattime[val=v,time=\slotstart(\slot(t)-1)]) = \epoch(t)-1$
     \end{enumerate},
     then,
