@@ -402,6 +402,7 @@ def get_latest_confirmed(store: Store) -> Root:
     # either of the above conditions signifies that confirmation rule assumptions (at least synchrony) are broken
     # and already confirmed block might not be safe to use hence revert to the safest one which is the finalized block
     # this reversal trades monotonicity in favour of safety in the casey of asynchrony in the network
+    confirmed_block_epoch = get_block_epoch(store, confirmed_root)
     head = get_head(store)
     if confirmed_block_epoch + 1 < current_epoch or not is_ancestor(store, head, confirmed_root):
         confirmed_root = store.finalized_checkpoint.root
