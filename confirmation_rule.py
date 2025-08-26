@@ -48,7 +48,9 @@ def get_forkchoice_store(anchor_state: BeaconState, anchor_block: BeaconBlock) -
         prev_slot_justified_checkpoint=justified_checkpoint,  # New for confirmation rule
     )
 
-    
+def is_first_slot_in_epoch(slot: Slot) -> bool:
+    return compute_slots_since_epoch_start(slot) == 0
+
 def is_ancestor(store: Store, root: Root, ancestor: Root):
     assert root in store.blocks
     assert ancestor in store.blocks
@@ -105,7 +107,7 @@ def is_full_validator_set_covered(first_slot: Slot, last_slot: Slot) -> bool:
 
     return (
         end_epoch > start_epoch + 1
-        or (end_epoch == start_epoch + 1 and first_slot % SLOTS_PER_EPOCH == 0))
+        or (end_epoch == start_epoch + 1 and is_first_slot_in_epoch(first_slot)))
 
 
 def adjust_committee_weight_estimate_to_ensure_safety(estimate: Gwei) -> Gwei:
@@ -165,7 +167,7 @@ def is_one_confirmed(store: Store, block_root: Root) -> bool:
     current_slot = get_current_slot(store)
     block = store.blocks[block_root]
     parent_block = store.blocks[block.parent_root]
-    if get_current_slot(store) % SLOTS_PER_EPOCH == 0:
+    if is_first_slot_in_epoch(get_current_slot(store)):
         weighting_checkpoint = store.prev_slot_unrealized_justified_checkpoint
     else:
         weighting_checkpoint = store.prev_slot_justified_checkpoint
@@ -212,7 +214,7 @@ def get_ffg_weight_till_slot(slot: Slot, epoch: Epoch, total_active_balance: Gwe
     elif slot >= compute_start_slot_at_epoch(epoch + 1):
         return total_active_balance
     else:
-        slots_passed = slot % SLOTS_PER_EPOCH
+        slots_passed = compute_slots_since_epoch_start(slot)
         return total_active_balance // SLOTS_PER_EPOCH * slots_passed
 
 
@@ -320,7 +322,7 @@ def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) 
 
     if (get_block_epoch(store, confirmed_root) + 1 == current_epoch
         and get_voting_source(store, store.prev_slot_head).epoch + 2 >= current_epoch 
-        and (get_current_slot(store) % SLOTS_PER_EPOCH == 0
+        and (is_first_slot_in_epoch(get_current_slot(store))
              or (will_no_conflicting_checkpoint_be_justified(store, get_checkpoint_block(store, head, current_epoch))
                  and (store.unrealized_justifications[store.prev_slot_head].epoch + 1 >= current_epoch
                       or store.unrealized_justifications[head].epoch + 1 >= current_epoch)))):
@@ -348,7 +350,7 @@ def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) 
             
             confirmed_root = block_root
             
-    if (get_current_slot(store) % SLOTS_PER_EPOCH == 0
+    if (is_first_slot_in_epoch(get_current_slot(store))
         or store.unrealized_justifications[head].epoch + 1 >= current_epoch):
         # retrieve suffix of the canonical chain
         # verify the latest_confirmed_root belongs to it
@@ -380,7 +382,7 @@ def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) 
         # the tentative_confirmed_root can only be confirmed if we can ensure that it is not going to be reorged out in either the current or next epoch.
         if (get_block_epoch(store, tentative_confirmed_root) == current_epoch
             or (get_voting_source(store, tentative_confirmed_root).epoch + 2 >= current_epoch
-                and (get_current_slot(store) % SLOTS_PER_EPOCH == 0
+                and (is_first_slot_in_epoch(get_current_slot(store))
                      or will_no_conflicting_checkpoint_be_justified(store, get_checkpoint_block(store, head, current_epoch))))):
             confirmed_root = tentative_confirmed_root
             
@@ -409,7 +411,7 @@ def get_latest_confirmed(store: Store) -> Root:
     confirmed_block_slot = store.blocks[confirmed_root].slot
     prev_unrealized_justified_checkpoint_slot = store.blocks[store.prev_slot_unrealized_justified_checkpoint.root].slot
 
-    if (get_current_slot(store) % SLOTS_PER_EPOCH == 0
+    if (is_first_slot_in_epoch(get_current_slot(store))
         and store.prev_slot_unrealized_justified_checkpoint.epoch + 1 == current_epoch 
         and confirmed_block_slot < prev_unrealized_justified_checkpoint_slot):
         confirmed_root = store.prev_slot_unrealized_justified_checkpoint.root
