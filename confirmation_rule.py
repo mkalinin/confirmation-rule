@@ -119,7 +119,7 @@ def adjust_committee_weight_estimate_to_ensure_safety(estimate: Gwei) -> Gwei:
     return Gwei(estimate // 1000 * (1000 + COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR))
 
 
-def get_committee_weight_between_slots(state: BeaconState, first_slot: Slot, last_slot: Slot) -> Gwei:
+def estimate_committee_weight_between_slots(state: BeaconState, first_slot: Slot, last_slot: Slot) -> Gwei:
     """
     Returns the total weight of committees between ``first_slot`` and ``last_slot`` (inclusive of both).
     """
@@ -171,7 +171,7 @@ def is_one_confirmed(store: Store, block_root: Root) -> bool:
         weighting_checkpoint = store.prev_slot_justified_checkpoint
     weighting_checkpoint_state = store.checkpoint_states[weighting_checkpoint]
     support = get_weight(store, block_root, weighting_checkpoint_state)
-    maximum_support = get_committee_weight_between_slots(
+    maximum_support = estimate_committee_weight_between_slots(
         weighting_checkpoint_state, Slot(parent_block.slot + 1), Slot(current_slot - 1))
     proposer_score = get_proposer_score(store)
 
