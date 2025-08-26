@@ -96,16 +96,16 @@ def get_weight(store: Store, root: Root, checkpoint_state: BeaconState = None) -
     return attestation_score + proposer_score
 
 
-def is_full_validator_set_covered(start_slot: Slot, end_slot: Slot) -> bool:
+def is_full_validator_set_covered(first_slot: Slot, last_slot: Slot) -> bool:
     """
-    Returns whether the range from ``start_slot`` to ``end_slot`` (inclusive of both) includes an entire epoch
+    Returns whether the range from ``first_slot`` to ``last_slot`` (inclusive of both) includes an entire epoch
     """
-    start_epoch = compute_epoch_at_slot(start_slot)
-    end_epoch = compute_epoch_at_slot(end_slot)
+    start_epoch = compute_epoch_at_slot(first_slot)
+    end_epoch = compute_epoch_at_slot(last_slot)
 
     return (
         end_epoch > start_epoch + 1
-        or (end_epoch == start_epoch + 1 and start_slot % SLOTS_PER_EPOCH == 0))
+        or (end_epoch == start_epoch + 1 and first_slot % SLOTS_PER_EPOCH == 0))
 
 
 def adjust_committee_weight_estimate_to_ensure_safety(estimate: Gwei) -> Gwei:
@@ -119,24 +119,24 @@ def adjust_committee_weight_estimate_to_ensure_safety(estimate: Gwei) -> Gwei:
     return Gwei(estimate // 1000 * (1000 + COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR))
 
 
-def get_committee_weight_between_slots(state: BeaconState, start_slot: Slot, end_slot: Slot) -> Gwei:
+def get_committee_weight_between_slots(state: BeaconState, first_slot: Slot, last_slot: Slot) -> Gwei:
     """
-    Returns the total weight of committees between ``start_slot`` and ``end_slot`` (inclusive of both).
+    Returns the total weight of committees between ``first_slot`` and ``last_slot`` (inclusive of both).
     """
     total_active_balance = get_total_active_balance(state)
 
-    start_epoch = compute_epoch_at_slot(start_slot)
-    end_epoch = compute_epoch_at_slot(end_slot)
+    start_epoch = compute_epoch_at_slot(first_slot)
+    end_epoch = compute_epoch_at_slot(last_slot)
 
-    if start_slot > end_slot:
+    if first_slot > last_slot:
         return Gwei(0)
 
     # If an entire epoch is covered by the range, return the total active balance
-    if is_full_validator_set_covered(start_slot, end_slot):
+    if is_full_validator_set_covered(first_slot, last_slot):
         return total_active_balance
 
     if start_epoch == end_epoch:
-        return total_active_balance // SLOTS_PER_EPOCH * (end_slot - start_slot + 1)
+        return total_active_balance // SLOTS_PER_EPOCH * (last_slot - first_slot + 1)
     else:
         # A range that spans an epoch boundary, but does not span any full epoch
         # needs pro-rata calculation
@@ -145,11 +145,11 @@ def get_committee_weight_between_slots(state: BeaconState, start_slot: Slot, end
         # for an explanation of the formula used below.
 
         # First, calculate the number of committees in the end epoch
-        num_slots_in_end_epoch = compute_slots_since_epoch_start(end_slot)
+        num_slots_in_end_epoch = compute_slots_since_epoch_start(last_slot)
         # Next, calculate the number of slots remaining in the end epoch
         remaining_slots_in_end_epoch = SLOTS_PER_EPOCH - num_slots_in_end_epoch
         # Then, calculate the number of slots in the start epoch
-        num_slots_in_start_epoch = SLOTS_PER_EPOCH - compute_slots_since_epoch_start(start_slot)
+        num_slots_in_start_epoch = SLOTS_PER_EPOCH - compute_slots_since_epoch_start(first_slot)
 
         end_epoch_weight_estimate = total_active_balance // SLOTS_PER_EPOCH * num_slots_in_end_epoch
         start_epoch_weight_estimate = (total_active_balance // SLOTS_PER_EPOCH // SLOTS_PER_EPOCH * 
