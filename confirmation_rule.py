@@ -188,7 +188,7 @@ def is_one_confirmed(store: Store, block_root: Root) -> bool:
     )
 
 
-def get_checkpoint_weight(store: Store, checkpoint: checkpoint_state, checkpoint_state: BeaconState) -> Gwei:
+def get_checkpoint_weight(store: Store, checkpoint: Checkpoint, checkpoint_state: BeaconState) -> Gwei:
     """
     Uses LMD-GHOST votes to estimate FFG support for a checkpoint.
     """
