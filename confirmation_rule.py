@@ -315,7 +315,7 @@ def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) 
     current_epoch = get_current_store_epoch(store)
 
     # verify the latest confirmed block is not too old 
-    assert compute_block_epoch(latest_confirmed_root) + 1 >= current_epoch
+    assert get_block_epoch(latest_confirmed_root) + 1 >= current_epoch
 
     head = get_head(store)
     confirmed_root = latest_confirmed_root
@@ -335,7 +335,7 @@ def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) 
         # move towards the head in attempt to advance confirmed block
         # and stop when the first unconfirmed descendant is encountered        
         for block_root in canonical_roots:        
-            block_epoch = compute_epoch_at_slot(store.blocks[block_root].slot)
+            block_epoch = get_block_epoch(block_root)
             
             # If we reach the current epoch, we exit as this code is only for confirming blocks from the previous epoch
             if block_epoch == current_epoch:
@@ -360,8 +360,8 @@ def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) 
         tentative_confirmed_root = confirmed_root
 
         for block_root in canonical_roots:
-            block_epoch = compute_epoch_at_slot(store.blocks[block_root].slot)
-            tentative_confirmed_epoch = compute_epoch_at_slot(store.blocks[tentative_confirmed_root].slot)
+            block_epoch = get_block_epoch(block_root)
+            tentative_confirmed_epoch = get_block_epoch(tentative_confirmed_root)
             
             # The following condition can only be true the first time that we advance to a block from the current epoch
             if block_epoch > tentative_confirmed_epoch:
@@ -417,7 +417,7 @@ def get_latest_confirmed(store: Store) -> Root:
         confirmed_root = store.prev_slot_unrealized_justified_checkpoint.root
 
     # attempt to further advance the latest confirmed block
-    confirmed_block_epoch = compute_epoch_at_slot(store.blocks[confirmed_root].slot)
+    confirmed_block_epoch = get_block_epoch(confirmed_root)
     if confirmed_block_epoch + 1 >= current_epoch:
         return find_latest_confirmed_descendant(store, confirmed_root)
     else:
