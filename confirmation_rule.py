@@ -295,8 +295,7 @@ def will_no_conflicting_checkpoint_be_justified(store: Store, checkpoint: Checkp
 
 def get_canonical_roots(store: Store, ancestor_root: Root) -> Sequence[Root]:
     """
-    Returns a suffix of the canonical chain starting from ``ancestor_root``
-    Fails if ``ancestor_root`` is not on the canonical chain
+    Returns a suffix of the canonical chain starting from ``ancestor_root`` (included at index 0)
     """
     ancestor_slot = get_block_slot(store, ancestor_root)
     root = get_head(store)
@@ -304,8 +303,6 @@ def get_canonical_roots(store: Store, ancestor_root: Root) -> Sequence[Root]:
     while store.blocks[root].slot > ancestor_slot:
         root = store.blocks[root].parent_root
         canonical_roots.insert(0, root)
-
-    assert canonical_roots.pop(0) == ancestor_root
 
     return canonical_roots
 
@@ -332,6 +329,7 @@ def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) 
         # retrieve suffix of the canonical chain
         # verify the latest_confirmed_root belongs to it
         canonical_roots = get_canonical_roots(store, confirmed_root)
+        assert canonical_roots.pop(0) == ancestor_root
 
         # starting with the child of the latest_confirmed_root
         # move towards the head in attempt to advance confirmed block
