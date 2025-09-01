@@ -216,7 +216,7 @@ def get_ffg_weight_till_slot(slot: Slot, epoch: Epoch, total_active_balance: Gwe
         return total_active_balance // SLOTS_PER_EPOCH * slots_passed
 
 
-def will_current_epoch_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
+def checkpoint_justification_indicator(store: Store, checkpoint: Checkpoint, multiplier: int) -> bool:
     assert checkpoint.epoch == get_current_epoch_store(store)
 
     current_slot = get_current_slot(store)
@@ -244,8 +244,13 @@ def will_current_epoch_checkpoint_be_justified(store: Store, checkpoint: Checkpo
         ffg_support_for_checkpoint
     )
 
-    return 3 * (min_honest_ffg_support + remaining_honest_ffg_weight) >= 2 * total_active_balance
+    return 3 * (min_honest_ffg_support + remaining_honest_ffg_weight) >= multiplier * total_active_balance
 
+def will_current_epoch_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
+    return checkpoint_justification_indicator(store, checkpoint, 2)
+
+def will_no_conflicting_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
+    return checkpoint_justification_indicator(store, checkpoint, 1)
 
 def will_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
     if checkpoint == store.justified_checkpoint:
@@ -258,38 +263,6 @@ def will_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
         return will_current_epoch_checkpoint_be_justified(store, checkpoint)
 
     return False
-
-
-def will_no_conflicting_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
-    assert checkpoint.epoch == get_current_epoch_store(store)
-
-    current_slot = get_current_slot(store)
-    current_epoch = compute_epoch_at_slot(current_slot)
-
-    store_target_checkpoint_state(store, checkpoint)
-    checkpoint_state = store.checkpoint_states[checkpoint]
-
-    total_active_balance = get_total_active_balance(checkpoint_state)
-
-    # compute FFG support for checkpoint
-    ffg_support_for_checkpoint = get_checkpoint_weight(store, checkpoint, checkpoint_state)
-
-    # compute total FFG weight till current slot
-    ffg_weight_till_now = get_ffg_weight_till_slot(current_slot, current_epoch, total_active_balance)
-
-    # compute remaining honest FFG weight
-    remaining_ffg_weight = total_active_balance - ffg_weight_till_now
-    remaining_honest_ffg_weight = Gwei(remaining_ffg_weight // 100 * (100 - config.CONFIRMATION_BYZANTINE_THRESHOLD))
-
-    # compute min honest FFG support
-    min_honest_ffg_support = ffg_support_for_checkpoint - min(
-        Gwei(ffg_weight_till_now // 100 * config.CONFIRMATION_BYZANTINE_THRESHOLD),
-        Gwei(ffg_weight_till_now // 100 * config.CONFIRMATION_SLASHING_THRESHOLD),
-        ffg_support_for_checkpoint
-    )
-
-    return 3 * (min_honest_ffg_support + remaining_honest_ffg_weight) >= total_active_balance    
-
 
 def get_canonical_roots(store: Store, ancestor_root: Root) -> Sequence[Root]:
     """
