@@ -102,12 +102,10 @@ def is_full_validator_set_covered(first_slot: Slot, last_slot: Slot) -> bool:
     """
     Returns whether the range from ``first_slot`` to ``last_slot`` (inclusive of both) includes an entire epoch
     """
-    start_epoch = compute_epoch_at_slot(first_slot)
-    end_epoch = compute_epoch_at_slot(last_slot)
+    start_full_epoch = compute_epoch_at_slot(first_slot + (SLOTS_PER_EPOCH - 1))
+    end_full_epoch = compute_epoch_at_slot(last_slot + 1) # exclusive
 
-    return (
-        end_epoch > start_epoch + 1
-        or (end_epoch == start_epoch + 1 and is_first_slot_in_epoch(first_slot)))
+    return start_full_epoch < end_full_epoch
 
 
 def adjust_committee_weight_estimate_to_ensure_safety(estimate: Gwei) -> Gwei:
