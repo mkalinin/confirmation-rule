@@ -254,10 +254,10 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
     \Const $head \gets \LMDGHOSTHFC(\viewattime[time={\varforvalattime[val=v]{t}},val=v])$\\
     \Const $phead \gets \LMDGHOSTHFC(\viewattime[time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)},val=v])$\\
     \uIf{$\slot(\varforvalattime[val=v]{t}) = \firstslot(\epoch(\varforvalattime[val=v]{t}))$} {
-        $\chkp_W \gets \guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}]$
+        $\chkp_{EBA} \gets \guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}]$
     }
     \uElse {
-        $\chkp_W \gets \gjattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}]$
+        $\chkp_{EBA} \gets \gjattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}]$
     }
     
 
@@ -1893,8 +1893,9 @@ Finally, by the Definition 3 of the paper $\epoch(\gjattime[val=v',time=\slotsta
 \end{proof}
 
 \begin{definition}
+    We define $\varforvalattime[val=v,time=\slotstartslot{t}]{\chkp_{EBA}}$ as the source of the effective balance assignment used by the execution of the Fast Confirmation Rule algorithm at the time $t = \slotstartslot{t}$.
     \begin{equation*}
-        {\varforvalattime[val=v,time=\slotstartslot{t}]{C_W}=}
+        {\varforvalattime[val=v,time=\slotstartslot{t}]{\chkp_{EBA}}:=}
         \begin{cases}
             {\guattime[val=v,time=\slotstart(\slot(t)-1)], \text{if } \slot(t)=\firstslot(\epoch(t))},\\
             {\gjattime[val=v,time=\slotstart(\slot(t)-1)], \text{otherwise}}.
@@ -1912,21 +1913,21 @@ Finally, by the Definition 3 of the paper $\epoch(\gjattime[val=v',time=\slotsta
     \end{enumerate},
     then
     \begin{enumerate}
-        \item $\varforvalattime[val=v,time=\slotstartslot{t}]{C_W} \preceq \gjattime[val=v',time=t']$.
+        \item $\varforvalattime[val=v,time=\slotstartslot{t}]{\chkp_{EBA}} \preceq \gjattime[val=v',time=t']$.
     \end{enumerate}
 \end{lemma}
 
 \begin{proof}
-    From \Cref{lem:gu-prec-gj-start-epoch-when-prec-conf-from-at-least-prev-epoch} and \Cref{lem:prev-gj-prec-others-gj-alt} we know that $\varforvalattime[val=v,time=\slotstartslot{t}]{C_W} \preceq \gjattime[val=v',time=\slotstartslot{t}]$.
-    Then due to \Cref{lem:gj-does-not-conflict} $\varforvalattime[val=v,time=\slotstartslot{t}]{C_W} \preceq \gjattime[val=v',time=\slotstartslot{t}] \preceq b_c$.
-    From the definition of the greatest justified checkpoint we have $\epoch(\varforvalattime[val=v,time=\slotstartslot{t}]{C_W}) \leq \epoch(\gjattime[val=v',time=\slotstartslot{t}]) \leq \epoch(\gjattime[val=v',time=t'])$.
+    From \Cref{lem:gu-prec-gj-start-epoch-when-prec-conf-from-at-least-prev-epoch} and \Cref{lem:prev-gj-prec-others-gj-alt} we know that $\varforvalattime[val=v,time=\slotstartslot{t}]{\chkp_{EBA}} \preceq \gjattime[val=v',time=\slotstartslot{t}]$.
+    Then due to \Cref{lem:gj-does-not-conflict} $\varforvalattime[val=v,time=\slotstartslot{t}]{\chkp_{EBA}} \preceq \gjattime[val=v',time=\slotstartslot{t}] \preceq b_c$.
+    From the definition of the greatest justified checkpoint we have $\epoch(\varforvalattime[val=v,time=\slotstartslot{t}]{\chkp_{EBA}}) \leq \epoch(\gjattime[val=v',time=\slotstartslot{t}]) \leq \epoch(\gjattime[val=v',time=t'])$.
     Given that $b_c \in \filtered[val=v',time=t']$, we know that $b_c$ does not conflict with $\gjattime[val=v',time=t']$.
     With all this in mind we proceed by cases.
     \begin{description}
-        \item[Case 1: {$\gjattime[val=v',time=t'] \preceq b_c$}.] Then $\varforvalattime[val=v,time=\slotstartslot{t}]{C_W} \preceq \gjattime[val=v',time=\slotstartslot{t}] \preceq \gjattime[val=v',time=t'] \preceq b_c$.
-        \item[Case 2: {$\gjattime[val=v',time=t'] \npreceq b_c$}.] Implies $b_c \prec \gjattime[val=v',time=t']$, then $\varforvalattime[val=v,time=\slotstartslot{t}]{C_W} \preceq \gjattime[val=v',time=\slotstartslot{t}] \preceq b_c \prec \gjattime[val=v',time=t']$.
+        \item[Case 1: {$\gjattime[val=v',time=t'] \preceq b_c$}.] Then $\varforvalattime[val=v,time=\slotstartslot{t}]{\chkp_{EBA}} \preceq \gjattime[val=v',time=\slotstartslot{t}] \preceq \gjattime[val=v',time=t'] \preceq b_c$.
+        \item[Case 2: {$\gjattime[val=v',time=t'] \npreceq b_c$}.] Implies $b_c \prec \gjattime[val=v',time=t']$, then $\varforvalattime[val=v,time=\slotstartslot{t}]{\chkp_{EBA}} \preceq \gjattime[val=v',time=\slotstartslot{t}] \preceq b_c \prec \gjattime[val=v',time=t']$.
     \end{description}
-    In either case $\varforvalattime[val=v,time=\slotstartslot{t}]{C_W} \preceq \gjattime[val=v',time=t']$.
+    In either case $\varforvalattime[val=v,time=\slotstartslot{t}]{\chkp_{EBA}} \preceq \gjattime[val=v',time=t']$.
 \end{proof}
 
 \begin{lemma}\label{lem:canonical-if-in-filtered}
@@ -1950,7 +1951,7 @@ Finally, by the Definition 3 of the paper $\epoch(\gjattime[val=v',time=\slotsta
         \item[Base case: {$t' < \slotstartslot{t}$}.] The Lemma is vacuously true.
         \item[Inductive case: {$t' \geq \slotstartslot{t}$}.] Let $s:=\slot(t)$, $s':=\slot(t')$
         We assume that the Lemma holds at time $t''$ such that $t'' < t'$ and prove that it also holds at time $t'$.
-        From \Cref{lem:gj-desc-c-w} we know that $\varforvalattime[val=v,time=\slotstartslot{t}]{C_W} \preceq \gjattime[val=v',time=t']$.
+        From \Cref{lem:gj-desc-c-w} we know that $\varforvalattime[val=v,time=\slotstartslot{t}]{\chkp_{EBA}} \preceq \gjattime[val=v',time=t']$.
         Then the fact that we re-confirm the confirmed chain at the beginning of each epoch together with the reasoning from the Lemma 6 of the Paper should conclude the proof.
     \end{description}
 \end{proof}
@@ -2095,6 +2096,64 @@ Finally, by the Definition 3 of the paper $\epoch(\gjattime[val=v',time=\slotsta
     \end{description}
 \end{proof}
 
+\begin{lemma}\label{lem:find-latest-conf-desc-output-in-filtered-during-e+1}
+    Let $b_o := \varforvalattime[val=v]{\mathit{find\_latest\_confirmed\_descendant}}(b_c)$.
+    Pick any honest validator $v'$ and time $t'$ such that $\epoch(t') = \epoch(t)+1$.
+    If
+    \begin{enumerate}
+        \item $\slotstart(\epoch(t)-1) \geq \GST$
+        \item $\epoch(b_c) \geq \epoch(t)-1$
+        \item $b_o \neq b_c$
+    \end{enumerate},
+    then
+    \begin{enumerate}
+        \item $\exists b' \in \viewattime[val=v',time=t']$ such that $b' \succeq b_o \land \votsource[blck=b',time=\epoch(t')] \geq \epoch(t')-2$.
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+    By cases.
+    \begin{description}
+        \item[Case 1: {$\slot(t) = \firstslot(\epoch(t))$}.] Implies $\epoch(b_o)=\epoch(t)-1$.
+        \Cref{lem:bcand-in-filtered-during-e} together with \Cref{lem:canonical-if-in-filtered} implies $b_o \preceq \LMDGHOSTHFC(\viewattime[val=v',time=t''])$ for any $t''$ such that $\epoch(t'') = \epoch(t)$.
+        Then due to \Cref{lem:if-firstslot-chkp-bcand-is-in-allu} we know that $\exists b' \in \viewattime[val=v',time=t']$ such that $b' \succeq b_o \land \votsource[blck=b',time=\epoch(t')] \geq \epoch(t')-2$.
+        \item[Case 2: {$\slot(t) \neq \firstslot(\epoch(t))$}.]
+        Because of the check in \Cref{ln:if-prev-epoch} and \Cref{ln:second-if} we know that $\exists b' \in \viewattime[val=v,time=\slotstartslot{t}]$ such that $b' \succeq b \land \gu(b') \geq \epoch(t)-1$.
+        This, the fact that $\epoch(t)-1 = \epoch(t')-2$ and the synchrony assumption imply $\exists b' \in \viewattime[val=v',time=t']$ such that $b' \succeq b_o \land \votsource[blck=b',time=\epoch(t')] \geq \epoch(t')-2$.
+    \end{description}
+\end{proof}
+
+\begin{lemma}\label{lem:if-restarted-bcand-in-filtered-during-e-e+1}
+    Pick any $b_c \in  \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bcands}$, any time $t'$ such that $\epoch(t') = \epoch(t)+1$ and any honest validator $v'$.
+    If
+    \begin{enumerate}
+        \item $\slotstart(\slot(t)-1) \geq \GST$
+        \item $\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) < \epoch(t)-1$
+        \item $\epoch(b_c) \geq \epoch(t)-1$
+    \end{enumerate},
+    then
+    \begin{enumerate}
+        \item $b_c \in \filtered[val=v',time=t']$
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+    It must be that all conditions in \Cref{ln:start-conf-chain} are true, otherwise, it is impossible to satisfy the Lemma statement.
+    Now by cases on the first line, in order of execution of the Fast Confirmation Rule algorithm at time $\slotstartslot{t}$, where $\bcand = b_c$. 
+    \begin{description}
+        \item[\Cref{ln:set-bcand-beginning-of-get-latest-confirmed}.] $\epoch(b_c) < \epoch(t)-1$ thus the Lemma is vacuously true.
+        \item[\Cref{ln:set-bcand-to-fin}.] $\epoch(b_c) < \epoch(t)-1$ thus the Lemma is vacuously true.
+        \item[\Cref{ln:set-bcan-on-start-conf-chain}.] Due to \Cref{lem:gu-e-1-canonical} $b_c \preceq \LMDGHOSTHFC(\viewattime[val=v',time=t'])$ which implies $b_c \in \filtered[val=v',time=t']$.
+        \item[\Cref{ln:set-bcand-to-output-find-latest}.]
+        Let $b_o := \varforvalattime[val=v]{\mathit{find\_latest\_confirmed\_descendant}}(b_c)$.
+        By cases.
+        \begin{description}
+            \item[Case 1: {$b_o = b_c$}.] It must be that $b_o = \block(\guattime[val=v,time=\slotstart(\slot(t)-1)])$ in this case. Then apply \Cref{lem:gu-e-1-canonical}.
+            \item[Case 2: {$b_o \neq b_c$}.] Due to \Cref{lem:find-latest-conf-desc-output-in-filtered-during-e+1} we know that $\exists b' \in \viewattime[val=v',time=t']$ such that $b' \succeq b_o \land \votsource[blck=b',time=\epoch(t')] \geq \epoch(t')-2$, then \Cref{lem:gj-does-not-conflict-during-e+1} concldues the proof for this case.
+        \end{description}
+    \end{description}
+\end{proof}
+
 \begin{lemma}\label{lem:bcand-in-filtered-during-e-e+1}
     Pick any $b_c \in  \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bcands}$, any time $t' \geq \slotstartslot{t}$ such that $\epoch(t') \in \left\{\epoch(t), \epoch(t)+1\right\}$ and any honest validator $v'$.
     If
@@ -2117,26 +2176,21 @@ Finally, by the Definition 3 of the paper $\epoch(\gjattime[val=v',time=\slotsta
         \begin{description}
             \item[Case 1: {$\epoch(t') = \epoch(t)$}.] Apply \Cref{lem:bcand-in-filtered-during-e}.
             \item[Case 2: {$\epoch(t') = \epoch(t)+1$}.]
-            Now by cases on the first line, in order of execution of the Fast Confirmation Rule algorithm at time $\slotstart(s+1)$, where $\bcand = b_c$. 
+            By sub cases.
             \begin{description}
-                \item[\Cref{ln:set-bcand-beginning-of-get-latest-confirmed}.] Apply the inductive hypothesis.
-                \item[\Cref{ln:set-bcand-to-fin}.] Impossible, as at this line $\epoch(\bcand) < \epoch(s+1)-1$, but we assume $\epoch(b_c) \geq \epoch(s+1)-1$.
-                \item[\Cref{ln:set-bcan-on-start-conf-chain}.] Due to \Cref{lem:gu-e-1-canonical} $\canonical[blck=b_c,time=\slotstart(s+1)]$ which implies $b_c \in \filtered[val=v',time=t']$.
-                \item[\Cref{ln:set-bcand-to-output-find-latest}.]
-                Let $b_o := \varforvalattime[val=v]{\mathit{find\_latest\_confirmed\_descendant}}(b_c)$.
-                By sub cases.
+                \item[Case 2.1: {$\epoch(\varforvalattime[val=v,time=\slot(s)]{\bconfirmed}) < \epoch(s+1)-1$}.] Apply \Cref{lem:if-restarted-bcand-in-filtered-during-e-e+1}.
+                \item[Case 2.2: {$\epoch(\varforvalattime[val=v,time=\slot(s)]{\bconfirmed}) \geq \epoch(s+1)-1$}.]
+                Now by cases on the first line, in order of execution of the Fast Confirmation Rule algorithm at time $\slotstart(s+1)$, where $\bcand = b_c$. 
                 \begin{description}
-                    \item[Case 2.2.1: {$b_o = b_c$}.] From the check in \Cref{ln:if-bcand-e-1} we know that $\epoch(b_c) \geq \epoch(s+1)-1$. Then the inductive hypothesis concludes the proof for this case.\MKfn{It is better to have a separate Lemma for the case when $\epoch(\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}) < \epoch(s+1)-1$. Because in this case the inductive hypothesis isn't applicable here.}
-                    \item[Case 2.2.2: {$b_o \neq b_c$}.]
+                    \item[\Cref{ln:set-bcand-beginning-of-get-latest-confirmed}.] Apply the inductive hypothesis.
+                    \item[\Cref{ln:set-bcand-to-fin}.] Impossible, as at this line $\epoch(\varforvalattime[val=v,time=\slot(s)]{\bconfirmed}) < \epoch(s+1)-1$, but we assume $\epoch(\varforvalattime[val=v,time=\slot(s)]{\bconfirmed}) \geq \epoch(s+1)-1$.
+                    \item[\Cref{ln:set-bcan-on-start-conf-chain}.] Impossible, as at this line $\epoch(\varforvalattime[val=v,time=\slot(s)]{\bconfirmed}) < \epoch(s+1)-1$, but we assume $\epoch(\varforvalattime[val=v,time=\slot(s)]{\bconfirmed}) \geq \epoch(s+1)-1$.
+                    \item[\Cref{ln:set-bcand-to-output-find-latest}.]
+                    Let $b_o := \varforvalattime[val=v]{\mathit{find\_latest\_confirmed\_descendant}}(b_c)$.
                     By sub cases again.
                     \begin{description}
-                        \item[Case 2.2.2.1: {$s+1 = \firstslot(\epoch(s+1))$}.] Implies $\epoch(b_o)=\epoch(s+1)-1$.
-                        \Cref{lem:bcand-in-filtered-during-e} together with \Cref{lem:canonical-if-in-filtered} implies $b_o \preceq \LMDGHOSTHFC(\viewattime[val=v',time=t''])$ for any $t''$ such that $\epoch(t'') = \epoch(s+1) = \epoch(t)$.
-                        Then due to \Cref{lem:if-firstslot-chkp-bcand-is-in-allu} we know that $\exists b' \in \viewattime[val=v',time=t']$ such that $b' \succeq b_o \land \votsource[blck=b',time=\epoch(t')] \geq \epoch(t')-2$ and \Cref{lem:gj-does-not-conflict-during-e+1} concldues the proof for this case.
-                        \item[Case 2.2.2.2: {$s+1 \neq \firstslot(\epoch(s+1))$}.]
-                        Because of the check in \Cref{ln:if-prev-epoch} and \Cref{ln:second-if} we know that $\exists b' \in \viewattime[val=v,time=\slotstart(s+1)]$ such that $b' \succeq b \land \gu(b') \geq \epoch(s+1)-1$.
-                        This, the fact that $\epoch(s+1)-1 = \epoch(t)-1 = \epoch(t')-2$ and the synchrony assumption imply $\exists b' \in \viewattime[val=v',time=t']$ such that $b' \succeq b \land \votsource[blck=b',time=\epoch(t')] \geq \epoch(t')-2$.
-                        Then \Cref{lem:gj-does-not-conflict-during-e+1} concldues the proof for this case.
+                        \item[Case 2.2.1: {$b_o = b_c$}.] From the check in \Cref{ln:if-bcand-e-1} we know that $\epoch(b_c) \geq \epoch(s+1)-1$. Then the inductive hypothesis concludes the proof for this case.
+                        \item[Case 2.2.2: {$b_o \neq b_c$}.] Due to \Cref{lem:find-latest-conf-desc-output-in-filtered-during-e+1} we know that $\exists b' \in \viewattime[val=v',time=t']$ such that $b' \succeq b_o \land \votsource[blck=b',time=\epoch(t')] \geq \epoch(t')-2$, then \Cref{lem:gj-does-not-conflict-during-e+1} concldues the proof for this case.
                     \end{description}
                 \end{description}
             \end{description}
