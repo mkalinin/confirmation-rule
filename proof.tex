@@ -930,13 +930,13 @@ By cases.
         By contradiction.
         Suppose $\epoch(\varforvalattime[val=v,time=\slotstart(\firstslot(\epoch(t)))]{\bconfirmed}) < \epoch(t)-1$.
         Then consider a slot $s' \geq s$ to be the lowest slot in $\epoch(t)$ for which $\epoch(b') \geq \epoch(t)-1$ for any $b' \in \varforvalattime[val=v,time=\slotstart(s')]{\bcands}$.
-        Now by cases on the first line, in order of execution of the Fast Confirmation Rule algorithm at time $\slotstart(s')$, where $\bcand = b_c$. 
+        Now by cases on the first line, in order of execution of the Fast Confirmation Rule algorithm at time $\slotstart(s')$, where $\epoch(\bcand) \geq \epoch(t)-1$. 
         \begin{description}
             \item[\Cref{ln:set-bcand-beginning-of-get-latest-confirmed}.] 
             Impossible, as at this line $\bcand = \varforvalattime[val=v,time=\slotstart(s'-1)]{\bconfirmed}$ but $s'$ is the lowest slot for which $\epoch(b_c) \geq \epoch(t)-1$.
             \item[\Cref{ln:set-bcand-to-fin}.] Impossible, as at this line $\epoch(\bcand) = \epoch(\block(\gfattime[val=v,time=\slotstart(s')])) < \epoch(t)-1$.
             \item[\Cref{ln:set-bcan-on-start-conf-chain}.] Impossible, as $s' \geq s > \firstslot(\epoch(t))$.
-            \item[\Cref{ln:set-bcand-to-output-find-latest}.] Impossible, as this line requires $\epoch(\bcand) \geq \epoch(t)-1$ while due to the above $\epoch(\bcand) < \epoch(t)-1$ in this case.
+            \item[\Cref{ln:set-bcand-to-output-find-latest}.] Impossible, as this line can only be executed if a previous line set $\bcand$ to a value such that $\epoch(\bcand) \geq \epoch(t)-1$. However, this  is impossible as we assume that this is the first line where this happens.
         \end{description}
         Due to the fact that we have reached impossiblity in any of the above cases the proof is concluded.
     \end{description}
