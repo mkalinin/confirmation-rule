@@ -510,11 +510,12 @@
 
 \define@key{canonical}{time}{\def\canonical@Time{#1}}
 \define@key{canonical}{blck}{\def\canonical@Blck{#1}}
+\define@key{canonical}{to}{\def\canonical@To{#1}}
 \setkeys{canonical}{time=,blck=}
 \newcommand{\canonical}[1][]{%
-    \setkeys{canonical}{time=,blck=}%
+    \setkeys{canonical}{time=,blck=,to=}%
     \setkeys{canonical}{#1}%
-    \ensuremath{\square\mathsf{canonical}(\canonical@Blck,\canonical@Time)}%
+    \ensuremath{\square\mathsf{canonical}(\canonical@Blck,\canonical@Time\ifthenelse{\equal{\canonical@To}{}}{,\infty}{,\canonical@To})}%
 }%
 
 \define@key{votsource}{time}{\def\votsource@Time{#1}}
@@ -698,6 +699,8 @@
 \newcommand{\tinit}{\ensuremath{t_\mathsf{init}}}
 \newcommand{\head}{\ensuremath{head}}
 \newcommand{\phead}{\ensuremath{prev\_head}}
+\newcommand{\sir}{\mathrm{SIR}}
+\newcommand{\tind}{t_\mathsf{ind}}
 
 
 

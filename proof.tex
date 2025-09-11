@@ -345,21 +345,39 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
 
     \Return{$b = \block(C)$}
 }
+\Fn{$\willNoConflictingChkpBeJustified_v(C)$}
+{
+    \Return{$\ffgvalsettoslotweight[target={C},to={\slot(\varforvalattime[val=v]{t})-1},time={\varforvalattime[val=v]{t}},val=v,weight chkp={C}]
+    + (1-\beta)\commweightfromslot[from={\slot(\varforvalattime[val=v]{t})},to=\lastslot(\epoch(C)),chkp={C},when={\varforvalattime[val=v]{t}},val=v]{\allvals}
+    \geq
+    \frac{1}{3}\totvalsetweight[chkp={C}] {\allvals}
+    % +
+    % \min\left(
+    %     \ffgequivweight,
+    %     \beta \commweightfromslot[from=\slotstart(\epoch(C)),to={\slot(\varforvalattime[val=v]{t})}-1,chkp={C},when={\varforvalattime[val=v]{t}},val=v]{\allvals}
+    % \right)
+    $}
+}
 \Proc{$\varforvalattime[val=v]{\mathit{get\_latest\_confirmed}}(b_c)$}{
     $\bcand \gets b_c$\label{ln:set-bcand-beginning-of-get-latest-confirmed}\\
     \Const $\head \gets \LMDGHOSTHFC(\viewattime[time={\varforvalattime[val=v]{t}},val=v])$\\
 
     \uIf{$\epoch(\bcand) < \epoch(\varforvalattime[val=v]{t}) - 1$ {\bf or}
         $\bcand \npreceq \head$ {\bf or}
-        $(\slot(\varforvalattime[val=v]{t}) = \firstslot(\epoch(\varforvalattime[val=v]{t}))$ {\bf and}
-        $\epoch(\bcand) \geq \epoch(t)-1$  {\bf and}
-        $\neg \varforvalattime[val=v]{\mathit{is\_chain\_one\_confirmed}}(b_c, \guattime[val=v,time=\slotstart(\slot(t)-1)]))$\label{ln:if-bcand-npreceq-head}}{
+        $(\slot(\varforvalattime[val=v]{t}) = \firstslot(\epoch(\varforvalattime[val=v]{t}))$ 
+        % {\bf and}
+        % $\epoch(\bcand) \geq \epoch(t)-1$  
+        {\bf and}
+        $\neg (\varforvalattime[val=v]{\mathit{is\_chain\_one\_confirmed}}(b_c, \guattime[val=v,time=\slotstart(\slot(t)-1)]))$ {\bf and} $b_c \succeq \guattime[val=v,time=\slotstart(\slot(t)-1)]$
+         {\bf and} 
+        $\willNoConflictingChkpBeJustified(\chkp(b_c))$\label{ln:if-bcand-npreceq-head}}{
         $\bcand \gets \block(\gfattime[val=v,time={\varforvalattime[val=v]{t}}])$\label{ln:set-bcand-to-fin}
     }
 
     \uIf{$\slot(\varforvalattime[val=v]{t}) = \firstslot(\epoch(\varforvalattime[val=v]{t}))$ {\bf and}
         $\epoch(\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}]) = \epoch(\varforvalattime[val=v]{t})-1$ {\bf and}
-        $\slot(\bcand) < \slot(\block(\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}]))$\label{ln:start-conf-chain}}
+        $\slot(\bcand) < \slot(\block(\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}]))$
+        \label{ln:start-conf-chain}}
     {
         $\bcand \gets \block(\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}])$\label{ln:set-bcan-on-start-conf-chain}
     }
@@ -379,7 +397,8 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
         If $t < \varforvalattime[val=v]{\tinit}$, then $\varforvalattime[time=t,val=v]{\bconfirmed}$ corresponds to the value of $\varforvalattime[val=v]{\bconfirmed}$ after executing any code that should be executed at time $\varforvalattime[val=v]{\tinit}$.
         With this convention, we have the property that $\varforvalattime[val=v,time=\slotstart(\slot(t))]{get\_latest\_confirmed}(b_c)$ implies that $b_c = \varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$.
         \item Let $\varforvalattime[val=v,time=\slotstartslot{t}]{\bcands}$ be the set of all the values assumed by $\bcand$ during the execution of \Cref{alg:conffull} by validator $v$ at time $\slotstartslot{t}$
-        \item $\canonical[time=t,blck=b]$ means that any time time $t'\geq t$ block $b$ is canonical in the view of any honest validator.
+        \item $\canonical[time=t,blck=b,to=t_f]$ means that any time time $t'\in [t,t_f]$ block $b$ is canonical in the view of any honest validator.
+        \item $\canonical[time=t,blck=b] := \canonical[time=t,blck=b,to=\infty]$.
     \end{enumerate}
 \end{definition}
 
@@ -2370,6 +2389,835 @@ Finally, by the Definition 3 of the paper $\epoch(\gjattime[val=v',time=\slotsta
 
 \MK{Done till here. The rest of the lemmas must be revisited as might not be needed.}
 
+\begin{definition}[\LMDGHOST safety condition]
+    The \LMDGHOST safety condition for block $b$ according to checkpoint $C$ and the view of validator $v$ at time $t\geq\GGST$ starting from block $b_mathsf{s}$, corresponds to the following condition, formally named $\varforvalattime[val=v]{\mathrm{isLMDGHOSTSafe}}(b,C,t)$.
+    $$
+\begin{aligned}
+        \varforvalattime[val=v]{\mathrm{isLMDGHOSTSafeFrom}}(b,C,t,b_\mathsf{s}) := &b \succeq b_\mathsf{s} \land \\
+        &\forall b',\; b_\mathsf{s} \preceq b' \preceq b \implies
+                \indicatorfromblock[from=b',to=\slot(t)-1,val=v,when=t,chkp=C]{\indQ}
+                >
+                    \frac{1}{2}
+                        \left( 1+
+                            \frac
+                            {\boostweight[chkp=C]}
+                            {\commweightfromblock[from=b',to=\slot(t)-1,chkp=C,when=t,val=v]{\allvals}}
+                        \right)
+                    + \beta  
+\end{aligned}   
+                $$
+\end{definition}
+
+\begin{definition}[\safetyinductionrequirement{s}  for blocks $b$ and $b_\mathsf{s}$, time $t$ and checkpoint $C$ ($\sir(b,t,C,b_\mathsf{s})$)]\label{def:induction-conditions}
+    \leavevmode
+    \begin{enumerate}[label=SIR.\arabic*.,leftmargin=10ex,ref=SIR.\arabic*]
+        \item\label{def:induction-conditions:is-lmd-confirmed}  $\varforvalattime[val=v]{\mathit{isLMDGHOSTSafeFrom}}(b,C,t,b_\mathsf{s})  \land C \preceq b  \land \slotstart(\slot(t)-1)\geq \GGST$
+        % \item\label{def:induction-conditions:gst}  $$
+        \item\label{def:induction-conditions:all-validators} for any honest validator $v'$ and time $t'$ such that $t \leq t' \leq \slotstart(\epoch(b)+2)$,
+        \begin{enumerate}[label=\theenumi.\arabic*.,leftmargin=10ex,ref=\theenumi.\arabic*]
+            \item\label{def:induction-conditions:all-validators:not-filtered-out} $b$ is not filtered out by validator $v'$ at time $t'$, \ie, $b \in \filtered[time=t',val=v']$
+            \item\label{def:induction-conditions:all-validators:gj-succ} $\gjattime[time=t',val=v']\succeq C$
+            % \item\label{def:induction-conditions:all-validators:gj-succ-cs} $\gjattime[time=t',val=v'] \succeq C_\mathsf{s}$
+            % \item\label{def:induction-conditions:all-validators:gj-succ-cs} $b_\mathsf{s} \preceq  \LMDGHOSTHFC(\viewattime[val=v',time=t'])$
+        \end{enumerate}
+        % \item\label{def:induction-conditions:ub} by time $\slotstart(\firstslot(\epoch(b)+2))$, in the view of any honest node there exists a block $b' \succeq b$  such that $\chkp(b) \in \allU(b') \land \epoch(b') < \epoch(b)+2$.
+        \item\label{def:induction-conditions:ub} by time $\slotstart(\firstslot(\epoch(b)+2))$, in the view of any honest node there exists a block $b' \succeq b$ and checkpoint $C \succeq C(b)$ such that $C \in \allU(b') \land \epoch(b') < \epoch(b)+2$.
+        \item\label{def:induction-conditions:no-conflicting} no checkpoint $C$ with $\epoch(C) \in [\epoch(b), \epoch(b) + 1]$ which conflicts with $b$ can ever be justified.
+    \end{enumerate}
+\end{definition}
+
+\begin{lemma}\label{lem:ffg-condition-on-q-implies-safety}
+    Given \Cref{assum:beta,assum:no-change-to-the-validator-set},
+    %~\ref{assum:beta}, \ref{assum:sync}, \ref{assum:ffg-assumptions:beta} and \ref{assum:oracle-access-to-committee-selection},
+    let $v$ be any honest validator,
+    $t$ and $t'$ be any two times,
+    $b$ be any block and
+    $C$ be any checkpoint.
+    If
+    \begin{enumerate}
+        \item $\slotstart(\slot(t)-1)\geq\GGST$,
+        % \item $slot(b) < slot(t)$
+        \item $\varforvalattime[val=v]{\mathit{isLMDGHOSTSafeFrom}}(b,C,t,b_\mathsf{s})$,
+        \item $t' \geq \slotstart(\slot(t))$ and
+        \item for any validator $v'' \in \commfromslot[from=\slot(t),to=\slot(t')]{\honvals}$ and time $t''$ such that $t \leq t'' \leq t'$, 
+        \begin{enumerate}[label*=\arabic*.]
+            \item $\gjattime[time=t'',val=v''] \succeq C$,
+            % \item $\gjattime[time=t'',val=v''] \succeq C_\mathsf{s}$ and
+            \item $b \in \filtered[time=t'',val=v'']$,
+            \item $b_\mathsf{s} \preceq  \LMDGHOSTHFC(\viewattime[val=v',time=t'])$
+        \end{enumerate}
+        % \item\label{itm:thm:lmd-confirmed-changing-balances:cond-on-justified-next-epoch} by the end of epoch $\epoch(t) + 1$, any honest validator has in their view a block $b''$ such that $\epoch(U(b'')) = \epoch(t) \land U(b'') \succeq \gjblock(b)$
+    \end{enumerate}
+    % then, for any time $t' \geq \slotstart(\slot(t))$ such that
+    % \begin{enumerate}[resume]
+    %     % \item $t' \geq t$, and
+
+    % \end{enumerate}
+    % we have that,
+    then $b$ is canonical in the view of any honest validator at time $t'$.
+    % \begin{enumerate}
+    %     \item at time $t'$, $b$ is canonical in the view of any honest validator, and
+    %     \item any honest validator voting at time $t'$ LMD votes for a descendant of block $b$ in slot $\slotattime{t'}$.
+    % \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+    TBD
+\end{proof}
+
+
+\begin{lemma}\label{lem:ffg-safety-from-sir}
+    If $\sir(b,t,C,b_\mathsf{s})$ holds, then $b$ is canonical in the view of any honest validator at time $\slotstart(\slot(t))$ and thereafter.
+\end{lemma}
+
+\begin{proof}
+    % We proceed by induction on $t' \geq \slotstart(\slot(t))$
+    % proving that $b$ is canonical in the view of any honest validator at time $t'$
+    % % % Let $e_0 := \max(\epoch(b)+2, \epoch(t))$.
+    % % We proceed by induction on epochs %$\epoch(t')$
+    % % starting from $\epoch(b)+2$
+    % % % For each $e' \geq e$, we want to show that $b$ does not get filtered out during epoch $e$, and also that, for any $t \geq s$ such that $\epoch(t) = e'$, $P^{N'}_{b'} > \frac{1}{2(1 - \beta)}(1 + \frac{W^{t+1}_p}{W_{b'}^{t}})$ holds throughout epoch $e'$. Moreover,
+    % and add the following inductive hypothesis to the proof goal for any time $t'\geq \slotstart(\slot(t))$:
+
+    First, we proceed by induction on $t' \geq \slotstart(\slot(t))$ to show that all of the following inductive conditions hold
+    \begin{enumerate}[label=\roman*)]
+        %\item by the end of epoch $\epoch(t)+1$, in the view of any honest node there exists a block $b' \succeq b$ such that $U(b') = \chkp(b)$; \label{def:safety-cond-1}
+        \item there exists no checkpoint $C'$ with $\epoch(C') \in [\epoch(b), \epoch(t')]$ which conflicts with $b$. \label{lem:ffg-safety-from-sir:safety-cond-1}
+        \item\label{lem:ffg-safety-from-sir:safety-cond-2} for any honest validator $v''$ and time $t''$ such that $\slotstart(\slot(t)) \leq t'' < \slotstart(\epoch(t')+1)$
+        \begin{enumerate}[label=\roman{enumi}.\roman*)]
+            \item $b \in \filtered[val=v'',time=t'']$\label{lem:ffg-safety-from-sir:safety-cond-2.1}
+            \item $\gjattime[time=t'',val=v''] \succeq C$\label{lem:ffg-safety-from-sir:safety-cond-2.2}
+            \item $b_\mathsf{s} \preceq  \LMDGHOSTHFC(\viewattime[val=v'',time=t''])$ \label{lem:ffg-safety-from-sir:safety-cond-2.3}
+        \end{enumerate}
+
+        % \item $b$ is always canonical in the view of all honest validators at any time $t' \geq t$ such that $\slotattime{t'} > \slotattime{t} \land \epoch(t') \in \{e, e+1\}$
+        % \item $P_b^{t} > \frac{1}{2(1-\beta)}(1 + \frac{W^{t+1}_p}{W_b^{t}})$ for all slots $t$ such that $\epoch(t) = e+1$.
+    \end{enumerate}
+
+
+    \begin{description}
+        \item[Base Case: $\epoch(t') < \epoch(b)+2$.]
+        % Due to \ref{def:induction-conditions:is-lmd-confirmed} and \ref{def:induction-conditions:all-validators} we can apply Lemma~\ref{lem:ffg-condition-on-q-implies-safety} to conclude that $b$ is canonical for any honest validator at time $t'$.
+        All inductive hypothesis are trivially implied by \ref{def:induction-conditions:all-validators} and \ref{def:induction-conditions:no-conflicting}.
+
+
+        \item[Inductive Step: $\epoch(t') \geq \epoch(b)+2$.]
+        Assume that all the inductive hypotheses hold at any time $t_i$ up to %such that $\slotattime{t_i} < \slotattime{t'}$
+        $\epoch(t_i) \leq \epoch(t')-1$ and prove that they hold at time $t'$ as well.
+        Let $v'$ be any honest validator.
+        % We let $v'$ be any hoenst validator so that, to prove \ref{def:safety-cond-2}, it will be sufficient to show that $b$ is canonical for $v'$ at time $t'$.
+
+        % Let $v''$ be any honest validator and $t''$ be any time such that $\slotstart(\slot(t))\leq t'' < \slotstart(\epoch(t)+1)$.
+
+        Induction hypothesis~\ref{lem:ffg-safety-from-sir:safety-cond-1} and \ref{def:induction-conditions:ub} allow us to apply Lemma 11 of the Paper to conclude that $b \in \filtered[time=t',val=v']$, \ie, $b$ does not get filtered out by any honest validator in epoch $\epoch(t')$.
+        This proves induction hypothesis~\ref{lem:ffg-safety-from-sir:safety-cond-2.1} holds at time $t'$ as well.
+
+        % First, Lemma~\ref{lem:block-in-the-view-of-all-honests} implies that $b$ is in the view of validator $v'$ at time $t'$.
+        Also, induction hypothesis~\ref{lem:ffg-safety-from-sir:safety-cond-1},
+        % \ref{lem:ffg-safety-from-sir:safety-cond-2.2},
+        % \ref{def:induction-conditions:is-lmd-confirmed},
+        \ref{def:induction-conditions:ub},
+        Property~1.7 of the Paper
+        and the definition of $\gjattime[time=t',val=v']$ (Definition~\ref{def:gjview})
+        imply that
+        $\gjattime[time=t',val=v'] \succeq \chkp(b)$.
+        Then,
+        \ref{def:induction-conditions:is-lmd-confirmed},
+        proves inductive conditions \ref{lem:ffg-safety-from-sir:safety-cond-2.2} and $\gjattime[time=t',val=v']  \succeq b_\mathsf{s}$.
+        Given that $\LMDGHOSTHFC(\viewattime[val=v',time=t']) \succeq \gjattime[time=t',val=v']$, this proves \ref{lem:ffg-safety-from-sir:safety-cond-2.3} for $t'$.
+        % This, together with  and \ref{def:induction-conditions:all-validators:gj-succ}, implies that $\gjattime[time=t'',val=v''] \succeq C$.
+
+
+        % Consider some epoch $e' \geq e+1$, for which all inductive %assumptions
+        % hypotheses are satisfied.
+        % This implies that there is no justified checkpoint in epochs $[e-1, e']$ which conflicts with $b$.
+        % Together with condition~\ref{def:safety-cond-1}, this
+        Given that $t'\geq\slotstart(\slot(t))$ and that above we have proved that inductive condition \ref{lem:ffg-safety-from-sir:safety-cond-2} is satisfied for time $t'$, thanks to \ref{def:induction-conditions:is-lmd-confirmed}, we can apply Lemma~\ref{lem:ffg-condition-on-q-implies-safety} to conclude that $b$ is always canonical in the view of all honest validators at any time during epoch $\epoch(t')$.
+        % and that all honest validators in epoch $\epoch(t')$ \GHOST vote for a descendant of $b$ proving the Lemma's statement.
+
+        % We can now use this and inductive hypothesis iv) to apply Lemma~\ref{lem:slot-induction-within-epoch} to epoch $e'+1$, and conclude that $P_b^{t'} > \frac{1}{2(1-\beta)}(1 + \frac{W^{t'+1}_p}{W_b^{t'}})$ for all slots $t'$ in epoch $e'+1$ proving condition iii).
+        % This also implies that $b$ is canonical in all honest views in epoch $e'+1$, and thus that the subtree of $b$ receives all honest votes proving the Lemma's statement.
+        % Then we are just left to show that the inductive hypothesis~\ref{def:safety-cond-2}
+        By Properties~1.3 and 1.6 of the Paper, this immediately implies that no checkpoint conflicting with $b$ can be justified in epoch $\epoch(t') $, which concludes the proof for the inductive hypothesis~\ref{lem:ffg-safety-from-sir:safety-cond-1}.
+        % Condition i) is trivially true as the view of an honest node is monotonic.
+    \end{description}
+    Given that we have just established that the inductive condition \ref{lem:ffg-safety-from-sir:safety-cond-2} hold for any time $t' \geq \slotstart(\slot(t))$, thanks to \ref{def:induction-conditions:is-lmd-confirmed}, we can apply Lemma~\ref{lem:ffg-condition-on-q-implies-safety} to complete the proof.
+\end{proof}
+
+\begin{lemma}\label{lem:epoch-gu-less-than-two-epoch-ago-start-epoch}
+    If
+    \begin{enumerate}
+        \item $\slotstart(\slot(t)-1)\geq \GST$
+        \item $\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) \geq \epoch(t) - 1$
+        \item $\slot(t) = \firstslot(\epoch(t))$
+    \end{enumerate},
+    then
+    \begin{enumerate}
+        \item $\epoch(\guattime[time=\slotstart(\slot(t)-1),val=v]) \geq \epoch(t)-2$
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+    Let $s:= \slot(t)$.
+    The Lemma's condition imply that $\epoch(\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed}) = \epoch(s-1)$ as $\epoch(s-1) = \epoch(s)-1 \leq \epoch(\varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed}) < \epoch(t)$.
+    \Cref{lem:conf-current-epoch-then-gu-curr-epoch} implies that $\exists b' \in \viewattime[val=v,time=\slotstart(s-1)], b' \succeq \varforvalattime[val=v,time=\slotstart(s-1)]{\bconfirmed} \land \epoch(\gu(b')) \geq \epoch(s-1) = \epoch(s)-2$.
+\end{proof}
+
+\begin{lemma}\label{lem:gj-prec-prev-confirmed-at-start-of-epoch}
+    % Pick any $b_c \in  \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bcands}$, any time $t' \geq \slotstartslot{t}$ and any honest validator $v'$.
+    If
+    \begin{enumerate}
+        \item $\slotstart(\firstslot(\epoch(t))-1)\geq \GST$
+        \item  $t = \firstslot(\epoch(t))$
+        \item the \KwSty{if} condition at line \Cref{ln:if-bcand-npreceq-head} is false
+        % \item \ref{def:induction-conditions:ub} holds for $\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$
+        \item  \label{itm:lem:gj-prec-prev-confirmed-at-start-of-epoch:4}no checkpoint $C$ s.t. $\epoch(C) = \epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed})$ and $C \neq \chkp(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed})$ can ever be justified
+        % \item \ref{def:induction-conditions:ub} holds for $\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$
+        % \item $\slotstart(\lastslot(\epoch(t)-1)) \geq \GST$
+        % \item $\epoch(b_c) \geq \epoch(t)-1$
+        % \item $b_c \in \filtered[val=v',time=t']$
+    \end{enumerate},
+    then, for any honest validators $v'$ and time $t'$ s.t. $\epoch(t') = \epoch(t)$
+    \begin{enumerate}
+        \item $\gjattime[time=t',val=v']  \preceq \varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+    The Lemma's conditions imply that $\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) = \epoch(t)-1$.
+    From \Cref{lem:epoch-gu-less-than-two-epoch-ago-start-epoch} and syncrony, by cases.
+    \begin{description}
+        \item[Case 1: {$\epoch(\gjattime[time=t',val=v'])=\epoch(t)-1$}.] 
+        Given assumption~\ref{itm:lem:gj-prec-prev-confirmed-at-start-of-epoch:4} of the Lemma and $\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) = \epoch(t)-1$, we know that $\gjattime[time=t',val=v']  = \chkp(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) \preceq \varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$
+        \item[Case 2: {$\epoch(\gjattime[time=t',val=v'])=\epoch(t)-2$}.]
+        This implies $\gjattime[time=t',val=v'] = \guattime[val=v,time=\slotstart(\slot(t)-1)] \preceq \varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$.
+        The last $\preceq$ relation comes from the \KwSty{if} condition at line \Cref{ln:if-bcand-npreceq-head} being false.
+    \end{description}
+\end{proof}
+
+% \begin{lemma}\label{lem:gj-prec-prev-confirmed-at-start-of-epoch}
+%     % Pick any $b_c \in  \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bcands}$, any time $t' \geq \slotstartslot{t}$ and any honest validator $v'$.
+%     If
+%     \begin{enumerate}
+%         \item $\slotstart(\firstslot(\epoch(t))-1)\geq \GST$
+%         \item  $t = \firstslot(\epoch(t))$
+%         \item the \KwSty{if} condition at line \Cref{ln:if-bcand-npreceq-head} is false
+%         % \item \ref{def:induction-conditions:ub} holds for $\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$
+%         % \item $\slotstart(\lastslot(\epoch(t)-1)) \geq \GST$
+%         % \item $\epoch(b_c) \geq \epoch(t)-1$
+%         % \item $b_c \in \filtered[val=v',time=t']$
+%     \end{enumerate},
+%     then, for any honest validators $v'$ and time $t'$ s.t. $\epoch(t') = \epoch(t)$
+%     \begin{enumerate}
+%         \item $\gjattime[time=t',val=v']  \preceq \varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$
+%     \end{enumerate}
+% \end{lemma}
+
+% \begin{proof}
+%     The Lemma's conditions imply that $\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) = \epoch(t)-1$.
+%     From \Cref{lem:epoch-gu-less-than-two-epoch-ago-start-epoch} and syncrony, by cases.
+%     \begin{description}
+%         \item[Case 1: {$\epoch(\gjattime[time=t',val=v'])=\epoch(t)-1$}.] 
+%         Given that $\willNoConflictingChkpBeJustified(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed})$, and $\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) = \epoch(t)-1$, we know that $\gjattime[time=t',val=v']  \preceq \varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$
+%         \item[Case 2: {$\epoch(\gjattime[time=t',val=v'])=\epoch(t)-2$}.]
+%         This implies $\gjattime[time=t',val=v'] = \guattime[val=v,time=\slotstart(\slot(t)-1)] \preceq \varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$ 
+%     \end{description}
+% \end{proof}
+
+\begin{lemma}\label{lem:prev-confirmed-not-filtered-out-start-of-epoch}
+    % Pick any $b_c \in  \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bcands}$, any time $t' \geq \slotstartslot{t}$ and any honest validator $v'$.
+    If
+    \begin{enumerate}
+        \item $\slotstart(\firstslot(\epoch(t))-1)\geq \GST$
+        \item  $t = \slotstart(\epoch(t))$
+        \item the \KwSty{if} condition at line \Cref{ln:if-bcand-npreceq-head} is false
+        \item no checkpoint $C$ s.t. $\epoch(C) = \epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed})$ and $C \neq \chkp(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed})$ can ever be justified
+        % \item \ref{def:induction-conditions:ub} holds for $\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$
+        % \item \ref{def:induction-conditions:ub} holds for $\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$
+        % \item $\slotstart(\lastslot(\epoch(t)-1)) \geq \GST$
+        % \item $\epoch(b_c) \geq \epoch(t)-1$
+        % \item $b_c \in \filtered[val=v',time=t']$
+    \end{enumerate},
+    then, for any honest validators $v'$ and time $t'$ s.t. $\epoch(t') = \epoch(t)$
+    \begin{enumerate}
+        \item $\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed} \in \filtered[val=v',time=t']$
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+    The Lemma's conditions imply $\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) = \epoch(t)-1$.
+    Then, the proof follows from \Cref{lem:gj-prec-prev-confirmed-at-start-of-epoch,lem:conf-prev-epoch-then-vs-two-epochs-ago}.
+\end{proof}
+
+\begin{lemma}\label{lem:conf-prev-slot-canonical-at-the-start-of-an-epoch}
+    % Pick any $b_c \in  \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bcands}$, any time $t' \geq \slotstartslot{t}$ and any honest validator $v'$.
+    If
+    \begin{enumerate}
+        \item $\slotstart(\firstslot(\epoch(t))-1)\geq \GST$
+        \item  $t = \slotstart(\epoch(t))$
+        \item the \KwSty{if} condition at line \Cref{ln:if-bcand-npreceq-head} is false
+        \item\label{itm:lem:conf-prev-slot-canonical-at-the-start-of-an-epoch:4} no checkpoint $C$ s.t. $\epoch(C) = \epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed})$ and $C \neq \chkp(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed})$ can ever be justified
+        % \item $\slotstart(\lastslot(\epoch(t)-1)) \geq \GST$
+        % \item $\epoch(b_c) \geq \epoch(t)-1$
+        % \item $b_c \in \filtered[val=v',time=t']$
+    \end{enumerate},
+    then
+    \begin{enumerate}
+        \item  \ref{def:induction-conditions:is-lmd-confirmed}, \ref{def:induction-conditions:all-validators} for $\sir(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed},t,\guattime[val=v,time={\slotstart(\slot({t})-1)}],\block(\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}]))$ hold.
+        \item for any honest validators $v'$ and time $t'$ s.t. $\epoch(t') = \epoch(t)$, $\gjattime[time=t',val=v']  \preceq \varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$
+        \item for any honest validators $v'$ and time $t'$ s.t. $\epoch(t') = \epoch(t)$, $\gjattime[time=t',val=v']  \succeq \guattime[time=\slotstart(\firstslot(\epoch(t))-1),val=v]$
+        \item $\canonical[blck={\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}},time=t,to=\slotstart(\epoch(t)+1)]$
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}(Sketch)
+    This implies that $\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) = \epoch(t)-1$ and \\ $\varforvalattime[val=v]{\mathit{is\_chain\_one\_confirmed}}(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed},\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}])$.
+    
+    So, $\slotstart(epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) +2) = \slotstart(\epoch(t)+1)$.
+
+
+    Now, we prove tha $\sir(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed},t,\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}],\block(\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}]))$ holds.
+
+    $\varforvalattime[val=v]{\mathit{is\_chain\_one\_confirmed}}(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed},\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}])$ implies that $\block(\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}]) \preceq \varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$.
+    Given that $\epoch(\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}])\leq \epoch(t-1) = \epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed})$, we have that $\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}] \preceq \varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$.
+    $\varforvalattime[val=v]{\mathit{is\_chain\_one\_confirmed}}(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed},\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}])$ then also implies \ref{def:induction-conditions:is-lmd-confirmed}.
+
+    \Cref{lem:prev-confirmed-not-filtered-out-start-of-epoch}  proves \ref{def:induction-conditions:all-validators:not-filtered-out}.
+
+
+    Let $v'$ be any honest validator and $t'$ such that $\epoch(t') = \epoch(t)$.
+
+    \Cref{lem:epoch-gu-less-than-two-epoch-ago-start-epoch} implies $\gjattime[time=t',val=v']  \preceq \varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$.
+    Given that, as proven above, $\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}] \preceq \varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$, this implies that $\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}]$ does not conflict with $\gjattime[time=t',val=v']$.
+    Then, given that due to synchorny, $\epoch(\gjattime[time=t',val=v'])\geq \epoch(\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}])$, we have that $\gjattime[time=t',val=v']\succeq \guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}]$, hence \ref{def:induction-conditions:all-validators:gj-succ} holds.
+
+    % This, \Cref{lem:gj-at-least-e-2-curr-slot,lem:gj-does-not-conflict} we can conclude that $\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$ does not conflict with $\gjattime[time=t',val=v']$.
+
+
+
+    % $\epoch(t) > \epoch(\gjattime[time=t',val=v']) \geq \epoch(\guattime[val=v,time={\slotstart(\slot(t)-1)}]) \geq \epoch(t)-2$b
+
+
+    % Assumption \ref{itm:lem:conf-prev-slot-canonical-at-the-start-of-an-epoch:4} of the Lemma implies that no justified checkpoint for epoch $\epoch(t)-1$ conflicting with $\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$ can exist.
+
+
+
+
+
+    % Then, this, \Cref{lem:gu-prec-gj-start-epoch-when-prec-conf-from-at-least-prev-epoch,lem:epoch-gu-less-than-two-epoch-ago-start-epoch}, $\epoch(\gjattime[time=t',val=v']) \geq \epoch(\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}])$ imply \ref{def:induction-conditions:all-validators:gj-succ} and \ref{def:induction-conditions:all-validators:gj-succ-cs}.
+
+    \ref{def:induction-conditions:is-lmd-confirmed}, \ref{def:induction-conditions:all-validators} and \Cref{lem:ffg-condition-on-q-implies-safety} imply that $\canonical[time=t,blck={\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}},to=\slotstart(\epoch(t)+1)]$. 
+
+    % This then implies that no checkpoint for epoch $\epoch(t)$ conflicting with $\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$ can ever be justified which concldes the proof for \ref{def:induction-conditions:no-conflicting}.
+
+    % \ref{def:induction-conditions:ub} holds by assumption.
+\end{proof}
+
+
+\begin{lemma}\label{lem:output-find-latest-canonical-canonical-at-the-start-of-an-epoch}
+    % Let $b_o := \varforvalattime[val=v]{\mathit{find\_latest\_confirmed\_descendant}}(b_c)$.
+    Let $b_c$ be a block such that
+    If
+    \begin{enumerate}
+        \item $\varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed} =  \varforvalattime[val=v]{\mathit{find\_latest\_confirmed\_descendant}}(b_c)$
+        \item $\slotstart(\firstslot(\epoch(t))-1)\geq \GST$
+        % \item $\sir(b_c,t,\guattime[val=v,time={\slotstart(\slot({t})-1)}],\cdot)$ holds
+        \item $\canonical[blck=b_c,time={\varforvalattime[val=v]{t}},to=\slotstart(\epoch(t)+1)]$
+        \item \label{itm:lem:output-find-latest-canonical-canonical-at-the-start-of-an-epoch:4}for any honest validators $v'$ and time $t'$ s.t. $\epoch(t') = \epoch(t)$, $\gjattime[time=t',val=v']  \preceq b_c$
+        \item  \label{itm:lem:output-find-latest-canonical-canonical-at-the-start-of-an-epoch:5}for any honest validators $v'$ and time $t'$ s.t. $\epoch(t') = \epoch(t)$, $\gjattime[time=t',val=v']  \succeq \guattime[time=\slotstart(\firstslot(\epoch(t))-1),val=v]$
+        % \item \ref{def:induction-conditions:ub} holds for a block $b_0$ s.t. $b_0 \preceq b_c$ and $\epoch(b_0) = \epoch(t)-1$ %\varforvalattime[val=v,time=\slotstart(\firstslot(\epoch(t))-1)]{\bconfirmed}
+        % \item $\epoch(b_c) \geq \epoch(\varforvalattime[val=v]{t})-1$
+        \item $t = \slotstart(\slot(t))$
+
+        % \item $\varforvalattime[val=v]{t} = \slotstart(\epoch(\varforvalattime[val=v]{t}))$
+    \end{enumerate},
+    then
+    \begin{enumerate}
+        \item for any honest validators $v'$ and time $t'$ s.t. $\epoch(t') = \epoch(t)$, $\gjattime[time=t',val=v']  \preceq \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed}$
+        \item \ref{def:induction-conditions:is-lmd-confirmed}, \ref{def:induction-conditions:all-validators} for $\sir(\varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed},t,\varforvalattime[val=v,time=\slotstartslot{t}]{\chkp_{EBA}},b_c)$ hold
+        % \item $\sir(b_o,t,\guattime[val=v,time={\s\lotstart(\slot(\varforvalattime[val=v]{t})-1)}],b_c)$, with the exception of  \ref{def:induction-conditions:ub}, holds
+        \item $\canonical[blck=b_o,time={\varforvalattime[val=v]{t}},to=\slotstart(\epoch(t)+1)]$
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+        We prove first that \ref{def:induction-conditions:is-lmd-confirmed}, \ref{def:induction-conditions:all-validators} for $\sir(\varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed},t,\varforvalattime[val=v,time=\slotstartslot{t}]{\chkp_{EBA}},b_c)$ hold.\RSfn{This is not really required. It just comes handy rather than writing each single condition explicitly}
+        Let $v'$ be any honest validator and $t' \in [t, \slotstart(\epoch(t)+1)]$.
+
+
+
+        % If $b_c= b_o$ by the inductive hypothesis above.
+
+        % From \Cref{lem:if-new-bc-then-output-find-latest} we know that\\ $b_o=\mathit{find\_latest\_confirmed\_descendant}(b_c)$.
+
+        We know that $\varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed} \succeq b_c$.
+
+        Assumption \ref{itm:lem:output-find-latest-canonical-canonical-at-the-start-of-an-epoch:4} of the Lemma's statement then implies that $\gjattime[time=t',val=v'] \preceq \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed}$ for any time $t' \in [\slotstart(\epoch(t)),\slotstart(\epoch(t)+1)]$ and an honest validator $v'$.
+
+        We can prove that there exists a time $t'' \in [\slotstart(\epoch(t)),\slotstart(\epoch(t)+1)]$ and an honest validator $v''$ such that $\varforvalattime[val=v,time=\slotstartslot{t}]{\chkp_{EBA}} = \gjattime[time=t'',val=v'']$. (If we are in the first slot then $t''$ is any time and $v''$ is any validator, otherwise, $t''= \slotstart(\slot(t)-1)$ and $v'' = v$.)
+
+        Then, from the above we can conclude that $\varforvalattime[val=v,time=\slotstartslot{t}]{\chkp_{EBA}}  \preceq b_o$.
+
+        We also know that $\mathit{find\_latest\_confirmed\_descendant}$ ensures that\\
+            $\mathit{isLMDGHOSTSafeFrom}(b_o,t,\varforvalattime[val=v,time=\slotstartslot{t}]{\chkp_{EBA}},b_c)$. 
+        Hence, \ref{def:induction-conditions:is-lmd-confirmed} holds.
+
+
+        $\gjattime[time=t',val=v'] \preceq b_o$ and
+        \Cref{lem:conf-prev-epoch-then-vs-two-epochs-ago} then imply \ref{def:induction-conditions:all-validators:not-filtered-out}.
+
+        We know that $\epoch(t)-2\leq\epoch(\guattime[val=v,time={\slotstart(\firstslot(\epoch(t))-1)}])\leq\epoch(\varforvalattime[val=v,time=\slotstartslot{t}]{\chkp_{EBA}})\leq\epoch(\gjattime[time=t',val=v'])\leq\epoch(t)-1$.
+
+        If $\epoch(\varforvalattime[val=v,time=\slotstartslot{t}]{\chkp_{EBA}})=\epoch(t)-2$, 
+        then  $\varforvalattime[val=v,time=\slotstartslot{t}]{\chkp_{EBA}}= \guattime[val=v,time={\slotstart(\slot({t})-1)}]$.
+        Assumption \ref{itm:lem:output-find-latest-canonical-canonical-at-the-start-of-an-epoch:5} of the Lemma then implies $\gjattime[time=t',val=v']\succeq \varforvalattime[val=v,time=\slotstartslot{t}]{\chkp_{EBA}}$.
+
+        If $\epoch(\varforvalattime[val=v,time=\slotstartslot{t}]{\chkp_{EBA}})=\epoch(t)-1$, 
+        then  $\gjattime[time=t',val=v'] = \varforvalattime[val=v,time=\slotstartslot{t}]{\chkp_{EBA}}$.
+        Hence, \ref{def:induction-conditions:all-validators:gj-succ} holds.
+
+        \ref{def:induction-conditions:is-lmd-confirmed}, \ref{def:induction-conditions:all-validators},   $\canonical[blck={b_c},time=t, to=\slotstart(\epoch(t)+1)]$, and \Cref{lem:ffg-condition-on-q-implies-safety} imply that $\canonical[time=t,blck={\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}},to=\slotstart(\epoch(t)+1)]$. 
+
+
+        % $\sir(b_c,t,\guattime[val=v,time={\slotstart(\slot({t})-1)}],\cdot)$ clearly implies \ref{def:induction-conditions:all-validators:gj-succ}$(b_o,t,\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}],b_c)$.
+
+        % \ref{def:induction-conditions:all-validators:gj-succ-cs} is clearly implied by the Lemma's assumptions.
+
+        % % \ref{def:induction-conditions:ub} is cleraly implied by the Lemma's assumptions.
+
+        % \ref{def:induction-conditions:no-conflicting} can be proven as in the proof of \Cref{lem:conf-prev-slot-canonical-at-the-start-of-an-epoch}: from the proof of the previous conditions, we can conclude that $\canonical[time=t,blck={b_o},to=\slotstart(\epoch(t)+1)]$ from which we can prove that  no checkpoint for epoch $\epoch(t) = \epoch(b_o)+1$ conflicting with ${b_o}$ can ever be justified.
+        % \ref{def:induction-conditions:ub} holding for ${b_o}$ implies \ref{def:induction-conditions:no-conflicting}  for epoch $\epoch(b) = \epoch(t)-1$, 
+\end{proof}
+
+% \begin{proof}
+    
+%     % We need to prove that $\sir(b_o,t,\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}],b_c)$ holds.  
+    
+%     We know that 
+%     \begin{enumerate}
+%         \item $\mathit{find\_latest\_confirmed\_descendant}$ ensures that\\ $\mathit{isLMDGHOSTSafeFrom}(b_o,t,\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}],b_c)$ 
+%         \item  $\sir(b_c,t,\guattime[val=v,time={\slotstart(\slot({t})-1)}],\cdot)$ implies  $\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}] \preceq b_c$.
+%         $b_o = \varforvalattime[val=v]{\mathit{find\_latest\_confirmed\_descendant}}(b_c)$ then implies $\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}] \preceq b_c \preceq b_o$.
+%         % \item Given the above, $\block(\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}])  \preceq b_o$
+%     \end{enumerate}
+%     Hence, \ref{def:induction-conditions:is-lmd-confirmed} holds.
+
+%     Given that $b_o \succeq b_c$,
+%     assumption \ref{itm:lem:output-find-latest-canonical-canonical-at-the-start-of-an-epoch:4} implies that $\gjattime[time=t',val=v'] \preceq b_c  \preceq b_o$.
+%     \Cref{lem:conf-prev-epoch-then-vs-two-epochs-ago} then implies \ref{def:induction-conditions:all-validators:not-filtered-out}.
+
+%     $\sir(b_c,t,\guattime[val=v,time={\slotstart(\slot({t})-1)}],\cdot)$ clearly implies \ref{def:induction-conditions:all-validators:gj-succ}$(b_o,t,\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}],b_c)$.
+
+%     % \ref{def:induction-conditions:all-validators:gj-succ-cs} is clearly implied by the Lemma's assumptions.
+
+%     % \ref{def:induction-conditions:ub} is cleraly implied by the Lemma's assumptions.
+
+%     \ref{def:induction-conditions:no-conflicting} can be proven as in the proof of \Cref{lem:conf-prev-slot-canonical-at-the-start-of-an-epoch}: from the proof of the previous conditions, we can conclude that $\canonical[time=t,blck=b_o,to=\slotstart(\epoch(t)+1)]$ from which we can prove that  no checkpoint for epoch $\epoch(t) = \epoch(b_o)+1$ conflicting with $b_o$ can ever be justified.
+%     \ref{def:induction-conditions:ub} holding for $b_o$ implies \ref{def:induction-conditions:no-conflicting}  for epoch $\epoch(b) = \epoch(t)-1$, 
+% \end{proof}
+
+\begin{lemma}\label{lem:confirmed-end-first-slot-canonical}
+    If
+    \begin{enumerate}
+        \item $\slotstart(\firstslot(\epoch(t))-1)\geq \GST$
+        \item  $t = \slotstart(\epoch(t))$
+        \item if $\varforvalattime[val=v,time=\slotstart(\firstslot(\epoch(t))-1)]{\bconfirmed} \preceq \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed}$,
+        then no checkpoint $C$ s.t. $\epoch(C) = \epoch(\varforvalattime[val=v,time=\slotstart(\firstslot(\epoch(t))-1)]{\bconfirmed})$ and $C \neq \chkp(\varforvalattime[val=v,time=\slotstart(\firstslot(\epoch(t))-1)]{\bconfirmed})$ can ever be justified
+        % \item \ref{def:induction-conditions:ub} holds for $\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$
+        % \item \ref{def:induction-conditions:ub} holds for $\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$
+        % \item $\slotstart(\lastslot(\epoch(t)-1)) \geq \GST$
+        % \item $\epoch(b_c) \geq \epoch(t)-1$
+        % \item $b_c \in \filtered[val=v',time=t']$
+    \end{enumerate},
+    then, 
+    \begin{enumerate}
+        \item \ref{def:induction-conditions:is-lmd-confirmed}, \ref{def:induction-conditions:all-validators} for $\sir(\varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed},t,\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}],\cdot)$
+        \item $\canonical[blck={\varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed}},time=t,to=\slotstart(\epoch(t)+1)]$
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+    It should be easy to conclude from \Cref{lem:conf-prev-slot-canonical-at-the-start-of-an-epoch,lem:output-find-latest-canonical-canonical-at-the-start-of-an-epoch,lem:gu-e-1-canonical}.
+\end{proof}
+
+\begin{lemma}\label{lem:if-new-bc-then-output-find-latest}
+    Pick any $b_c \in  \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bcands}$
+    If
+    \begin{enumerate}
+        \item $\slot(t) > \firstslot(\epoch(t))$
+        \item $\epoch(b_c) \geq \epoch(t)-1$
+    \end{enumerate}
+    ,then
+    \begin{enumerate}
+        \item $b_c \neq \varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}  \implies b_c = \varforvalattime[val=v]{\mathit{find\_latest\_confirmed\_descendant}}(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed})$
+        \item $\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed} \preceq b_c$
+    \end{enumerate}
+\end{lemma}
+
+
+\begin{lemma}\label{lem:conf-beginning-prec-bcand}
+    Pick any $b_c \in  \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bcands}$
+    If
+    \begin{enumerate}
+        \item $\slot(t) > \firstslot(\epoch(t))$
+        \item $\epoch(b_c) \geq \epoch(t)-1$
+    \end{enumerate}
+    ,then, for every  $s' \in [\firstslot(\epoch(t)),\slot(t)]$,
+    \begin{enumerate}
+        \item $\varforvalattime[val=v,time=\slotstart(s')]{\bconfirmed} \preceq b_c$
+    \end{enumerate}
+\end{lemma}
+
+\begin{lemma}\label{lem:canonical-for-current-epoch-with-extra-assum}
+    If
+    \begin{enumerate}
+        \item $\slotstart(\firstslot(\epoch(t))-1)\geq \GST$
+        \item  $t = \slotstart(\slot(t))$
+        \item if $\varforvalattime[val=v,time=\slotstart(\firstslot(\epoch(t))-1)]{\bconfirmed} \preceq \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed}$,
+        then no checkpoint $C$ s.t. $\epoch(C) = \epoch(\varforvalattime[val=v,time=\slotstart(\firstslot(\epoch(t))-1)]{\bconfirmed})$ and $C \neq \chkp(\varforvalattime[val=v,time=\slotstart(\firstslot(\epoch(t))-1)]{\bconfirmed})$ can ever be justified
+        % \item \ref{def:induction-conditions:ub} holds for $\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$
+        % \item $\slotstart(\lastslot(\epoch(t)-1)) \geq \GST$
+        % \item $\epoch(b_c) \geq \epoch(t)-1$
+        % \item $b_c \in \filtered[val=v',time=t']$
+    \end{enumerate},
+    then,
+    \begin{enumerate}
+        \item $\canonical[blck={\varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed}},time=t, to=\slotstart(\epoch(t)+1)]$
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+    Other inductive hypothesis
+    \begin{enumerate}
+        \item $\varforvalattime[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed} \succeq \varforvalattime[val=v,time=\slotstart(\firstslot(\epoch(t))-1)]{\bconfirmed}$
+        \item for any honest validators $v'$ and time $t'$ s.t. $\epoch(t') = \epoch(t)$, $\gjattime[time=t',val=v']  \preceq \varforvalattime[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed}$
+        \item  for any honest validators $v'$ and time $t'$ s.t. $\epoch(t') = \epoch(t)$, $\gjattime[time=t',val=v']  \succeq \guattime[time=\slotstart(\firstslot(\epoch(t))-1),val=v]$
+    \end{enumerate}
+    \begin{description}
+        \item[Base Case: $\slot(\tind) = \firstslot(\epoch(t))$.]  \Cref{lem:confirmed-end-first-slot-canonical} proves that  $\canonical[blck={\varforvalattime[val=v,time=\slotstart(\slot(t'))]{\bconfirmed}},time=t,to=\slotstart(\epoch(t)+1)]$.
+        \item[Inductive Step: $\slot(\tind) > \firstslot(\epoch(t))$.] 
+        Let $v'$ be any honest validator and $t' \in [t, \slotstart(\epoch(t)+1)]$.
+
+
+
+        If $\varforvalattime[val=v,time=\slotstart(\slot(\tind)-1)]{\bconfirmed} = \varforvalattime[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed}$ by the inductive hypothesis above.
+
+        Otherwise, from \Cref{lem:if-new-bc-then-output-find-latest} we know that\\ $\varforvalattime[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed}=\mathit{find\_latest\_confirmed\_descendant}(\varforvalattime[val=v,time=\slotstart(\slot(\tind)-1)]{\bconfirmed})$.
+        Then $\varforvalattime[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed} \succeq \varforvalattime[val=v,time=\slotstart(\slot(\tind)-1)]{\bconfirmed}\succeq \varforvalattime[val=v,time=\slotstart(\firstslot(\epoch(t))-1)]{\bconfirmed}$.
+
+        We also know that $\canonical[blck={\varforvalattime[val=v,time=\slotstart(\slot(\tind)-1)]{\bconfirmed}},time=t, to=\slotstart(\epoch(t)+1)]$.
+
+        This, together with the addditional inducive hypothesis allows us to apply \Cref{lem:output-find-latest-canonical-canonical-at-the-start-of-an-epoch} and conclude the proof.
+
+
+
+        % \Cref{lem:gj-prec-prev-confirmed-at-start-of-epoch} then implies that $\gjattime[time=t',val=v'] \preceq \varforvalattime[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed}$.
+
+
+        % We know that 
+        % \begin{enumerate}
+        %     \item $\mathit{find\_latest\_confirmed\_descendant}$ ensures that\\
+        %     $\mathit{isLMDGHOSTSafeFrom}(\varforvalattime[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed},t,\gjattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}],\varforvalattime[val=v,time=\slotstart(\slot(t')-1)]{\bconfirmed})$ 
+        %     \item  $\gjattime[time=t',val=v'] \preceq \varforvalattime[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed}$ implies that $\gjattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}] \preceq \varforvalattime[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed}$.
+        %     % \item Given the above, $\block(\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}])  \preceq b_o$
+        % \end{enumerate}
+        % Hence, \ref{def:induction-conditions:is-lmd-confirmed} holds.
+
+        % $\gjattime[time=t',val=v'] \preceq \varforvalattime[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed}$ and
+        % \Cref{lem:conf-prev-epoch-then-vs-two-epochs-ago} then imply \ref{def:induction-conditions:all-validators:not-filtered-out}.
+
+        % We know that $\epoch(t)-2\leq\epoch(\guattime[val=v,time={\slotstart(\firstslot(\epoch(t))-1)}])\leq\epoch(\gjattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}])\leq\epoch(\gjattime[time=t',val=v'])\leq\epoch(t)-1$.
+
+        % If $\epoch(\gjattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}])=\epoch(t)-2$, 
+        % then  $\gjattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}]= \guattime[val=v,time={\slotstart(\slot({t})-1)}]$.
+        % $\sir(b_c,t,\guattime[val=v,time={\slotstart(\slot({t})-1)}],\cdot)$ then implies $\gjattime[time=t',val=v']\succeq \gjattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}]$.
+
+        % If $\epoch(\gjattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}])=\epoch(t)-1$, 
+        % then  $\gjattime[time=t',val=v'] = \gjattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}]$.
+        % Hence, \ref{def:induction-conditions:all-validators:gj-succ} holds.
+
+
+        % % $\sir(b_c,t,\guattime[val=v,time={\slotstart(\slot({t})-1)}],\cdot)$ clearly implies \ref{def:induction-conditions:all-validators:gj-succ}$(b_o,t,\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}],b_c)$.
+
+        % % \ref{def:induction-conditions:all-validators:gj-succ-cs} is clearly implied by the Lemma's assumptions.
+
+        % % % \ref{def:induction-conditions:ub} is cleraly implied by the Lemma's assumptions.
+
+        % \ref{def:induction-conditions:no-conflicting} can be proven as in the proof of \Cref{lem:conf-prev-slot-canonical-at-the-start-of-an-epoch}: from the proof of the previous conditions, we can conclude that $\canonical[time=t,blck={\varforvalattime[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed}},to=\slotstart(\epoch(t)+1)]$ from which we can prove that  no checkpoint for epoch $\epoch(t) = \epoch(b_o)+1$ conflicting with ${\varforvalattime[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed}}$ can ever be justified.
+        % \ref{def:induction-conditions:ub} holding for ${\varforvalattime[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed}}$ implies \ref{def:induction-conditions:no-conflicting}  for epoch $\epoch(b) = \epoch(t)-1$, 
+    \end{description}
+\end{proof}
+
+\begin{lemma}\label{lem:no-conflicting-to-c-b-at-the-start-of-an-epoch}
+    % Pick any $b_c \in  \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bcands}$, any time $t' \geq \slotstartslot{t}$ and any honest validator $v'$.
+    If
+    \begin{enumerate}
+        \item $\slotstart(\firstslot(\epoch(t)-1)-1)\geq \GST$
+        \item  $t = \slotstart(\epoch(t))$
+        \item the \KwSty{if} condition at line \Cref{ln:if-bcand-npreceq-head} is false
+        % \item\label{itm:lem:conf-prev-slot-canonical-at-the-start-of-an-epoch:4} \ref{def:induction-conditions:ub} holds for $\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$
+        % \item $\slotstart(\lastslot(\epoch(t)-1)) \geq \GST$
+        % \item $\epoch(b_c) \geq \epoch(t)-1$
+        % \item $b_c \in \filtered[val=v',time=t']$
+    \end{enumerate},
+    then
+    \begin{enumerate}
+        \item no checkpoint $C$ s.t. $\epoch(C) = \epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed})$ and $C \neq \chkp(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed})$ can ever be justified
+        \item  there exists a time $t' \in \{\slotstart(s): s \in [\firstslot(\epoch(t)-1),\lastslot(\epoch(t)-1)]\}$ such that
+        \begin{enumerate}
+            \item  $\varforvalattime[val=v,time=t']{\willChkpBeJustified}(\varforvalattime[val=v,time=t']{\bconfirmed})$.
+            \item $\canonical[blck={\varforvalattime[val=v,time=t']{\bconfirmed}},time=t',to=\slotstart(\epoch(t))]$
+            \item $\varforvalattime[val=v,time=t']{\bconfirmed} \preceq \varforvalattime[val=v,time=\slotstart(\firstslot(\epoch(t))-1)]{\bconfirmed}$
+            \item $\epoch(\varforvalattime[val=v,time=t']{\bconfirmed}) = \epoch(t)-1$
+        \end{enumerate}
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+    We know that $\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed} \succeq \guattime[time=\slotstart(\slot(t)-1),val=v]$.
+
+    From \Cref{lem:epoch-gu-less-than-two-epoch-ago-start-epoch} we know that $\epoch(\guattime[time=\slotstart(\slot(t)-1),val=v]) \in \{\epoch(t-2),\epoch(t)-1\}$.
+
+    If $\epoch(\guattime[time=\slotstart(\slot(t)-1),val=v]) = \epoch(t)-1$, then we are done.
+
+    Now, assume $\epoch(\guattime[time=\slotstart(\slot(t)-1),val=v]) = \epoch(t)-2$.
+    From \Cref{lem:no-curr-epochconflict-chkp-is-justified}, we know that there exists a time $t' \in \{\slotstart(s): s \in [\firstslot(\epoch(t)-1),\lastslot(\epoch(t)-1)]\}$ such that $\varforvalattime[val=v,time=t']{\willChkpBeJustified}(\varforvalattime[val=v,time=t']{\bconfirmed})$.
+
+    \Cref{lem:conf-beginning-prec-bcand} then implies that $\varforvalattime[val=v,time=t']{\bconfirmed} \preceq \varforvalattime[val=v,time=\slotstart(\firstslot(\epoch(t))-1)]{\bconfirmed}$.
+
+    Assume then that $\varforvalattime[val=v,time=\slotstart(\firstslot(\epoch(t))-2)]{\bconfirmed} \preceq \varforvalattime[val=v,time=t']{\bconfirmed}$.
+    We know that this implies\RSfn{TBD} that $\epoch(\varforvalattime[val=v,time=\slotstart(\firstslot(\epoch(t))-2)]{\bconfirmed}) = \epoch(t)-2$.
+
+    Given that $\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed} \succeq \guattime[time=\slotstart(\slot(t)-1),val=v]$.
+    This implies that $\guattime[time=\slotstart(\slot(t)-1),val=v] = \chkp(\varforvalattime[val=v,time=\slotstart(\firstslot(\epoch(t))-2)]{\bconfirmed})$.
+    Hence, we can apply \Cref{lem:canonical-for-current-epoch-with-extra-assum} to conclude that $\canonical[blck={\varforvalattime[val=v,time=t']{\bconfirmed}},time=t',to=\slotstart(\epoch(t))]$.
+
+    Hence, because $\varforvalattime[val=v,time=t']{\willChkpBeJustified}(\varforvalattime[val=v,time=t']{\bconfirmed})$, we can conclude the proof.
+\end{proof}
+
+\begin{lemma}\label{lem:conf-prev-slot-canonical-at-the-start-of-an-epoch-no-extra-assum}
+    % Pick any $b_c \in  \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bcands}$, any time $t' \geq \slotstartslot{t}$ and any honest validator $v'$.
+    If
+    \begin{enumerate}
+        \item $\slotstart(\firstslot(\epoch(t)-1)-1)\geq \GST$
+        \item  $t = \slotstart(\epoch(t))$
+        \item the \KwSty{if} condition at line \Cref{ln:if-bcand-npreceq-head} is false
+        % \item\label{itm:lem:conf-prev-slot-canonical-at-the-start-of-an-epoch:4} \ref{def:induction-conditions:ub} holds for $\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$
+        % \item $\slotstart(\lastslot(\epoch(t)-1)) \geq \GST$
+        % \item $\epoch(b_c) \geq \epoch(t)-1$
+        % \item $b_c \in \filtered[val=v',time=t']$
+    \end{enumerate},
+    then
+    \begin{enumerate}
+        \item $\sir(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed},t,\guattime[val=v,time={\slotstart(\slot({t})-1)}],\block(\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}]))$ holds
+        \item no checkpoint $C$ s.t. $\epoch(C) = \epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed})$ and $C \neq \chkp(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed})$ can ever be justified
+        \item for any honest validators $v'$ and time $t'$ s.t. $\epoch(t') = \epoch(t)$, $\gjattime[time=t',val=v']  \preceq \varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$
+        \item for any honest validators $v'$ and time $t'$ s.t. $\epoch(t') = \epoch(t)$, $\gjattime[time=t',val=v']  \succeq \guattime[time=\slotstart(\firstslot(\epoch(t))-1),val=v]$
+        \item $\canonical[blck={\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}},time=t]$
+        \item  there exists a time $t' \in \{\slotstart(s): s \in [\firstslot(\epoch(t)-1),\lastslot(\epoch(t)-1)]\}$ such that
+        \begin{enumerate}
+            \item  $\varforvalattime[val=v,time=t']{\willChkpBeJustified}(\varforvalattime[val=v,time=t']{\bconfirmed})$.
+            \item $\canonical[blck={\varforvalattime[val=v,time=t']{\bconfirmed}},time=t',to=\slotstart(\epoch(t)+1)]$
+            \item $\varforvalattime[val=v,time=t']{\bconfirmed} \preceq \varforvalattime[val=v,time=\slotstart(\firstslot(\epoch(t))-1)]{\bconfirmed}$
+            \item $\epoch(\varforvalattime[val=v,time=t']{\bconfirmed}) = \epoch(t)-1$
+        \end{enumerate}
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}(Sketch)
+    \Cref{lem:conf-prev-slot-canonical-at-the-start-of-an-epoch,lem:no-conflicting-to-c-b-at-the-start-of-an-epoch} imply that \ref{def:induction-conditions:is-lmd-confirmed}, \ref{def:induction-conditions:all-validators} for $\sir(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed},t,\guattime[val=v,time={\slotstart(\slot({t})-1)}],\block(\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}]))$ hold, $\canonical[blck={\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}},time=t,to=\slotstart(\epoch(t)+1)]$ and that for any honest validators $v'$ and time $t'$ s.t. $\epoch(t') = \epoch(t)$, $\gjattime[time=t',val=v']  \preceq \varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$ and $\gjattime[time=t',val=v']  \succeq \guattime[time=\slotstart(\firstslot(\epoch(t))-1),val=v]$.
+
+    \Cref{lem:no-conflicting-to-c-b-at-the-start-of-an-epoch} also implies that there exists a time $t' \in \{\slotstart(s): s \in [\firstslot(\epoch(t)-1),\lastslot(\epoch(t)-1)]\}$ such that
+        \begin{enumerate}
+            \item  $\varforvalattime[val=v,time=t']{\willChkpBeJustified}(\varforvalattime[val=v,time=t']{\bconfirmed})$.
+            \item $\canonical[blck={\varforvalattime[val=v,time=t']{\bconfirmed}},time=t',to=\slotstart(\epoch(t))]$
+            \item $\varforvalattime[val=v,time=t']{\bconfirmed} \preceq \varforvalattime[val=v,time=\slotstart(\firstslot(\epoch(t))-1)]{\bconfirmed}$
+            \item $\epoch(\varforvalattime[val=v,time=t']{\bconfirmed}) = \epoch(t)-1$
+        \end{enumerate}
+
+    The above implies that $\chkp(\varforvalattime[val=v,time=t']{\bconfirmed}) = \chkp(\varforvalattime[val=v,time=\slotstart(\firstslot(\epoch(t))-1)]{\bconfirmed})$.
+    All of this allows us to apply \Cref{assm:bcand-chkp-in-allu} to conclude \ref{def:induction-conditions:ub}.
+
+     \Cref{lem:no-conflicting-to-c-b-at-the-start-of-an-epoch} and $\canonical[blck={\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}},time=t,to=\slotstart(\epoch(t)+1)]$ also imply \ref{def:induction-conditions:no-conflicting}.
+
+    Now, \Cref{lem:ffg-safety-from-sir} imply  $\canonical[blck={\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}},time=t]$
+    % Then, given $\varforvalattime[val=v,time=t']{\bconfirmed} \preceq \varforvalattime[val=v,time=\slotstart(\firstslot(\epoch(t))-1)]{\bconfirmed}$ and  $\canonical[blck={\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}},time=t,to=\slotstart(\epoch(t)+1)]$, $\canonical[blck={\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}},time=t,to=\slotstart(\epoch(t)+1)]$.
+\end{proof}
+
+\begin{lemma}\label{lem:output-find-latest-canonical-canonical-at-the-start-of-an-epoch-for-ever}
+    % Let $b_o := \varforvalattime[val=v]{\mathit{find\_latest\_confirmed\_descendant}}(b_c)$.
+    % Let $b_c$ be a block such that
+    If
+    \begin{enumerate}
+        \item $\varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed} =  \varforvalattime[val=v]{\mathit{find\_latest\_confirmed\_descendant}}(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed})$
+        \item $\slotstart(\firstslot(\epoch(t))-1)\geq \GST$
+        % \item $\sir(b_c,t,\guattime[val=v,time={\slotstart(\slot({t})-1)}],\cdot)$ holds
+        % \item $\canonical[blck=b_c,time={\varforvalattime[val=v]{t}}]$
+        % \item for any honest validators $v'$ and time $t'$ s.t. $\epoch(t') = \epoch(t)$, $\gjattime[time=t',val=v']  \preceq b_c$
+        % \item  for any honest validators $v'$ and time $t'$ s.t. $\epoch(t') = \epoch(t)$, $\gjattime[time=t',val=v']  \succeq \guattime[time=\slotstart(\firstslot(\epoch(t))-1),val=v]$
+        % \item \ref{def:induction-conditions:ub} holds for a block $b_0$ s.t. $b_0 \preceq b_c$ and $\epoch(b_0) = \epoch(t)-1$ %\varforvalattime[val=v,time=\slotstart(\firstslot(\epoch(t))-1)]{\bconfirmed}
+        % \item $\epoch(b_c) \geq \epoch(\varforvalattime[val=v]{t})-1$
+        \item $t = \slotstart(\slot(t))$
+
+        % \item $\varforvalattime[val=v]{t} = \slotstart(\epoch(\varforvalattime[val=v]{t}))$
+    \end{enumerate},
+    then
+    \begin{enumerate}
+        \item for any honest validators $v'$ and time $t'$ s.t. $\epoch(t') = \epoch(t)$, $\gjattime[time=t',val=v']  \preceq \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed}$
+        \item $\sir(\varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed},t,\varforvalattime[val=v,time=\slotstartslot{t}]{\chkp_{EBA}},\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed})$ holds
+        % \item $\sir(b_o,t,\guattime[val=v,time={\s\lotstart(\slot(\varforvalattime[val=v]{t})-1)}],b_c)$, with the exception of  \ref{def:induction-conditions:ub}, holds
+        \item $\canonical[blck={\varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed}},time={\varforvalattime[val=v]{t}}]$
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+    \Cref{lem:conf-prev-slot-canonical-at-the-start-of-an-epoch-no-extra-assum,lem:output-find-latest-canonical-canonical-at-the-start-of-an-epoch} imply \ref{def:induction-conditions:is-lmd-confirmed}, \ref{def:induction-conditions:all-validators} for $\sir(\varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed},t,\varforvalattime[val=v,time=\slotstartslot{t}]{\chkp_{EBA}},\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed})$ hold and  $\canonical[blck={\varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed}},time={\varforvalattime[val=v]{t}},to=\slotstart(\epoch(t)+1)]$
+
+    \Cref{lem:no-conflicting-to-c-b-at-the-start-of-an-epoch} also implies that there exists a time $t' \in \{\slotstart(s): s \in [\firstslot(\epoch(t)-1),\lastslot(\epoch(t)-1)]\}$ such that
+        \begin{enumerate}
+            \item  $\varforvalattime[val=v,time=t']{\willChkpBeJustified}(\varforvalattime[val=v,time=t']{\bconfirmed})$.
+            \item $\canonical[blck={\varforvalattime[val=v,time=t']{\bconfirmed}},time=t',to=\slotstart(\epoch(t))]$
+            \item $\varforvalattime[val=v,time=t']{\bconfirmed} \preceq \varforvalattime[val=v,time=\slotstart(\firstslot(\epoch(t))-1)]{\bconfirmed}$
+            \item $\epoch(\varforvalattime[val=v,time=t']{\bconfirmed}) = \epoch(t)-1$
+        \end{enumerate}
+    
+    Given that $\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed} \preceq \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed}$,
+    the above implies that $\chkp(\varforvalattime[val=v,time=t']{\bconfirmed}) = \chkp(\varforvalattime[val=v,time=\slotstart(\firstslot(\epoch(t))-1)]{\bconfirmed})$.
+    All of this allows us to apply \Cref{assm:bcand-chkp-in-allu} to conclude \ref{def:induction-conditions:ub}.
+
+    % Then, 
+
+     \Cref{lem:no-conflicting-to-c-b-at-the-start-of-an-epoch} and $\canonical[blck={\varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed}},time=t,to=\slotstart(\epoch(t)+1)]$ also imply \ref{def:induction-conditions:no-conflicting}.
+
+    Now, \Cref{lem:ffg-safety-from-sir} imply  $\canonical[blck={\varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed}},time=t]$    
+\end{proof}
+
+\begin{lemma}\label{lem:confirmed-end-first-slot-canonical-no-extra-assum}
+    If
+    \begin{enumerate}
+        \item $\slotstart(\firstslot(\epoch(t))-1)\geq \GST$
+        \item  $t = \slotstart(\epoch(t))$
+        % \item if $\varforvalattime[val=v,time=\slotstart(\firstslot(\epoch(t))-1)]{\bconfirmed} \preceq \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed}$,
+        % then no checkpoint $C$ s.t. $\epoch(C) = \epoch(\varforvalattime[val=v,time=\slotstart(\firstslot(\epoch(t))-1)]{\bconfirmed})$ and $C \neq \chkp(\varforvalattime[val=v,time=\slotstart(\firstslot(\epoch(t))-1)]{\bconfirmed})$ can ever be justified
+        % \item \ref{def:induction-conditions:ub} holds for $\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$
+        % \item \ref{def:induction-conditions:ub} holds for $\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$
+        % \item $\slotstart(\lastslot(\epoch(t)-1)) \geq \GST$
+        % \item $\epoch(b_c) \geq \epoch(t)-1$
+        % \item $b_c \in \filtered[val=v',time=t']$
+    \end{enumerate},
+    then, 
+    \begin{enumerate}
+        \item $\sir(\varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed},t,\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}],\block(\guattime[val=v,time={\slotstart(\slot(\varforvalattime[val=v]{t})-1)}]))$
+        \item $\canonical[blck={\varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed}},time=t]$
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+    It should be easy to conclude from \Cref{lem:conf-prev-slot-canonical-at-the-start-of-an-epoch-no-extra-assum,lem:gu-e-1-canonical}.
+\end{proof}
+
+\begin{lemma}\label{lem:canonical-no-extra-assum}
+    If
+    \begin{enumerate}
+        \item $\slotstart(\firstslot(\epoch(t))-1)\geq \GST$
+        \item  $t = \slotstart(\slot(t))$
+        % \item \ref{def:induction-conditions:ub} holds for $\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$
+        % \item $\slotstart(\lastslot(\epoch(t)-1)) \geq \GST$
+        % \item $\epoch(b_c) \geq \epoch(t)-1$
+        % \item $b_c \in \filtered[val=v',time=t']$
+    \end{enumerate},
+    then,
+    \begin{enumerate}
+        \item $\canonical[blck={\varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed}},time=t]$
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+    Other inductive hypothesis
+    \begin{enumerate}
+        % \item $\varforvalattime[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed} \succeq \varforvalattime[val=v,time=\slotstart(\firstslot(\epoch(t))-1)]{\bconfirmed}$
+        \item \label{itm:lem:canonical-no-extra-assum:ind-1} for any honest validators $v'$ and time $t'$ s.t. $\epoch(t') = \epoch(t)$, $\gjattime[time=t',val=v']  \preceq \varforvalattime[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed}$
+        \item  for any honest validators $v'$ and time $t'$ s.t. $\epoch(t') = \epoch(t)$, $\gjattime[time=t',val=v']  \succeq \guattime[time=\slotstart(\firstslot(\epoch(t))-1),val=v]$
+        \item \label{itm:lem:canonical-no-extra-assum:ind-3} no checkpoint $C$ s.t. $\epoch(C) = \epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed})$ and $C \neq \chkp(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed})$ can ever be justified
+        % \item if $\epoch(\varforvalattime[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed}) = \epoch(t)$, then there exists a slot $s'$ s.t. $
+    \end{enumerate}
+    \begin{description}
+        \item[Base Case: $\slot(\tind) = \firstslot(\epoch(t))$.]  \Cref{lem:confirmed-end-first-slot-canonical-no-extra-assum} proves that  $\canonical[blck={\varforvalattime[val=v,time=\slotstart(\slot(t'))]{\bconfirmed}},time=t]$.
+        \item[Inductive Step: $\slot(\tind) > \firstslot(\epoch(t))$.] 
+        Let $v'$ be any honest validator and $t' \in [t, \slotstart(\epoch(t)+1)]$.
+
+
+
+        If $\varforvalattime[val=v,time=\slotstart(\slot(\tind)-1)]{\bconfirmed} = \varforvalattime[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed}$ by the inductive hypothesis above.
+
+        Otherwise, from \Cref{lem:if-new-bc-then-output-find-latest} we know that\\ $\varforvalattime[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed}=\mathit{find\_latest\_confirmed\_descendant}(\varforvalattime[val=v,time=\slotstart(\slot(\tind)-1)]{\bconfirmed})$.
+        Then $\varforvalattime[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed} \succeq \varforvalattime[val=v,time=\slotstart(\slot(\tind)-1)]{\bconfirmed}\succeq \varforvalattime[val=v,time=\slotstart(\firstslot(\epoch(t))-1)]{\bconfirmed}$.
+
+        We also know that $\canonical[blck={\varforvalattime[val=v,time=\slotstart(\slot(\tind)-1)]{\bconfirmed}},time=t]$.
+
+
+        \begin{description}
+            \item[Case 1: ${\epoch(\varforvalattime[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed})=\epoch(t)-1}$.] 
+            
+            The above, together with the additional inductive hypothesis allows us to apply \Cref{lem:output-find-latest-canonical-canonical-at-the-start-of-an-epoch} which implies that $\canonical[blck={ \varforvalattime[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed}},time=\tind,to=\slotstart(\epoch(t)+1)]$ and 
+            \ref{def:induction-conditions:is-lmd-confirmed}, \ref{def:induction-conditions:all-validators} for $\sir({ \varforvalattime[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed}},\tind,\varforvalattime[val=v,time=\slotstartslot{\tind}]{\chkp_{EBA}},{ \varforvalattime[val=v,time=\slotstart(\slot(\tind)-1)]{\bconfirmed}})$ hold
+            Given we assume $\varforvalattime[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed} \neq \varforvalattime[val=v,time=\slotstart(\slot(\tind)-1)]{\bconfirmed}$, we know that there exists a block $b' \succeq \varforvalattime[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed}$ s.t. $\epoch(\gu(b'))\geq \epoch(t)-1$. 
+            This is sufficient to ensure \ref{def:induction-conditions:ub}.
+
+            Then,  $\canonical[blck={ \varforvalattime[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed}},time=\tind,to=\slotstart(\epoch(t)+1)]$ and the inductive hypothesis \ref{itm:lem:canonical-no-extra-assum:ind-3} imply \ref{def:induction-conditions:no-conflicting}.
+            Now, \Cref{lem:ffg-safety-from-sir} imply  $\canonical[blck={\varforvalattime[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed}},time=t]$    
+            \item [Case 2: ${\epoch(\varforvalattime[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed})=\epoch(t)}$.] 
+            We can use \Cref{lem:output-find-latest-canonical-canonical-at-the-start-of-an-epoch} to conclude \ref{def:induction-conditions:is-lmd-confirmed}.
+            \begin{description}
+                \item[$\epoch(t')=\epoch(t)$.]
+                We can use \Cref{lem:output-find-latest-canonical-canonical-at-the-start-of-an-epoch} to conclude \ref{def:induction-conditions:all-validators} and $\canonical[blck={ \varforvalattime[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed}},time=\tind,to=\slotstart(\epoch(t)+1)]$.
+                % From the inductive hypothesis \ref{itm:lem:canonical-no-extra-assum:ind-1} and \Cref{lem:conf-beginning-prec-bcand}, we can conclude that $\gjattime[time=t',val=v']  \preceq \varforvalattime[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed}$.
+                % \Cref{lem:conf-prev-epoch-then-vs-two-epochs-ago} then implies \ref{def:induction-conditions:all-validators:not-filtered-out}.
+                \item[$\epoch(t')=\epoch(t)+1$.]  
+                \Cref{lem:no-curr-epochconflict-chkp-is-justified} and the inductive hypothesis, and $\canonical[blck={ \varforvalattime[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed}},time=\tind,to=\slotstart(\epoch(t)+1)]$ ensure that any checkpoint $C$ s.t. is justified and $\epoch(C)=\epoch(t)$, then $C = \chkp( \varforvalattime[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed})$.
+                With modified hypothesis this should give us that $\gjattime[time=t',val=v']  \preceq \varforvalattime[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed}$ from which $\gjattime[time=t',val=v']  \succeq \varforvalattime[val=v,time=\slotstartslot{\tind}]{\chkp_{EBA}}$.
+                \Cref{lem:conf-prev-epoch-then-vs-two-epochs-ago} then implies that \ref{def:induction-conditions:all-validators} holds.
+                Then, \Cref{lem:ffg-condition-on-q-implies-safety} implies that $\canonical[blck={ \varforvalattime[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed}},time=\tind,to=\slotstart(\epoch(t)+2)]$.
+                All the above then implies that \ref{def:induction-conditions:no-conflicting} holds.
+                Finally, \Cref{lem:no-curr-epochconflict-chkp-is-justified}, $\canonical[blck={ \varforvalattime[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed}},time=\tind,to=\slotstart(\epoch(t)+2)]$, \Cref{lem:if-new-bc-then-output-find-latest} imply \ref{def:induction-conditions:ub}.
+            \end{description}
+            Now, \Cref{lem:ffg-safety-from-sir} imply  $\canonical[blck={\varforvalattime[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed}},time=\tind]$.
+        \end{description}
+
+    \end{description}
+\end{proof}
+
+% \begin{lemma}\label{lem:output-find-latest-canonical-canonical-at-the-start-of-an-epoch-for-ever}
+%     % Let $b_o := \varforvalattime[val=v]{\mathit{find\_latest\_confirmed\_descendant}}(b_c)$.
+%     Let $b_c$ be a block such that
+%     If
+%     \begin{enumerate}
+%         \item $\varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed} =  \varforvalattime[val=v]{\mathit{find\_latest\_confirmed\_descendant}}(b_c)$
+%         \item $\slotstart(\firstslot(\epoch(t))-1)\geq \GST$
+%         % \item $\sir(b_c,t,\guattime[val=v,time={\slotstart(\slot({t})-1)}],\cdot)$ holds
+%         \item $\canonical[blck=b_c,time={\varforvalattime[val=v]{t}}]$
+%         \item \label{itm:lem:output-find-latest-canonical-canonical-at-the-start-of-an-epoch:4}for any honest validators $v'$ and time $t'$ s.t. $\epoch(t') = \epoch(t)$, $\gjattime[time=t',val=v']  \preceq b_c$
+%         \item  \label{itm:lem:output-find-latest-canonical-canonical-at-the-start-of-an-epoch:5}for any honest validators $v'$ and time $t'$ s.t. $\epoch(t') = \epoch(t)$, $\gjattime[time=t',val=v']  \succeq \guattime[time=\slotstart(\firstslot(\epoch(t))-1),val=v]$
+%         % \item \ref{def:induction-conditions:ub} holds for a block $b_0$ s.t. $b_0 \preceq b_c$ and $\epoch(b_0) = \epoch(t)-1$ %\varforvalattime[val=v,time=\slotstart(\firstslot(\epoch(t))-1)]{\bconfirmed}
+%         % \item $\epoch(b_c) \geq \epoch(\varforvalattime[val=v]{t})-1$
+%         \item $t = \slotstart(\slot(t))$
+
+%         % \item $\varforvalattime[val=v]{t} = \slotstart(\epoch(\varforvalattime[val=v]{t}))$
+%     \end{enumerate},
+%     then
+%     \begin{enumerate}
+%         \item for any honest validators $v'$ and time $t'$ s.t. $\epoch(t') = \epoch(t)$, $\gjattime[time=t',val=v']  \preceq \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed}$
+%         \item \ref{def:induction-conditions:is-lmd-confirmed}, \ref{def:induction-conditions:all-validators} for $\sir(\varforvalattime[val=v,time=\slotstart(\slot(t))]{\bconfirmed},t,\varforvalattime[val=v,time=\slotstartslot{t}]{\chkp_{EBA}},b_c)$ hold
+%         % \item $\sir(b_o,t,\guattime[val=v,time={\s\lotstart(\slot(\varforvalattime[val=v]{t})-1)}],b_c)$, with the exception of  \ref{def:induction-conditions:ub}, holds
+%         \item $\canonical[blck=b_o,time={\varforvalattime[val=v]{t}}]$
+%     \end{enumerate}
+% \end{lemma}
+
+
+\RS{Test}
+
+
+
 \begin{lemma}\label{lem:bcand-prev-epoch-no-conflict-with-gj}
     Pick any $b_c \in  \varforvalattime[val=v,time=\slotstart(\slot(t))]{\bcands}$.
     If
@@ -2382,6 +3230,8 @@ Finally, by the Definition 3 of the paper $\epoch(\gjattime[val=v',time=\slotsta
         \item $b_c$ does not conflict with $\gjattime[val=v',time=t']$
     \end{enumerate}
 \end{lemma}
+
+
 
 \begin{proof}
     By induction on $t'$.
