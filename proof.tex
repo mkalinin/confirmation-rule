@@ -2420,73 +2420,68 @@ Finally, by the Definition 3 of the paper $\epoch(\gjattime[val=v',time=\slotsta
 \end{proof}
 
 \begin{lemma}\label{lem:beta-less-than-quarter-no-reconfirmation-required}
+    Let $s' := \firstslot(\epoch(t)+1)$, $\chkp' := \guattime[val=v,time=\slotstart(s'-1)]$, $b := \varforvalattime[val=v,time=\slotstartslot{t})]{\bconfirmed}$.
     If
     \begin{enumerate}
         \item $\firstslot(\epoch(t)) \geq \GST$
-        \item $\epoch(\varforvalattime[val=v,time=\slotstartslot{t}]{\bconfirmed}) = \epoch(t)$
+        \item $\epoch(b) = \epoch(t)$
         \item $\beta \leq \frac{1}{4}$
     \end{enumerate},
-    then, let $s' := \firstslot(\epoch(t)+1)$, $\chkp' := \guattime[val=v,time=\slotstart(s'-1)]$, $b := \varforvalattime[val=v,time=\slotstartslot{t})]{\bconfirmed}$,
+    then,
     \begin{enumerate}
         \item $Q^{s'-1, v, \slotstart(s'), \chkp'}_{b} > \frac{1}{2}\left(1 + \frac{W^{\chkp'}_p}{W^{s'-1, \chkp'}_b}\right) + \beta - \frac{D^{s'-1, v, \slotstart(s'), \chkp'}_b}{W^{s'-1, \chkp'}_b}$
     \end{enumerate}
 \end{lemma}
 
 \begin{proof}
-    Let $s$ be the lowest slot such that $\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed} = \varforvalattime[val=v,time=\slotstartslot{t}]{\bconfirmed}$. Due to \Cref{lem:bcand-current-epoch-then-no-first-slot} we know that $s > \firstslot(\epoch(t))$.
-    Then due to \Cref{ln:if-is-one-confirmed-second-loop} we have:
+    Let $s$ be the lowest slot such that $\varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed} = b$. Due to \Cref{lem:bcand-current-epoch-then-no-first-slot} we know that $s > \firstslot(\epoch(t))$, thus $C = \gjattime[val=v,time=\slotstart(s)-1]$ in this case.
+    Given $\chkp \preceq \chkp'$ \MKfn{This requires a proof} we conclude the following:
+    \begin{itemize}
+        \item $S^{s-1, v, \slotstart(s), \chkp}_{b} = S^{s-1, v, \slotstart(s'), \chkp'}_{b} + \left(D^{s-1, v, \slotstart(s'), \chkp'}_{b}-D^{s-1, v, \slotstart(s), \chkp}_{b}\right)$ --
+        because $S^{s-1, v, \slotstart(s')}_{b} = S^{s-1, v, \slotstart(s)}_{b} \setminus \left(D^{s-1, v, \slotstart(s')}_{b} \setminus D^{s-1, v, \slotstart(s)}_{b}\right)$ and Assumption 1 of the Paper,
+        \item $D^{s-1, v, \slotstart(s'), \chkp}_{b} \leq D^{s'-1, v, \slotstart(s'), \chkp'}_{b}$ --
+        because $D^{s-1, v, \slotstart(s')}_{b} \subseteq D^{s'-1, v, \slotstart(s')}_{b}$ and Assumption 1 of the Paper,
+        \item $W^{s-1,\chkp'}_b \leq W^{s-1,\chkp}_b$ -- because of Assumption 1 of the Paper,
+        \item $W^{\chkp'}_p \leq W^{\chkp}_p$ -- because of Assumption 1 of the Paper,
+        \item $W^{s'-1,\chkp'}_b = W^{s-1,\chkp'}_b + W^{s'-1,\chkp'}_s$ -- because $W^{s'-1}_b = W^{s-1}_b \cup W^{s'-1}_s$,
+        \item $S^{s'-1, v, \slotstart(s'), \chkp'}_{b} = S^{s-1, v, \slotstart(s'), \chkp'}_{b} + S^{s'-1, v, \slotstart(s'), \chkp'}_{s}$ -- because $S^{s'-1, v, \slotstart(s')}_{b} = S^{s-1, v, \slotstart(s')}_{b} \cup S^{s'-1, v, \slotstart(s')}_{s}$.
+    \end{itemize}
+
+    Due to \Cref{ln:if-is-one-confirmed-second-loop} we have:
     \begin{align*}
         Q^{s-1, v, \slotstart(s), \chkp}_{b} > \frac{1}{2}\left(1 + \frac{W^{\chkp}_p}{W^{s-1, \chkp}_b}\right) + \beta - \frac{D^{s-1, v, \slotstart(s), \chkp}_b}{W^{s-1, \chkp}_b},\\
-        \frac{S^{s-1, v, \slotstart(s), \chkp}_{b}}{W^{s-1, \chkp}_{b}} > \frac{1}{2}\left(1 + \frac{W^{\chkp}_p}{W^{s-1, \chkp}_b}\right) + \beta - \frac{D^{s-1, v, \slotstart(s), \chkp}_b}{W^{s-1, \chkp}_b},\\
-        S^{s-1, v, \slotstart(s), \chkp}_{b} > \frac{1}{2}\left({W^{s-1, \chkp}_b} + W^{\chkp}_p\right) + \beta W^{s-1, \chkp}_b - D^{s-1, v, \slotstart(s), \chkp}_b,\\
-        S^{s-1, v, \slotstart(s), \chkp}_{b} > \left(\frac{1}{2} + \beta\right){W^{s-1, \chkp}_b} + \frac{1}{2} W^{\chkp}_p - D^{s-1, v, \slotstart(s), \chkp}_b.
+        \frac{S^{s-1, v, \slotstart(s), \chkp}_{b}}{W^{s-1, \chkp}_{b}} > \frac{1}{2}\left(1 + \frac{W^{\chkp}_p}{W^{s-1, \chkp}_b}\right) + \beta - \frac{D^{s-1, v, \slotstart(s), \chkp}_b}{W^{s-1, \chkp}_b}\\ \text{-- By definition},\\
+        S^{s-1, v, \slotstart(s), \chkp}_{b} > \left(\frac{1}{2} + \beta\right){W^{s-1, \chkp}_b} + \frac{1}{2} W^{\chkp}_p - D^{s-1, v, \slotstart(s), \chkp}_b\\ \text{-- By simplification},\\
+        S^{s-1, v, \slotstart(s'), \chkp'}_{b} + D^{s-1, v, \slotstart(s'), \chkp'}_{b}-D^{s-1, v, \slotstart(s), \chkp}_{b}\\ > \left(\frac{1}{2} + \beta\right){W^{s-1, \chkp}_b} + \frac{1}{2} W^{\chkp}_p - D^{s-1, v, \slotstart(s), \chkp}_b\\ \text{-- By substitution},\\
+        S^{s-1, v, \slotstart(s'), \chkp'}_{b} > \left(\frac{1}{2} + \beta\right){W^{s-1, \chkp}_b} + \frac{1}{2} W^{\chkp}_p - D^{s-1, v, \slotstart(s'), \chkp'}_b\\ \text{-- By simplification},\\
+        S^{s-1, v, \slotstart(s'), \chkp'}_{b} > \left(\frac{1}{2} + \beta\right){W^{s-1, \chkp'}_b} + \frac{1}{2} W^{\chkp'}_p - D^{s-1, v, \slotstart(s'), \chkp'}_b\\ \text{-- As } W^{s-1,\chkp'}_b \leq W^{s-1,\chkp}_b \text{ and } W^{\chkp'}_p \leq W^{\chkp}_p,\\
+        S^{s-1, v, \slotstart(s'), \chkp'}_{b} > \left(\frac{1}{2} + \beta\right){W^{s-1, \chkp'}_b} + \frac{1}{2} W^{\chkp'}_p - D^{s'-1, v, \slotstart(s'), \chkp'}_b\\ \text{-- As } D^{s-1, v, \slotstart(s'), \chkp}_{b} \leq D^{s'-1, v, \slotstart(s'), \chkp'}_{b}.\\
     \end{align*}
-    given that $s > \firstslot(\epoch(t))$, $C = \gjattime[val=v,time=\slotstart(s)-1]$ in this case.
-    Due to $\chkp \preceq \chkp'$ \MKfn{This requires a proof} and Assumption 1 of the Paper $\weightofset[chkp=\chkp']{W_t} + \weightofset[chkp=\chkp']{D} = \weightofset[chkp=\chkp]{W_t} + \weightofset[chkp=\chkp]{D}$, therefore the following is true:
-    \begin{itemize}
-        \item $S^{s-1, v, \slotstart(s), \chkp}_{b} \leq S^{s-1, v, \slotstart(s'), \chkp'}_{b}$, because $S^{s-1, v, \slotstart(s)}_{b} \subseteq S^{s-1, v, \slotstart(s')}_{b}$,
-        \item $D^{s-1, v, \slotstart(s), \chkp}_{b} \leq D^{s'-1, v, \slotstart(s'), \chkp'}_{b}$, because $D^{s-1, v, \slotstart(s)}_{b} \subseteq D^{s'-1, v, \slotstart(s')}_{b}$,
-        \item $W^{s-1,\chkp'}_b \leq W^{s-1,\chkp}_b$,
-        \item $W^{\chkp'}_p \leq W^{\chkp}_p$.
-    \end{itemize}
-    With this in mind and the fact that
-    \begin{align*}
-        S^{s-1, v, \slotstart(s), \chkp}_{b} > \left(\frac{1}{2} + \beta\right){W^{s-1, \chkp}_b} + \frac{1}{2} W^{\chkp}_p - D^{s-1, v, \slotstart(s), \chkp}_b,
-    \end{align*}
-    we conclude:
-    \begin{align*}
-        S^{s-1, v, \slotstart(s'), \chkp'}_{b} > \left(\frac{1}{2} + \beta\right){W^{s-1, \chkp'}_b} + \frac{1}{2} W^{\chkp'}_p - D^{s'-1, v, \slotstart(s'), \chkp'}_b.
-    \end{align*}
-    Then we proceed with the inequality from the Lemma's statement:
+    
+    Given the above, we proceed with the inequality from the Lemma's statement:
     \begin{align*}
         Q^{s'-1, v, \slotstart(s'), \chkp'}_{b} > \frac{1}{2}\left(1 + \frac{W^{\chkp'}_p}{W^{s'-1, \chkp'}_b}\right) + \beta - \frac{D^{s'-1, v, \slotstart(s'), \chkp'}_b}{W^{s'-1, \chkp'}_b},\\
-        \frac{S^{s'-1, v, \slotstart(s'), \chkp'}_{b}}{W^{s'-1, \chkp'}_{b}} > \frac{1}{2}\left(1 + \frac{W^{\chkp'}_p}{W^{s'-1, \chkp'}_b}\right) + \beta - \frac{D^{s'-1, v, \slotstart(s), \chkp'}_b}{W^{s'-1, \chkp'}_b},\\
-        S^{s'-1, v, \slotstart(s'), \chkp'}_{b} > \left(\frac{1}{2} + \beta\right){W^{s'-1, \chkp'}_b} + \frac{1}{2} W^{\chkp'}_p - D^{s'-1, v, \slotstart(s'), \chkp'}_b,\\
-        S^{s'-1, v, \slotstart(s'), \chkp'}_{s} + S^{s-1, v, \slotstart(s'), \chkp'}_{b} >\\ \left(\frac{1}{2} + \beta\right){W^{s-1, \chkp'}_b} + \frac{1}{2} W^{\chkp'}_p - D^{s'-1, v, \slotstart(s'), \chkp'}_b + \left(\frac{1}{2} + \beta\right){W^{s'-1, \chkp'}_s},\\
-    \end{align*}
-    given
-    \begin{align*}
-        S^{s-1, v, \slotstart(s'), \chkp'}_{b} > \left(\frac{1}{2} + \beta\right){W^{s-1, \chkp'}_b} + \frac{1}{2} W^{\chkp'}_p - D^{s'-1, v, \slotstart(s'), \chkp'}_b,
-    \end{align*}
-    we do the following simplification:
-    \begin{align*}
-        S^{s'-1, v, \slotstart(s'), \chkp'}_{s} \geq \left(\frac{1}{2} + \beta\right){W^{s'-1, \chkp'}_s},\\
-        \left(1-\beta\right){W^{s'-1, \chkp'}_s} \geq \left(\frac{1}{2} + \beta\right){W^{s'-1, \chkp'}_s} \text{-- By the synchrony assumption},\\
-        1-\beta \geq \frac{1}{2} + \beta \ \text{-- By simplification},\\
+        \frac{S^{s'-1, v, \slotstart(s'), \chkp'}_{b}}{W^{s'-1, \chkp'}_{b}} > \frac{1}{2}\left(1 + \frac{W^{\chkp'}_p}{W^{s'-1, \chkp'}_b}\right) + \beta - \frac{D^{s'-1, v, \slotstart(s), \chkp'}_b}{W^{s'-1, \chkp'}_b}\\ \text{-- By definition},\\
+        S^{s'-1, v, \slotstart(s'), \chkp'}_{b} > \left(\frac{1}{2} + \beta\right){W^{s'-1, \chkp'}_b} + \frac{1}{2} W^{\chkp'}_p - D^{s'-1, v, \slotstart(s'), \chkp'}_b\\ \text{-- By simplification},\\
+        S^{s'-1, v, \slotstart(s'), \chkp'}_{s} + S^{s-1, v, \slotstart(s'), \chkp'}_{b} >\\ \left(\frac{1}{2} + \beta\right){W^{s-1, \chkp'}_b} + \frac{1}{2} W^{\chkp'}_p - D^{s'-1, v, \slotstart(s'), \chkp'}_b + \left(\frac{1}{2} + \beta\right){W^{s'-1, \chkp'}_s}\\ \text{-- By substitution},\\
+        S^{s'-1, v, \slotstart(s'), \chkp'}_{s} \geq \left(\frac{1}{2} + \beta\right){W^{s'-1, \chkp'}_s}\\ \text{-- As } S^{s-1, v, \slotstart(s'), \chkp'}_{b} > \left(\frac{1}{2} + \beta\right){W^{s-1, \chkp'}_b} + \frac{1}{2} W^{\chkp'}_p - D^{s'-1, v, \slotstart(s'), \chkp'}_b,\\
+        \left(1-\beta\right){W^{s'-1, \chkp'}_s} \geq \left(\frac{1}{2} + \beta\right){W^{s'-1, \chkp'}_s}\\ \text{-- By the synchrony assumption},\\
+        1-\beta \geq \frac{1}{2} + \beta\\ \text{-- By simplification},\\
         2\beta \leq \frac{1}{2},\\
         \beta \leq \frac{1}{4}.
     \end{align*}
-    Given conditions of the Lemma's statement the proof is concluded.
+    Given $\beta \leq \frac{1}{4}$ condition of the Lemma's statement the proof is concluded.
 \end{proof}
 
-\begin{lemma}
+\begin{lemma}\label{lem:beta-less-than-quarter-no-reconfirmation-required-bconf-prev-epoch}
+    Let $s' := \firstslot(\epoch(t)+1)$, $\chkp' := \guattime[val=v,time=\slotstart(s'-1)]$.
     If
     \begin{enumerate}
         \item $\firstslot(\epoch(t)) \geq \GST$
         \item $\epoch(\varforvalattime[val=v,time=\slotstartslot{t}]{\bconfirmed}) = \epoch(t)$
         \item $\beta \leq \frac{1}{4}$
     \end{enumerate},
-    then, let $s' := \firstslot(\epoch(t)+1)$, $\chkp' := \guattime[val=v,time=\slotstart(s'-1)]$, for $\forall b' \prec \varforvalattime[val=v,time=\slotstartslot{t}]{\bconfirmed}$ such that $\epoch(b) = \epoch(t)-1$,
+    then, $\forall b' \prec \varforvalattime[val=v,time=\slotstartslot{t}]{\bconfirmed}$ such that $\epoch(b') = \epoch(t)-1$,
     \begin{enumerate}
         \item $Q^{s'-1, v, \slotstart(s'), \chkp'}_{b'} > \frac{1}{2}\left(1 + \frac{W^{\chkp'}_p}{W^{s'-1, \chkp'}_{b'}}\right) + \beta - \frac{D^{s'-1, v, \slotstart(s'), \chkp'}_{b'}}{W^{s'-1, \chkp'}_{b'}}$
     \end{enumerate}
@@ -2494,25 +2489,46 @@ Finally, by the Definition 3 of the paper $\epoch(\gjattime[val=v',time=\slotsta
 
 \begin{proof}
     Let $b \preceq \varforvalattime[val=v,time=\slotstartslot{t}]{\bconfirmed}$ be the lowest block in the chain of $\varforvalattime[val=v,time=\slotstartslot{t}]{\bconfirmed}$ such that $\epoch(b)=\epoch(t)$.
-    Clearly $b = \varforvalattime[val=v,time=\slotstartslot{t'}]{\bconfirmed}$ for some time $t' \leq t$.
-    Then due to \Cref{lem:beta-less-than-quarter-no-reconfirmation-required} we have:
-    \begin{align*}
-        \frac{S^{s'-1, v, \slotstart(s'), \chkp'}_{b}}{W^{s'-1,\chkp'}_b} > \frac{1}{2}\left(1 + \frac{W^{\chkp'}_p}{W^{s'-1, \chkp'}_{b}}\right) + \beta - \frac{D^{s'-1, v, \slotstart(s'), \chkp'}_{b}}{W^{s'-1, \chkp'}_{b}},\\
-        S^{s'-1, v, \slotstart(s'), \chkp'}_{b} > \frac{1}{2}\left({W^{s'-1,\chkp'}_b} + {W^{\chkp'}_p}\right) + \beta W^{s'-1,\chkp'}_b - D^{s'-1, v, \slotstart(s'), \chkp'}_{b}.
-    \end{align*}
-    Given $b$ is the lowest block such that $\epoch(b)=\epoch(t)$ and the fact that $\epoch(b') = \epoch(t)-1$, we can conclude the following:
+    Clearly $b = \varforvalattime[val=v,time=\slotstartslot{t'}]{\bconfirmed}$ for some time $t' \leq t$ such that $\epoch(t')=\epoch(t)$ \MKfn{This might need to be proved.}.
+    Given that we can conclude the following:
     \begin{itemize}
-        \item $W^{s'-1,\chkp'}_b = W^{s'-1,\chkp'}_{b'} = W^{\chkp'}_t$,
-        \item $S^{s'-1, v, \slotstart(s'), \chkp'}_{b'} \geq S^{s'-1, v, \slotstart(s'), \chkp'}_{b}$, because $b' \prec b$ and thus $S^{s'-1, v, \slotstart(s'), \chkp'}_{b} \subset S^{s'-1, v, \slotstart(s'), \chkp'}_{b'}$,
-        \item $D^{s'-1, v, \slotstart(s'), \chkp'}_{b'} \geq D^{s'-1, v, \slotstart(s'), \chkp'}_{b}$, because $D^{s'-1, v, \slotstart(s'), \chkp'}_{b} \subset D^{s'-1, v, \slotstart(s'), \chkp'}_{b'}$.
+        \item $W^{s'-1,\chkp'}_b = W^{s'-1,\chkp'}_{b'}$, because $\parentslotplusone(b') \leq \parentslotplusone(b) \leq \firstslot(\epoch(t))$ and thus $W^{s'-1}_b = W^{s'-1}_{b'} = W_t$,
+        \item $S^{s'-1, v, \slotstart(s'), \chkp'}_{b'} \geq S^{s'-1, v, \slotstart(s'), \chkp'}_{b}$, because $S^{s'-1, v, \slotstart(s')}_{b} \subseteq S^{s'-1, v, \slotstart(s')}_{b'}$ due to $b' \prec b$,
+        \item $D^{s'-1, v, \slotstart(s'), \chkp'}_{b'} \geq D^{s'-1, v, \slotstart(s'), \chkp'}_{b}$, because $D^{s'-1, v, \slotstart(s')}_{b} \subseteq D^{s'-1, v, \slotstart(s')}_{b'}$.
     \end{itemize}
 
-    Given the above we have:
+    Due to \Cref{lem:beta-less-than-quarter-no-reconfirmation-required} we have:
     \begin{align*}
-        S^{s'-1, v, \slotstart(s'), \chkp'}_{b'} > \frac{1}{2}\left({W^{s'-1,\chkp'}_{b'}} + {W^{\chkp'}_p}\right) + \beta W^{s'-1,\chkp'}_{b'} - D^{s'-1, v, \slotstart(s'), \chkp'}_{b'},\\
-        \frac{S^{s'-1, v, \slotstart(s'), \chkp'}_{b'}}{W^{s'-1,\chkp'}_{b'}} > \frac{1}{2}\left(1 + \frac{W^{\chkp'}_p}{W^{s'-1, \chkp'}_{b'}}\right) + \beta - \frac{D^{s'-1, v, \slotstart(s'), \chkp'}_{b'}}{W^{s'-1, \chkp'}_{b'}}.
+        Q^{s'-1, v, \slotstart(s'), \chkp'}_{b} > \frac{1}{2}\left(1 + \frac{W^{\chkp'}_p}{W^{s'-1, \chkp'}_{b}}\right) + \beta - \frac{D^{s'-1, v, \slotstart(s'), \chkp'}_{b}}{W^{s'-1, \chkp'}_{b}},\\
+        \frac{S^{s'-1, v, \slotstart(s'), \chkp'}_{b}}{W^{s'-1,\chkp'}_b} > \frac{1}{2}\left(1 + \frac{W^{\chkp'}_p}{W^{s'-1, \chkp'}_{b}}\right) + \beta - \frac{D^{s'-1, v, \slotstart(s'), \chkp'}_{b}}{W^{s'-1, \chkp'}_{b}}\\ \text{-- By definition},\\
+        \frac{S^{s'-1, v, \slotstart(s'), \chkp'}_{b}}{W^{s'-1,\chkp'}_{b'}} > \frac{1}{2}\left(1 + \frac{W^{\chkp'}_p}{W^{s'-1, \chkp'}_{b'}}\right) + \beta - \frac{D^{s'-1, v, \slotstart(s'), \chkp'}_{b}}{W^{s'-1, \chkp'}_{b'}}\\ \text{-- As } W^{s'-1,\chkp'}_b = W^{s'-1,\chkp'}_{b'}, \\
+        \frac{S^{s'-1, v, \slotstart(s'), \chkp'}_{b'}}{W^{s'-1,\chkp'}_{b'}} > \frac{1}{2}\left(1 + \frac{W^{\chkp'}_p}{W^{s'-1, \chkp'}_{b'}}\right) + \beta - \frac{D^{s'-1, v, \slotstart(s'), \chkp'}_{b'}}{W^{s'-1, \chkp'}_{b'}}\\
+        \text{-- As } S^{s'-1, v, \slotstart(s'), \chkp'}_{b'} \geq S^{s'-1, v, \slotstart(s'), \chkp'}_{b} \text{and}\\ D^{s'-1, v, \slotstart(s'), \chkp'}_{b'} \geq D^{s'-1, v, \slotstart(s'), \chkp'}_{b}, \\
+        Q^{s'-1, v, \slotstart(s'), \chkp'}_{b'} > \frac{1}{2}\left(1 + \frac{W^{\chkp'}_p}{W^{s'-1, \chkp'}_{b'}}\right) + \beta - \frac{D^{s'-1, v, \slotstart(s'), \chkp'}_{b'}}{W^{s'-1, \chkp'}_{b'}}\\ \text{-- By definition}.
     \end{align*}
-    Which concludes the proof.
+\end{proof}
+
+\begin{lemma}
+    If
+    \begin{enumerate}
+        \item $\firstslot(\epoch(t)-1) \geq \GST$
+        \item $\epoch(\varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) = \epoch(t)-1$
+        \item $\beta \leq \frac{1}{4}$
+    \end{enumerate},
+    then, $\forall b' \succeq \guattime[val=v,time=\slotstart(\slot(t)-1)]$ such that $b' \preceq \varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$,
+    \begin{enumerate}
+        \item $Q^{s'-1, v, \slotstart(s'), \chkp'}_{b'} > \frac{1}{2}\left(1 + \frac{W^{\chkp'}_p}{W^{s'-1, \chkp'}_{b'}}\right) + \beta - \frac{D^{s'-1, v, \slotstart(s'), \chkp'}_{b'}}{W^{s'-1, \chkp'}_{b'}}$
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+    Due to \Cref{lem:conf-current-epoch-then-gu-curr-epoch} we know that $\exists b'' \in \viewattime[val=v,time=\slotstart(\slot(t)-1)], b'' \succeq \varforvalattime[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed} \land \epoch(\gu(b')) \geq \epoch(t)-2$.
+    Then we can conclude that $\epoch(\guattime[val=v,time=\slotstart(\slot(t)-1)]) \geq \epoch(t)-2$.
+    By cases.
+    \begin{description}
+        \item[Case 1: {$\epoch(b') = \epoch(t)-1$}.] Implies  \MKfn{Might need a proof.} that there exists slot $s$ such that $\epoch(s)=\epoch(t)-1$ for which $b' = \varforvalattime[val=v,time=\slotstart(s)]{\bconfirmed}$. Apply \Cref{lem:beta-less-than-quarter-no-reconfirmation-required}.
+        \item[Case 2: {$\epoch(b') \neq \epoch(t)-1$}.] Implies $\epoch(b') = \epoch(t)-2$. Apply \Cref{lem:beta-less-than-quarter-no-reconfirmation-required-bconf-prev-epoch}.
+    \end{description}
 \end{proof}
 
 \MK{Done till here. The rest of the lemmas must be revisited as might not be needed.}
