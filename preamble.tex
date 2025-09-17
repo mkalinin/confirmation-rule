@@ -483,6 +483,27 @@
     \ensuremath{\guviewsym^{\guattime@Time\ifthenelse{\equal{\guattime@Val}{}}{}{,\guattime@Val}}}%
 }%
 
+
+\define@key{ceba}{time}{\def\ceba@Time{#1}}
+\define@key{ceba}{val}{\def\ceba@Val{#1}}
+\setkeys{ceba}{time=,val=}
+\newcommand{\ceba}[1][]{%
+    \setkeys{ceba}{time=,val=}%
+    \setkeys{ceba}{#1}%
+    \ensuremath{\chkp_\mathsf{EBA}^{\ceba@Time,\ceba@Val}}%
+}%
+
+
+\define@key{bconfirmed}{time}{\def\bconfirmed@Time{#1}}
+\define@key{bconfirmed}{val}{\def\bconfirmed@Val{#1}}
+\setkeys{bconfirmed}{time=,val=}
+\newcommand{\bconfirmed}[1][]{%
+    \setkeys{bconfirmed}{time=,val=}%
+    \setkeys{bconfirmed}{#1}%
+    \ifthenelse{\equal{\bconfirmed@Time}{}\and\equal{\bconfirmed@Val}{}}{\ensuremath{b_\mathsf{confirmed}}}%
+    {{\ensuremath{b_\mathsf{bconfirmed}^{\bconfirmed@Time,\bconfirmed@Val}}}}%
+}%
+
 % \define@key{jviewall}{time}{\def\jviewall@Time{#1}}
 % \define@key{jviewall}{val}{\def\jviewall@Val{#1}}
 % \setkeys{jviewall}{time=,val=}
@@ -579,6 +600,19 @@
     \ensuremath{\mathsf{children}(\children@Blck,\children@View)}%
 }%
 
+\makeatletter
+% \siritem{<suffix>}{<label-name>}
+\newcommand{\siritem}[1]{%
+  % Visible label: use next number (= current value + 1) because \item[...] won't step.
+  \item[SIR.\number\numexpr\value{\@listctr}+1\relax#1]%
+  % Now step the counter so numbering and anchors are correct:
+  \refstepcounter{\@listctr}%
+  % Make \ref print the augmented text:
+  \edef\@currentlabel{SIR.\arabic{\@listctr}}%
+  %\label{#2}%
+}
+\makeatother
+
 \crefname{assumption}{assumption}{assumptions}
 \Crefname{assumption}{Assumption}{Assumptions}
 \crefname{condition}{condition}{conditions}
@@ -651,8 +685,8 @@
 \DeclareMathOperator*{\argmin}{arg\,min}
 \DeclareMathOperator*{\sumop}{sum}
 %\DeclareMathOperator*{\argmax}{arg\,max}
-\newcommand{\firstslot}[0]{\ensuremath{\mathsf{first\_slot}}}
-\newcommand{\lastslot}[0]{\ensuremath{\mathsf{last\_slot}}}
+\newcommand{\firstslot}[0]{\ensuremath{\mathsf{fslot}}}
+\newcommand{\lastslot}[0]{\ensuremath{\mathsf{lslot}}}
 \newcommand{\allU}[0]{\ensuremath{\mathsf{AU}}}
 \newcommand{\allF}[0]{\ensuremath{\mathsf{AF}}}
 
@@ -690,7 +724,7 @@
 % \newcommand{\children}{{\ensuremath{\mathit{children}}}}
 \newcommand{\receivedattime}{{\ensuremath{\mathit{rcvd\_time}}}}
 \newcommand{\banchor}{\ensuremath{b_\mathsf{anchor}}}
-\newcommand{\bconfirmed}{\ensuremath{b_\mathsf{confirmed}}}
+% \newcommand{\bconfirmed}{\ensuremath{b_\mathsf{confirmed}}}
 \newcommand{\blmdconfirmed}{\ensuremath{b_\mathsf{lmd\_confirmed}}}
 \newcommand{\bcand}{\ensuremath{b_\mathsf{cand}}}
 \newcommand{\bcands}{\ensuremath{b_\mathsf{cands}}}
@@ -701,6 +735,12 @@
 \newcommand{\phead}{\ensuremath{prev\_head}}
 \newcommand{\sir}{\mathrm{SIR}}
 \newcommand{\tind}{t_\mathsf{ind}}
+\newcommand{\sind}{s_\mathsf{ind}}
+\newcommand{\sirone}{\ref{def:induction-conditions:is-lmd-confirmed}\xspace}
+\newcommand{\sirtwo}{\ref{def:induction-conditions:all-validators:not-filtered-out}\xspace}
+\newcommand{\sirthree}{\ref{def:induction-conditions:all-validators:gj-succ}\xspace}
+\newcommand{\sirfour}{\ref{def:induction-conditions:ub}\xspace}
+\newcommand{\sirfive}{\ref{def:induction-conditions:no-conflicting}\xspace}
 
 
 
@@ -885,6 +925,9 @@
 
 \renewlist{enumerate*}{enumerate*}{2}
 \setlist[enumerate*,1,2]{label=(\roman*),itemjoin={{, }}, itemjoin*={{, and }}}
+% \setlist[description]{style=multiline}
+
+% \setlist[description]{style=multiline, labelwidth=\linewidth, leftmargin=!, labelsep=1em}
 
 
 \DeclareMathOperator*{\argmax}{arg\,max}
