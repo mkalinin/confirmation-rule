@@ -578,18 +578,18 @@
    \hypertarget{#2}{}%
 }
 
-\define@key{varforvalattime}{time}{\def\varforvalattime@Time{#1}}
-\define@key{varforvalattime}{val}{\def\varforvalattime@Val{#1}}
-\setkeys{varforvalattime}{time=,val=}
-\newcommand{\varforvalattime}[2][]{%
-    \setkeys{varforvalattime}{#1}%
+\define@key{var}{time}{\def\var@Time{#1}}
+\define@key{var}{val}{\def\var@Val{#1}}
+\setkeys{var}{time=,val=}
+\newcommand{\var}[2][]{%
+    \setkeys{var}{#1}%
     \ensuremath{%
         \ifthenelse%
-        {\equal{\varforvalattime@Time}%
+        {\equal{\var@Time}%
         {}}%
-        {#2^{\varforvalattime@Val}}
-        {#2^{\varforvalattime@Val,\varforvalattime@Time}}}%
-        \setkeys{varforvalattime}{time=,val=}%
+        {#2^{\var@Val}}
+        {#2^{\var@Val,\var@Time}}}%
+        \setkeys{var}{time=,val=}%
 }%
 
 \define@key{children}{view}{\def\children@View{#1}}
@@ -763,7 +763,7 @@
 
 
 
-\newcommand{\var}[1]{\textit{#1}}
+% \newcommand{\var}[1]{\textit{#1}}
 \newcommand{\op}[1]{\textsl{#1}}
 \newcommand{\calF}{\mathcal{F}}
 \newcommand{\calH}{\mathcal{H}}
