@@ -686,6 +686,8 @@
 \DeclareMathOperator*{\sumop}{sum}
 %\DeclareMathOperator*{\argmax}{arg\,max}
 \newcommand{\firstslot}[0]{\ensuremath{\mathsf{fslot}}}
+\newcommand{\prevfirstslot}[1]{\ensuremath{\firstslot(#1)-1}}
+\newcommand{\prevfirstslotepoch}[1]{\ensuremath{\prevfirstslot{\epoch(t)}}}
 \newcommand{\lastslot}[0]{\ensuremath{\mathsf{lslot}}}
 \newcommand{\allU}[0]{\ensuremath{\mathsf{AU}}}
 \newcommand{\allF}[0]{\ensuremath{\mathsf{AF}}}
@@ -703,6 +705,7 @@
 % \newcommand{\slotattime}[1]{\ensuremath{\mathsf{slot}(#1)}}
 \newcommand{\slot}[0]{\ensuremath{\mathsf{slot}}}
 \newcommand{\slotstartslot}[1]{\slotstart(\slot(#1))}
+\newcommand{\prevslotstartslot}[1]{\slotstart(\slot(#1)-1)}
 \newcommand{\epoch}{\ensuremath{\mathsf{epoch}}}
 \newcommand{\parent}{\ensuremath{\mathsf{parent}}}
 \newcommand{\block}{\ensuremath{\mathsf{block}}}
@@ -733,6 +736,8 @@
 \newcommand{\tinit}{\ensuremath{t_\mathsf{init}}}
 \newcommand{\head}{\ensuremath{head}}
 \newcommand{\phead}{\ensuremath{prev\_head}}
+\newcommand{\findlatestconfirmeddescendant}{\ensuremath{\mathit{find\_latest\_confirmed\_descendant}}}
+\newcommand{\getlatestconfirmed}{\ensuremath{\mathit{get\_latest\_confirmed}}}
 \newcommand{\sir}{\mathrm{SIR}}
 \newcommand{\tind}{t_\mathsf{ind}}
 \newcommand{\sind}{s_\mathsf{ind}}
