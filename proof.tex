@@ -2668,22 +2668,22 @@ By cases.
     Follows from \Cref{lem:epoch-conf-less-prev-then-conf-finalized,lem:canonical-no-extra-assum}.
 \end{proof}
 
-\begin{lemma}
-    If
-    \begin{enumerate}
-        \item $\slotstart(\epoch(t)-1) \geq \GST$
-        \item $\epoch(\var[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) = \epoch(t)-1$
-        \item $\slot(t) = \firstslot(\epoch(t))$
-    \end{enumerate},
-    then,
-    \begin{enumerate}
-        \item $\willNoConflictingChkpBeJustified(\chkp(\var[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}))$
-    \end{enumerate}
-\end{lemma}
+% \begin{lemma}
+%     If
+%     \begin{enumerate}
+%         \item $\slotstart(\epoch(t)-1) \geq \GST$
+%         \item $\epoch(\var[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) = \epoch(t)-1$
+%         \item $\slot(t) = \firstslot(\epoch(t))$
+%     \end{enumerate},
+%     then,
+%     \begin{enumerate}
+%         \item $\willNoConflictingChkpBeJustified(\chkp(\var[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}))$
+%     \end{enumerate}
+% \end{lemma}
 
-\begin{proof}
-    \Cref{lem:bcand-current-epoch-then-no-first-slot} together with \Cref{lem:no-curr-epochconflict-chkp-is-justified} and the synchrony assumption concludes the proof.
-\end{proof}
+% \begin{proof}
+%     \Cref{lem:bcand-current-epoch-then-no-first-slot} together with \Cref{lem:no-curr-epochconflict-chkp-is-justified} and the synchrony assumption concludes the proof.
+% \end{proof}
 
 \begin{lemma}\label{lem:gu-prev-slot-descendant-of-gj-prev-slot}
     If
@@ -2715,11 +2715,30 @@ By cases.
     \end{enumerate},
     then,
     \begin{enumerate}
-        \item There exists slot $s > \firstslot(\epoch(t))$,
-        $Q^{s-1, v, \slotstart(s), \chkp}_{b} > \frac{1}{2}\left(1 + \frac{W^{\chkp}_p}{W^{s-1, \chkp}_b}\right) + \beta - \frac{D^{s-1, v, \slotstart(s), \chkp}_b}{W^{s-1, \chkp}_b}$,
+        \item There exists slot $s > \firstslot(\epoch(t))$ such that
+        {$\indicatorfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\indQ}
+        > \frac{1}{2}\left(1 + \frac{\boostweight[chkp={C}]}{\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}\right)
+        + \beta
+        - \frac
+            {\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\slashvals}}
+            {\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}$},
         where $\chkp = \gjattime[val=v,time=\slotstart(s-1)]$.
     \end{enumerate}
 \end{lemma}
+
+\begin{proof}
+    Because of the condition in the Lemma's statement we know that $\exists b_c \in \var[val=v,time=\slotstartslot{t}]{\bcands}$ such that $\epoch(b_c)=\epoch(t)$.
+    By contradiction.
+    Suppose $\exists b' \preceq b_c$ such that $\epoch(b')=\epoch(t)$, {$\indicatorfromblock[from=b',to=s-1,val=v,when=\slotstart(s),chkp={C}]{\indQ}
+    \leq \frac{1}{2}\left(1 + \frac{\boostweight[chkp={C}]}{\commweightfromblock[from=b',to=s-1,chkp={C}]{\allvals}}\right)
+    + \beta
+    - \frac
+        {\attsetweightfromblock[from=b',to=s-1,val=v,when=\slotstart(s),chkp={C}]{\slashvals}}
+        {\commweightfromblock[from=b',to=s-1,chkp={C}]{\allvals}}$}.
+    Given that together with the fact that \Cref{set-btcand-to-btemp} is the only place where $\bcand$ gets assigned to a block from $\epoch(t)$,
+    the check in \Cref{ln:if-is-one-confirmed-second-loop} must never be true for $b'$.
+    Thus either $b_c \notin \var[val=v,time=\slotstartslot{t}]{\bcands}$.
+\end{proof}
 
 \begin{lemma}\label{lem:beta-less-than-quarter-no-reconfirmation-required}
     Let $s' := \firstslot(\epoch(t)+1)$, $\chkp' := \guattime[val=v,time=\slotstart(s'-1)]$.
@@ -2732,53 +2751,211 @@ By cases.
     \end{enumerate},
     then,
     \begin{enumerate}
-        \item $Q^{s'-1, v, \slotstart(s'), \chkp'}_{b} > \frac{1}{2}\left(1 + \frac{W^{\chkp'}_p}{W^{s'-1, \chkp'}_b}\right) + \beta - \frac{D^{s'-1, v, \slotstart(s'), \chkp'}_b}{W^{s'-1, \chkp'}_b}$
+        \item {$
+            \indicatorfromblock[from=b,to=s'-1,val=v,when=\slotstart(s'),chkp={C'}]{\indQ}
+            > \frac{1}{2}\left(1 + \frac{\boostweight[chkp={C'}]}{\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}\right)
+            + \beta
+            - \frac
+                {\attsetweightfromblock[from=b,to=s'-1,val=v,when=\slotstart(s'),chkp={C'}]{\slashvals}}
+                {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}$}
     \end{enumerate}
 \end{lemma}
 
 \begin{proof}
-    Due to \Cref{lem:bconf-curr-epoch-ancestor-is-one-confirmed} we know that $\exists s, \epoch(s)=\epoch(t)$ such that $Q^{s-1, v, \slotstart(s), \chkp}_{b} > \frac{1}{2}\left(1 + \frac{W^{\chkp}_p}{W^{s-1, \chkp}_b}\right) + \beta - \frac{D^{s-1, v, \slotstart(s), \chkp}_b}{W^{s-1, \chkp}_b}$,
-    where $\chkp=\gjattime[val=v,time=\slotstart(s)-1]$.
-    Then due to \Cref{lem:gu-prev-slot-descendant-of-gj-prev-slot} $\chkp = \gjattime[val=v,time=\slotstart(s-1)] \preceq \guattime[val=v,time=\slotstart(s'-1)] = \chkp'$. Given that we can conclude the following:
-    \begin{itemize}
-        \item $S^{s-1, v, \slotstart(s), \chkp}_{b} = S^{s-1, v, \slotstart(s'), \chkp'}_{b} + \left(D^{s-1, v, \slotstart(s'), \chkp'}_{b}-D^{s-1, v, \slotstart(s), \chkp}_{b}\right)$ --
-        because $S^{s-1, v, \slotstart(s')}_{b} = S^{s-1, v, \slotstart(s)}_{b} \setminus \left(D^{s-1, v, \slotstart(s')}_{b} \setminus D^{s-1, v, \slotstart(s)}_{b}\right)$ and Assumption 1 of the Paper,
-        \item $D^{s-1, v, \slotstart(s'), \chkp}_{b} \leq D^{s'-1, v, \slotstart(s'), \chkp'}_{b}$ --
-        because $D^{s-1, v, \slotstart(s')}_{b} \subseteq D^{s'-1, v, \slotstart(s')}_{b}$ and Assumption 1 of the Paper,
-        \item $W^{s-1,\chkp'}_b \leq W^{s-1,\chkp}_b$ -- because of Assumption 1 of the Paper,
-        \item $W^{\chkp'}_p \leq W^{\chkp}_p$ -- because of Assumption 1 of the Paper,
-        \item $W^{s'-1,\chkp'}_b = W^{s-1,\chkp'}_b + W^{s'-1,\chkp'}_s$ -- because $W^{s'-1}_b = W^{s-1}_b \cup W^{s'-1}_s$,
-        \item Let $S^{s'-1, v, \slotstart(s')}_{b,s} := S^{s'-1, v, \slotstart(s')}_{b} \cap W^{s'-1}_s$, $S^{s'-1, v, \slotstart(s'), \chkp'}_{b} = S^{s-1, v, \slotstart(s'), \chkp'}_{b} + S^{s'-1, v, \slotstart(s'), \chkp'}_{b,s}$ -- because $S^{s'-1, v, \slotstart(s')}_{b} = S^{s-1, v, \slotstart(s')}_{b} \cup S^{s'-1, v, \slotstart(s')}_{b,s}$
-    \end{itemize}
-
-    Given the above we proceed with the inequality from \Cref{lem:bconf-curr-epoch-ancestor-is-one-confirmed}:
+    Let $\attsetweightfromblock[from={s},to=s'-1,val=v,when=\slotstart(s'),chkp={C'}]{\allatts}$ be the total balance of validators voted in the support of block $b$ between slot $s$ and $s'-1$ inclusive according to the effective balance distribution defined by the checkpoint $C'$ as per the view of validator $v$ at the start of slot $s'$.
+    \def\alignexplwidth{5cm}
+    \allowdisplaybreaks
     \begin{align*}
-        Q^{s-1, v, \slotstart(s), \chkp}_{b} > \frac{1}{2}\left(1 + \frac{W^{\chkp}_p}{W^{s-1, \chkp}_b}\right) + \beta - \frac{D^{s-1, v, \slotstart(s), \chkp}_b}{W^{s-1, \chkp}_b},\\
-        \frac{S^{s-1, v, \slotstart(s), \chkp}_{b}}{W^{s-1, \chkp}_{b}} > \frac{1}{2}\left(1 + \frac{W^{\chkp}_p}{W^{s-1, \chkp}_b}\right) + \beta - \frac{D^{s-1, v, \slotstart(s), \chkp}_b}{W^{s-1, \chkp}_b}\\ \text{-- By definition},\\
-        S^{s-1, v, \slotstart(s), \chkp}_{b} > \left(\frac{1}{2} + \beta\right){W^{s-1, \chkp}_b} + \frac{1}{2} W^{\chkp}_p - D^{s-1, v, \slotstart(s), \chkp}_b\\ \text{-- By simplification},\\
-        S^{s-1, v, \slotstart(s'), \chkp'}_{b} + D^{s-1, v, \slotstart(s'), \chkp'}_{b}-D^{s-1, v, \slotstart(s), \chkp}_{b}\\ > \left(\frac{1}{2} + \beta\right){W^{s-1, \chkp}_b} + \frac{1}{2} W^{\chkp}_p - D^{s-1, v, \slotstart(s), \chkp}_b\\ \text{-- By substitution},\\
-        S^{s-1, v, \slotstart(s'), \chkp'}_{b} > \left(\frac{1}{2} + \beta\right){W^{s-1, \chkp}_b} + \frac{1}{2} W^{\chkp}_p - D^{s-1, v, \slotstart(s'), \chkp'}_b\\ \text{-- By simplification},\\
-        S^{s-1, v, \slotstart(s'), \chkp'}_{b} > \left(\frac{1}{2} + \beta\right){W^{s-1, \chkp'}_b} + \frac{1}{2} W^{\chkp'}_p - D^{s-1, v, \slotstart(s'), \chkp'}_b\\ \text{-- As } W^{s-1,\chkp'}_b \leq W^{s-1,\chkp}_b \text{ and } W^{\chkp'}_p \leq W^{\chkp}_p,\\
-        S^{s-1, v, \slotstart(s'), \chkp'}_{b} > \left(\frac{1}{2} + \beta\right){W^{s-1, \chkp'}_b} + \frac{1}{2} W^{\chkp'}_p - D^{s'-1, v, \slotstart(s'), \chkp'}_b\\ \text{-- As } D^{s-1, v, \slotstart(s'), \chkp}_{b} \leq D^{s'-1, v, \slotstart(s'), \chkp'}_{b}.\\
+        \indicatorfromblock[from=b,to=s'-1,val=v,when=\slotstart(s'),chkp={C'}]{\indQ}  &=
+        \frac
+            {\attsetweightfromblock[from=b,to=s'-1,val=v,when=\slotstart(s'),chkp={C'}]{\allatts}}
+            {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        &&\alignexpl{By definition.}
+        \\
+        &=
+        \frac
+            {\attsetweightfromblock[from={s},to=s'-1,val=v,when=\slotstart(s'),chkp={C'}]{\allatts}}
+            {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        +
+        \frac
+            {\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s'),chkp={C'}]{\allatts}}
+            {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        &&\alignexpl[\alignexplwidth]{As, $\attsetfromblockunfiltered[from=b,to=s'-1,val=v,when=\slotstart(s')]{\allatts} = \attsetfromblockunfiltered[from=b,to=s-1,val=v,when=\slotstart(s')]{\allatts} \cup \attsetfromblockunfiltered[from=s,to=s'-1,val=v,when=\slotstart(s')]{\allatts}$.}
+        \\
+        &=
+        \frac
+            {\attsetweightfromblock[from={s},to=s'-1,val=v,when=\slotstart(s'),chkp={C'}]{\allatts}}
+            {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        \\
+        &+
+        \frac
+            {\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C'}]{\allatts} - \left(\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s'),chkp={C'}]{\slashvals}-\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C'}]{\slashvals}\right)}
+            {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        &&\alignexpl[\alignexplwidth]{As, $\attsetfromblockunfiltered[from=b,to=s-1,val=v,when=\slotstart(s')]{\allatts} = \attsetfromblockunfiltered[from=b,to=s-1,val=v,when=\slotstart(s)]{\allatts} \\ \setminus \left(\attsetfromblockunfiltered[from=b,to=s-1,val=v,when=\slotstart(s')]{\slashvals} \\ \setminus \attsetfromblockunfiltered[from=b,to=s-1,val=v,when=\slotstart(s)]{\slashvals}\right)$.}
+        \\
+        &=
+        \frac
+            {\attsetweightfromblock[from={s},to=s'-1,val=v,when=\slotstart(s'),chkp={C'}]{\allatts} - \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s'),chkp={C'}]{\slashvals}}
+            {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        \\
+        &+
+        \frac
+            {\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C'}]{\allatts}}
+            {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        +
+        \frac
+            {\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C'}]{\slashvals}}
+            {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        &&\alignexpl[\alignexplwidth]{By simplification.}
+        \\
+        &=
+        \frac
+            {\attsetweightfromblock[from={s},to=s'-1,val=v,when=\slotstart(s'),chkp={C'}]{\allatts} - \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s'),chkp={C'}]{\slashvals}}
+            {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        \\
+        &+
+        \frac
+            {\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\allatts}}
+            {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        +
+        \frac
+            {\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\slashvals}}
+            {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        &&\alignexpl[\alignexplwidth]{Let $C := \gjattime[val=v,time=\slotstart(s)-1]$, then due to \Cref{lem:gu-prev-slot-descendant-of-gj-prev-slot} together with Assumption 1 of the Paper.}
+        \\
+        &=
+        \frac
+            {\attsetweightfromblock[from={s},to=s'-1,val=v,when=\slotstart(s'),chkp={C'}]{\allatts} - \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s'),chkp={C'}]{\slashvals}}
+            {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        \\
+        &+
+        \frac
+            {\indicatorfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\indQ} \commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}
+            {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        +
+        \frac
+            {\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\slashvals}}
+            {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        &&\alignexpl[\alignexplwidth]{By definition.}
+        \\
+        &>
+        \frac
+            {\attsetweightfromblock[from={s},to=s'-1,val=v,when=\slotstart(s'),chkp={C'}]{\allatts} - \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s'),chkp={C'}]{\slashvals}}
+            {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        \\
+        &+
+        \frac
+            {\left(\frac{1}{2}\left(1 + \frac{\boostweight[chkp=C]}{\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}\right) + \beta - \frac{\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\slashvals}}{\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}\right) \commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}
+            {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        \\
+        &+
+        \frac
+            {\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\slashvals}}
+            {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        &&\alignexpl[\alignexplwidth]{Due to \Cref{lem:bconf-curr-epoch-ancestor-is-one-confirmed}.}
+        \\
+        &>
+        \frac
+            {\attsetweightfromblock[from={s},to=s'-1,val=v,when=\slotstart(s'),chkp={C'}]{\allatts} - \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s'),chkp={C'}]{\slashvals}}
+            {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        \\
+        &+
+        \frac
+            {\frac{1}{2}\left(\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals} + \boostweight[chkp=C]\right) + \beta \commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals} - \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\slashvals}}
+            {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        \\
+        &+
+        \frac
+            {\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\slashvals}}
+            {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        &&\alignexpl[\alignexplwidth]{By simplification.}
+        \\
+        &>
+        \frac
+            {\attsetweightfromblock[from={s},to=s'-1,val=v,when=\slotstart(s'),chkp={C'}]{\allatts} - \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s'),chkp={C'}]{\slashvals}}
+            {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        \\
+        &+
+        \frac
+            {\frac{1}{2}\left(\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals} + \boostweight[chkp=C]\right) + \beta \commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}
+            {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        &&\alignexpl[\alignexplwidth]{By simplification again.}
+        \\
+        &>
+        \frac
+            {\attsetweightfromblock[from={s},to=s'-1,val=v,when=\slotstart(s'),chkp={C'}]{\allatts} - \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s'),chkp={C'}]{\slashvals}}
+            {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        \\
+        &+
+        \frac
+            {\frac{1}{2}\left(\commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals} + \boostweight[chkp=C']\right) + \beta \commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals}}
+            {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        &&\alignexpl[\alignexplwidth]{As, $\commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals} \leq \commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}$ and $\boostweight[chkp=C'] \leq \boostweight[chkp=C]$ due to \Cref{lem:gu-prev-slot-descendant-of-gj-prev-slot} together with Assumption 1 of the Paper.}
+        \\
+        &>
+        \frac
+            {\left(1-\beta\right) \commweightfromblock[from=s,to=s'-1,chkp={C'}]{\allvals} - \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s'),chkp={C'}]{\slashvals}}
+            {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        \\
+        &+
+        \frac
+            {\frac{1}{2}\left(\commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals} + \boostweight[chkp=C']\right) + \beta \commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals}}
+            {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        &&\alignexpl[\alignexplwidth]{By the synchrony assumption.}
+        \\
+        &>
+        \frac
+            {\left(\frac{1}{2}+\beta\right) \commweightfromblock[from=s,to=s'-1,chkp={C'}]{\allvals} - \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s'),chkp={C'}]{\slashvals}}
+            {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        \\
+        &+
+        \frac
+            {\frac{1}{2}\left(\commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals} + \boostweight[chkp=C']\right) + \beta \commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals}}
+            {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        &&\alignexpl[\alignexplwidth]{As, $1-b \geq \frac{1}{2}+\beta$ because $\beta \leq \frac{1}{4}$.}
+        \\
+        &>
+        \frac
+            {\frac{1}{2}\left(\commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals} + \commweightfromblock[from=s,to=s'-1,chkp={C'}]{\allvals} + \boostweight[chkp=C']\right)}
+            {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        \\
+        &+
+        \frac
+            {\left(\commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals} + \commweightfromblock[from=s,to=s'-1,chkp={C'}]{\allvals}\right) \beta - \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s'),chkp={C'}]{\slashvals}}
+            {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        &&\alignexpl[\alignexplwidth]{By simplification.}
+        \\
+        &>
+        \frac
+            {\frac{1}{2}\left(\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals} + \boostweight[chkp=C']\right)}
+            {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        \\
+        &+
+        \frac
+            {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals} \beta - \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s'),chkp={C'}]{\slashvals}}
+            {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        &&\alignexpl[\alignexplwidth]{As, $\commfromblock[from=b,to=s'-1]{\allvals} = \commfromblock[from=b,to=s-1]{\allvals} \cup \commfromblock[from=s,to=s'-1]{\allvals}$.}
+        \\
+        &>
+            \frac{1}{2}\left(1 + \frac{\boostweight[chkp=C']}{\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}\right)
+            + \beta
+            - \frac
+                {\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s'),chkp={C'}]{\slashvals}}
+                {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        &&\alignexpl[\alignexplwidth]{By simplification.}
+        \\
+        &>
+            \frac{1}{2}\left(1 + \frac{\boostweight[chkp=C']}{\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}\right)
+            + \beta
+            - \frac
+                {\attsetweightfromblock[from=b,to=s'-1,val=v,when=\slotstart(s'),chkp={C'}]{\slashvals}}
+                {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        &&\alignexpl[\alignexplwidth]{As, $\attsetfromblockunfiltered[from=b,to=s-1,val=v,when=\slotstart(s)]{\slashvals} \\ \cup \attsetfromblockunfiltered[from=b',to=s-1,val=v,when=\slotstart(s)]{\slashvals}$.}
     \end{align*}
-    
-    Given the above, we proceed with the inequality from the Lemma's statement:
-    \begin{align*}
-        Q^{s'-1, v, \slotstart(s'), \chkp'}_{b} > \frac{1}{2}\left(1 + \frac{W^{\chkp'}_p}{W^{s'-1, \chkp'}_b}\right) + \beta - \frac{D^{s'-1, v, \slotstart(s'), \chkp'}_b}{W^{s'-1, \chkp'}_b},\\
-        \frac{S^{s'-1, v, \slotstart(s'), \chkp'}_{b}}{W^{s'-1, \chkp'}_{b}} > \frac{1}{2}\left(1 + \frac{W^{\chkp'}_p}{W^{s'-1, \chkp'}_b}\right) + \beta - \frac{D^{s'-1, v, \slotstart(s), \chkp'}_b}{W^{s'-1, \chkp'}_b}\\ \text{-- By definition},\\
-        S^{s'-1, v, \slotstart(s'), \chkp'}_{b} > \left(\frac{1}{2} + \beta\right){W^{s'-1, \chkp'}_b} + \frac{1}{2} W^{\chkp'}_p - D^{s'-1, v, \slotstart(s'), \chkp'}_b\\ \text{-- By simplification},\\
-        S^{s'-1, v, \slotstart(s'), \chkp'}_{b,s} + S^{s-1, v, \slotstart(s'), \chkp'}_{b} >\\ \left(\frac{1}{2} + \beta\right){W^{s-1, \chkp'}_b} + \frac{1}{2} W^{\chkp'}_p - D^{s'-1, v, \slotstart(s'), \chkp'}_b + \left(\frac{1}{2} + \beta\right){W^{s'-1, \chkp'}_s}\\ \text{-- By substitution},\\
-        S^{s'-1, v, \slotstart(s'), \chkp'}_{b,s} \geq \left(\frac{1}{2} + \beta\right){W^{s'-1, \chkp'}_s}\\ \text{-- As } S^{s-1, v, \slotstart(s'), \chkp'}_{b} > \left(\frac{1}{2} + \beta\right){W^{s-1, \chkp'}_b} + \frac{1}{2} W^{\chkp'}_p - D^{s'-1, v, \slotstart(s'), \chkp'}_b,\\
-        \left(1-\beta\right){W^{s'-1, \chkp'}_s} \geq \left(\frac{1}{2} + \beta\right){W^{s'-1, \chkp'}_s}\\ \text{-- By the synchrony assumption},\\
-        1-\beta \geq \frac{1}{2} + \beta\\ \text{-- By simplification},\\
-        2\beta \leq \frac{1}{2},\\
-        \beta \leq \frac{1}{4}.
-    \end{align*}
-    Given $\beta \leq \frac{1}{4}$ condition of the Lemma's statement the proof is concluded.
 \end{proof}
 
 \begin{lemma}\label{lem:beta-less-than-quarter-no-reconfirmation-required-bconf-prev-epoch}
-    Let $s' := \firstslot(\epoch(t)+1)$, $\chkp' := \guattime[val=v,time=\slotstart(s'-1)]$.
+    Let $s := \firstslot(\epoch(t)+1)$, $\chkp := \guattime[val=v,time=\slotstart(s-1)]$.
     If
     \begin{enumerate}
         \item $\slotstart(\epoch(t)) \geq \GST$
@@ -2787,45 +2964,90 @@ By cases.
     \end{enumerate},
     then, $\forall b' \prec \var[val=v,time=\slotstartslot{t}]{\bconfirmed}$ such that $\epoch(b') = \epoch(t)-1$,
     \begin{enumerate}
-        \item $Q^{s'-1, v, \slotstart(s'), \chkp'}_{b'} > \frac{1}{2}\left(1 + \frac{W^{\chkp'}_p}{W^{s'-1, \chkp'}_{b'}}\right) + \beta - \frac{D^{s'-1, v, \slotstart(s'), \chkp'}_{b'}}{W^{s'-1, \chkp'}_{b'}}$
+        \item {$\indicatorfromblock[from=b',to=s-1,val=v,when=\slotstart(s),chkp={C}]{\indQ}
+        > \frac{1}{2}\left(1 + \frac{\boostweight[chkp={C}]}{\commweightfromblock[from=b',to=s-1,chkp={C}]{\allvals}}\right)
+        + \beta
+        - \frac
+            {\attsetweightfromblock[from=b',to=s-1,val=v,when=\slotstart(s),chkp={C}]{\slashvals}}
+            {\commweightfromblock[from=b',to=s-1,chkp={C}]{\allvals}}$}
     \end{enumerate}
 \end{lemma}
 
 \begin{proof}
     Let $b$ be the lowest block in the chain of $\var[val=v,time=\slotstartslot{t}]{\bconfirmed}$ such that $\epoch(b)=\epoch(t)$.
-    Given that we can conclude the following:
-    \begin{itemize}
-        \item $W^{s'-1,\chkp'}_b = W^{s'-1,\chkp'}_{b'}$, because $\parentslotplusone(b') \leq \parentslotplusone(b) \leq \firstslot(\epoch(t))$ and thus $W^{s'-1}_b = W^{s'-1}_{b'} = W_t$,
-        \item $S^{s'-1, v, \slotstart(s'), \chkp'}_{b'} \geq S^{s'-1, v, \slotstart(s'), \chkp'}_{b}$, because $S^{s'-1, v, \slotstart(s')}_{b} \subseteq S^{s'-1, v, \slotstart(s')}_{b'}$ due to $b' \prec b$,
-        \item $D^{s'-1, v, \slotstart(s'), \chkp'}_{b'} \geq D^{s'-1, v, \slotstart(s'), \chkp'}_{b}$, because $D^{s'-1, v, \slotstart(s')}_{b} \subseteq D^{s'-1, v, \slotstart(s')}_{b'}$.
-    \end{itemize}
-
-    Due to \Cref{lem:beta-less-than-quarter-no-reconfirmation-required} we have:
+    Given that $\commweightfromblock[from=b',to=s-1,chkp={C}]{\allvals} = \commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals} = \totvalsetweight[chkp=C]{\allvals}$,
+    because $\parentslotplusone(b') \leq \parentslotplusone(b) \leq \firstslot(\epoch(t))$.
+    With this in mind we proceed as the following:
+    \def\alignexplwidth{5cm}
+    \allowdisplaybreaks
     \begin{align*}
-        Q^{s'-1, v, \slotstart(s'), \chkp'}_{b} > \frac{1}{2}\left(1 + \frac{W^{\chkp'}_p}{W^{s'-1, \chkp'}_{b}}\right) + \beta - \frac{D^{s'-1, v, \slotstart(s'), \chkp'}_{b}}{W^{s'-1, \chkp'}_{b}},\\
-        \frac{S^{s'-1, v, \slotstart(s'), \chkp'}_{b}}{W^{s'-1,\chkp'}_b} > \frac{1}{2}\left(1 + \frac{W^{\chkp'}_p}{W^{s'-1, \chkp'}_{b}}\right) + \beta - \frac{D^{s'-1, v, \slotstart(s'), \chkp'}_{b}}{W^{s'-1, \chkp'}_{b}}\\ \text{-- By definition},\\
-        \frac{S^{s'-1, v, \slotstart(s'), \chkp'}_{b}}{W^{s'-1,\chkp'}_{b'}} > \frac{1}{2}\left(1 + \frac{W^{\chkp'}_p}{W^{s'-1, \chkp'}_{b'}}\right) + \beta - \frac{D^{s'-1, v, \slotstart(s'), \chkp'}_{b}}{W^{s'-1, \chkp'}_{b'}}\\ \text{-- As } W^{s'-1,\chkp'}_b = W^{s'-1,\chkp'}_{b'}, \\
-        \frac{S^{s'-1, v, \slotstart(s'), \chkp'}_{b'}}{W^{s'-1,\chkp'}_{b'}} > \frac{1}{2}\left(1 + \frac{W^{\chkp'}_p}{W^{s'-1, \chkp'}_{b'}}\right) + \beta - \frac{D^{s'-1, v, \slotstart(s'), \chkp'}_{b'}}{W^{s'-1, \chkp'}_{b'}}\\
-        \text{-- As } S^{s'-1, v, \slotstart(s'), \chkp'}_{b'} \geq S^{s'-1, v, \slotstart(s'), \chkp'}_{b} \text{and}\\ D^{s'-1, v, \slotstart(s'), \chkp'}_{b'} \geq D^{s'-1, v, \slotstart(s'), \chkp'}_{b}, \\
-        Q^{s'-1, v, \slotstart(s'), \chkp'}_{b'} > \frac{1}{2}\left(1 + \frac{W^{\chkp'}_p}{W^{s'-1, \chkp'}_{b'}}\right) + \beta - \frac{D^{s'-1, v, \slotstart(s'), \chkp'}_{b'}}{W^{s'-1, \chkp'}_{b'}}\\ \text{-- By definition}.
+        \indicatorfromblock[from=b',to=s-1,val=v,when=\slotstart(s),chkp={C}]{\indQ}
+        &=
+        \frac
+            {\attsetweightfromblock[from=b',to=s-1,val=v,when=\slotstart(s),chkp={C}]{\allatts}}
+            {\commweightfromblock[from=b',to=s-1,chkp={C}]{\allvals}}
+        &&\alignexpl{By definition.}
+        \\
+        &=
+        \frac
+            {\attsetweightfromblock[from=b',to=s-1,val=v,when=\slotstart(s),chkp={C}]{\allatts}}
+            {\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}
+        &&\alignexpl{As, $\commweightfromblock[from=b',to=s-1,chkp={C}]{\allvals} = \commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}$.}
+        \\
+        &\geq
+        \frac
+            {\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\allatts}}
+            {\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}
+        &&\alignexpl{As, $\attsetfromblockunfiltered[from=b,to=s-1,val=v,when=\slotstart(s)]{\allatts} \subseteq \attsetfromblockunfiltered[from=b',to=s-1,val=v,when=\slotstart(s)]{\allatts}$, because $b' \prec b$.}
+        \\
+        &\geq
+        \indicatorfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\indQ}
+        &&\alignexpl{By definition.}
+        \\
+        &> \frac{1}{2}\left(1 + \frac{\boostweight[chkp={C}]}{\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}\right)
+        + \beta
+        - \frac
+            {\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\slashvals}}
+            {\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}
+        &&\alignexpl{Due to \Cref{lem:beta-less-than-quarter-no-reconfirmation-required}.}
+        \\
+        &> \frac{1}{2}\left(1 + \frac{\boostweight[chkp={C}]}{\commweightfromblock[from=b',to=s-1,chkp={C}]{\allvals}}\right)
+        + \beta
+        - \frac
+            {\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\slashvals}}
+            {\commweightfromblock[from=b',to=s-1,chkp={C}]{\allvals}}
+        &&\alignexpl{As, $\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals} = \commweightfromblock[from=b',to=s-1,chkp={C}]{\allvals}$.}
+        \\
+        &> \frac{1}{2}\left(1 + \frac{\boostweight[chkp={C}]}{\commweightfromblock[from=b',to=s-1,chkp={C}]{\allvals}}\right)
+        + \beta
+        - \frac
+            {\attsetweightfromblock[from=b',to=s-1,val=v,when=\slotstart(s),chkp={C}]{\slashvals}}
+            {\commweightfromblock[from=b',to=s-1,chkp={C}]{\allvals}}
+        &&\alignexpl{As, $\attsetfromblockunfiltered[from=b,to=s-1,val=v,when=\slotstart(s)]{\slashvals} \subseteq \attsetfromblockunfiltered[from=b',to=s-1,val=v,when=\slotstart(s)]{\slashvals}$.}
     \end{align*}
 \end{proof}
 
 \begin{lemma}
+    Let $s := \firstslot(\epoch(t)+1)$, $\chkp := \guattime[val=v,time=\slotstart(s-1)]$.
     If
     \begin{enumerate}
         \item $\slotstart(\epoch(t)-1) \geq \GST$
         \item $\epoch(\var[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}) = \epoch(t)-1$
         \item $\beta \leq \frac{1}{4}$
     \end{enumerate},
-    then, $\forall b' \succeq \guattime[val=v,time=\slotstart(\slot(t)-1)]$ such that $b' \preceq \var[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$,
+    then, $\forall b \succeq \guattime[val=v,time=\slotstart(\slot(t)-1)]$ such that $b \preceq \var[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$,
     \begin{enumerate}
-        \item $Q^{s'-1, v, \slotstart(s'), \chkp'}_{b'} > \frac{1}{2}\left(1 + \frac{W^{\chkp'}_p}{W^{s'-1, \chkp'}_{b'}}\right) + \beta - \frac{D^{s'-1, v, \slotstart(s'), \chkp'}_{b'}}{W^{s'-1, \chkp'}_{b'}}$
+        \item {$\indicatorfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\indQ}
+        > \frac{1}{2}\left(1 + \frac{\boostweight[chkp={C}]}{\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}\right)
+        + \beta
+        - \frac
+            {\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\slashvals}}
+            {\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}$}
     \end{enumerate}
 \end{lemma}
 
 \begin{proof}
-    Due to \Cref{lem:conf-current-epoch-then-gu-curr-epoch} we know that $\exists b'' \in \viewattime[val=v,time=\slotstart(\slot(t)-1)], b'' \succeq \var[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed} \land \epoch(\gu(b')) \geq \epoch(t)-2$.
+    Due to \Cref{lem:conf-current-epoch-then-gu-curr-epoch} we know that $\exists b' \in \viewattime[val=v,time=\slotstart(\slot(t)-1)], b' \succeq \var[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed} \land \epoch(\gu(b')) \geq \epoch(t)-2$.
     Then we can conclude that $\epoch(\guattime[val=v,time=\slotstart(\slot(t)-1)]) \geq \epoch(t)-2$.
     By cases.
     \begin{description}
