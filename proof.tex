@@ -2964,7 +2964,7 @@ By cases.
         \end{aligned}
         &&\alignexpl[\alignexplwidth]{As, $\commfromblock[from=b,to=s'-1]{\allvals} = \commfromblock[from=b,to=s-1]{\allvals} \cup \commfromblock[from=s,to=s'-1]{\allvals}$.}
         \\
-        &>
+        &=
             \frac{1}{2}\left(1 + \frac{\boostweight[chkp=C']}{\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}\right)
             + \beta
             - \frac
@@ -2972,13 +2972,13 @@ By cases.
                 {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
         &&\alignexpl[\alignexplwidth]{By simplification.}
         \\
-        &>
+        &\geq
             \frac{1}{2}\left(1 + \frac{\boostweight[chkp=C']}{\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}\right)
             + \beta
             - \frac
                 {\attsetweightfromblock[from=b,to=s'-1,val=v,when=\slotstart(s'),chkp={C'}]{\slashvals}}
                 {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
-        &&\alignexpl[\alignexplwidth]{As, $\attsetfromblockunfiltered[from=b,to=s-1,val=v,when=\slotstart(s)]{\slashvals} \\ \cup \attsetfromblockunfiltered[from=b',to=s-1,val=v,when=\slotstart(s)]{\slashvals}$.}
+        &&\alignexpl[\alignexplwidth]{As, $\attsetfromblockunfiltered[from=b,to=s-1,val=v,when=\slotstart(s')]{\slashvals} \\ \subseteq \attsetfromblockunfiltered[from=b,to=s'-1,val=v,when=\slotstart(s')]{\slashvals}$.}
     \end{align*}
 \end{proof}
 
