@@ -246,11 +246,11 @@
 \define@key{attsetfromblock}{to}{\def\attsetfromblock@To{#1}}
 \define@key{attsetfromblock}{val}{\def\attsetfromblock@Val{#1}}
 \define@key{attsetfromblock}{when}{\def\attsetfromblock@When{#1}}
-\define@key{attsetfromblock}{chkp}{\def\attsetfromblock@ValSetChkp{#1}}
-\setkeys{attsetfromblock}{from=,to=,val=,when=,chkp=}
+% \define@key{attsetfromblock}{chkp}{\def\attsetfromblock@ValSetChkp{#1}}
+\setkeys{attsetfromblock}{from=,to=,val=,when=}
 \newcommand{\attsetfromblock}[2][]{%
     \setkeys{attsetfromblock}{#1}%
-    \ensuremath{{#2}_{\attsetfromblock@From}^{\attsetfromblock@To,\attsetfromblock@Val,\attsetfromblock@When,\attsetfromblock@ValSetChkp}}
+    \ensuremath{{#2}_{\attsetfromblock@From}^{\attsetfromblock@To,\attsetfromblock@Val,\attsetfromblock@When}}
 }%
 
 \newcommand{\ghostvotersfnname}{\ensuremath{GS}}
