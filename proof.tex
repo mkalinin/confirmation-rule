@@ -1511,7 +1511,7 @@ By cases.
             \item $b_\mathsf{s} \preceq  \LMDGHOSTHFC(\viewattime[val=v'',time=t''])$ \label{lem:ffg-safety-from-sir:safety-cond-2.3}
         \end{enumerate}
 
-        % \item $b$ is always canonical in the view of all honest validators at any time $t' \geq t$ such that $\slotattime{t'} > \slotattime{t} \land \epoch(t') \in \{e, e+1\}$
+        % \item $b$ is always canonical in the view of all honest validators at any time $t' \geq t$ such that $\slotattime{t'} > \slot(t) \land \epoch(t') \in \{e, e+1\}$
         % \item $P_b^{t} > \frac{1}{2(1-\beta)}(1 + \frac{W^{t+1}_p}{W_b^{t}})$ for all slots $t$ such that $\epoch(t) = e+1$.
     \end{enumerate}
 
@@ -3082,6 +3082,95 @@ By cases.
         \item[Case 1: {$\epoch(b') = \epoch(t)-1$}.] Apply \Cref{lem:beta-less-than-quarter-no-reconfirmation-required}.
         \item[Case 2: {$\epoch(b') \neq \epoch(t)-1$}.] Implies $\epoch(b') = \epoch(t)-2$. Apply \Cref{lem:beta-less-than-quarter-no-reconfirmation-required-bconf-prev-epoch}.
     \end{description}
+\end{proof}
+
+\section{Improve performance with missed slots}
+
+
+Let $\attsetfromafterblock[from=b,to=s,when=t,val=v]{\exactatts}$ be the set of validators be the set of validators in $\commfromslot[from=\slot(b)+1, to=s',when=t,val=v]{\allvals}$ that, according to $\viewattime[val=v,time=t]$, have sent a \GHOST vote that \LMDGHOST voted \emph{exactly} $b$, \ie, not for any $b' \succ b$, just exactly for $b$.
+
+\begin{lemma}\label{lem:condition-on-h-for-canonical}
+    Let $v$ be any honest validator, $t$ be any time and $b$ be any block, if
+    \begin{enumerate}
+        \item $t\geq \GGST$,
+        \item $\chain(b) \subseteq \viewattime[time=t,val=v]$,
+        \item $\slot(b) \leq \slot(t)$ and
+        \item $\forall b' \preceq b,\;
+        \attsetweightfromblock[from=b',to=\slot(t)-1,val=v,when=t,chkp={\gjattime[val=v,time=t]}]{\honatts}
+        >
+        \frac
+            {\commweightfromblock[from=b',to=\slot(t)-1,chkp={\gjattime[val=v,time=t]}]
+            {\allvals}-\attsetweightfromafterblock[from=\parent(b),to=\slot(t)-1,when=t,val=v,chkp={\gjattime[val=v,time=t]}]{\exactatts}+\boostweight[chkp={\gjattime[val=v,time=t]}]}{2}
+        $,
+    \end{enumerate}
+    then block $b$ is canonical in the view of validator $v$ at time $t$.
+\end{lemma}
+
+\begin{proof}
+    % Let $\View$ be the view of an arbitrary honest validator $v$ by the time it casts its vote in slot $s+1$.
+    % As per the protocol definition, $v$ will cast its vote for the block outputted by $\LMDGHOSTHFC(\View, M)$.
+    % Hence, our objective is to prove that $\LMDGHOSTHFC(\View, M) \in desc(b)$.
+
+
+    We want to prove that $b \preceq \fcparam[fc=\LMDGHOST,balf=\gjviewsym,val=v](t)$.
+
+    Let $b_i$ be the value of the variable $b$ at the end of the $i$-th iteration of the \textbf{while} loop %executed by $\LMDGHOSTHFC(\View, M)$
+    of Algorithm~\ref{alg:GHOST}, with $b_0$ corresponding to the value of the variable $b$ at the beginning of the first iteration.
+    We now prove by induction on $i$ that either $b_i \succeq b$ or $b_i \preceq b$. %$b_i \succeq b \lor b_i \preceq b$.
+
+    \begin{description}
+        \item[Base case: $i=0$.]
+        Trivial as the \textbf{while} loop in Algorithm~\ref{alg:lmd-ghost} starts with variable $b$ set to $\genesis \preceq b$.
+
+        \item[Inductive step.]
+        By the inductive hypothesis, we assume that $b_i \succeq b \lor b_i \preceq b$ and prove that $b_{i+1} \succeq b \lor b_{i+1} \preceq b$.
+        By line~\ref{ln:alg:GHOST:argmax} of Algorithm~\ref{alg:GHOST}, $b_{i+1}$ is the descendant of $b_i$ with the heaviest total weight.
+        Let us proceed by cases.
+        \begin{description}
+            \item[Case $b_i \succeq b$.]
+            This immediately implies that $b_{i+1} \succeq b$.
+
+            \item[Case $b_i \prec b$.]
+            Let $b_c$ be the child of $b_i$ in the chain of $b$, \ie, $b_c \preceq b \land \parent(b_c) = b_i$, and let $b'$ be any child of $b_i$.
+            Let $\FIL_\LMDGHOST(\View, t) := \FILLMD(\FILINV(\FILCUR(\FILEQ(\View),t)))$ and
+            note that, for $\LMDGHOST^{\gjviewsym}$, the argument of $\argmax$ at line~\ref{ln:alg:GHOST:argmax} of Algorithm~\ref{alg:GHOST} corresponds to $\weightofset[chkp={\gjattime[time=t,val=v]}]{\ghostvoters[block=b',view={\FIL_\LMDGHOST(\View), t}]}$.
+            Due to \FILINV and \FILCUR, the maximum value that such expression can evaluate to corresponds to the weight of the the committees between slot $\slot(b)+1$ and slot $\slot(t)-1$ plus, potentially, the proposer boost weight, \ie, $\commweightfromblock[from={b},to={\slot(t)-1},chkp={\gjattime[time=t,val=v]}]{\allvals} + \boostweight[chkp={\gjattime[val=v,time=t]}]$.
+            % Note that $\FILLATE(\FILCUR(\FILINV(\View), t), t) \subseteq \FIL_\LMDGHOST(\View, t)$.
+            Given that honest validators never equivocate, we have that
+            $$
+            \weightofset[chkp={\gjattime[time=t,val=v]}]{\ghostvoters[block=b_c,view={\FIL_\LMDGHOST(\View, t)}]}
+            \geq
+            \attsetweightfromblock[from=b_c,to=\slot(t)-1,val=v,when=t,chkp={\gjattime[val=v,time=t]}]{\honatts}
+            >
+            \frac
+                {\commweightfromblock[from=b,to=\slot(t)-1,chkp={\gjattime[val=v,time=t]}]
+                {\allvals}
+                -\attsetweightfromafterblock[from=\parent(b),to=\slot(t)-1,when=t,val=v,chkp={\gjattime[val=v,time=t]}]{\exactatts}
+                +\boostweight[chkp={\gjattime[val=v,time=t]}] }{2}
+            $$
+            Take any $b' \neq b_c$.
+            This means that $b'$ and $b_c$ conflict which implies that
+            
+            \begin{align*}
+                \weightofset[chkp={\gjattime[time=t,val=v]}]{\ghostvoters[block=b',view={\FIL_\LMDGHOST(\View, t)}]} &< \commweightfromblock[from={b},to={\slot(t)-1},chkp={\gjattime[time=t,val=v]}]{\allvals}-\attsetweightfromafterblock[from=\parent(b),to=\slot(t)-1,when=t,val=v,chkp={\gjattime[val=v,time=t]}]{\exactatts} + \boostweight[chkp={\gjattime[val=v,time=t]}] -  \weightofset[chkp={\gjattime[time=t,val=v]}]{\ghostvoters[block=b_c,view={\FIL_\LMDGHOST(\View, t)}]}\\
+                &\leq
+                \frac
+                {\commweightfromblock[from=b,to=\slot(t)-1,chkp={\gjattime[val=v,time=t]}]
+                {\allvals}
+                -\attsetweightfromafterblock[from=\parent(b),to=\slot(t)-1,when=t,val=v,chkp={\gjattime[val=v,time=t]}]{\exactatts}
+                +\boostweight[chkp={\gjattime[val=v,time=t]}] }{2}
+            \end{align*}
+
+            This furhter implies that
+            $b_c = b_{i+1}$ and hence $b_{i+1} \preceq b$.
+            % $\attsetweightfromblock[from=b',to=\slot(t)-1,val=v,when=t,chkp={\gjattime[val=v,time=t]}]{\allatts}$
+        \end{description}
+    \end{description}
+
+    Note that any block in $\chain(b)$ has at least one child, except potentially for $b$.
+    Note also that the \textbf{while} loop continues till it finds a block that either is for a slot higher than $\slot(t)$ or that has no valid children.
+    Given that we assume $\slot(b) \leq \slot(t)$, honest validators never \GHOST vote for an invalid block
+    and that above we have established that $\fcparam[fc=\LMDGHOST,balf=\gjviewsym,val=v](t) \succeq b \lor \fcparam[fc=\LMDGHOST,balf=\gjviewsym,val=v](t) \preceq b$, we can conclude the proof for this Lemma.
 \end{proof}
 
 \include{old_proofs}

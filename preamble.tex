@@ -253,6 +253,17 @@
     \ensuremath{{#2}_{\attsetfromblock@From}^{\attsetfromblock@To,\attsetfromblock@Val,\attsetfromblock@When}}
 }%
 
+\define@key{attsetfromafterblock}{from}{\def\attsetfromafterblock@From{#1}}
+\define@key{attsetfromafterblock}{to}{\def\attsetfromafterblock@To{#1}}
+\define@key{attsetfromafterblock}{val}{\def\attsetfromafterblock@Val{#1}}
+\define@key{attsetfromafterblock}{when}{\def\attsetfromafterblock@When{#1}}
+% \define@key{attsetfromafterblock}{chkp}{\def\attsetfromafterblock@ValSetChkp{#1}}
+\setkeys{attsetfromafterblock}{from=,to=,val=,when=}
+\newcommand{\attsetfromafterblock}[2][]{%
+    \setkeys{attsetfromafterblock}{#1}%
+    \ensuremath{{#2}_{\attsetfromafterblock@From +}^{\attsetfromafterblock@To,\attsetfromafterblock@Val,\attsetfromafterblock@When}}
+}%
+
 \newcommand{\ghostvotersfnname}{\ensuremath{GS}}
 
 \define@key{ghostvoters}{block}{\def\ghostvoters@Block{#1}}
@@ -284,6 +295,18 @@
     \setkeys{attsetweightfromblock}{#1}%
     \ensuremath{{\addweight{#2}}_{\attsetweightfromblock@From}^{\attsetweightfromblock@To,\attsetweightfromblock@Val,\attsetweightfromblock@When,\attsetweightfromblock@ValSetChkp}}%
     \setkeys{attsetweightfromblock}{from=,to=,val=,when=,chkp=}%
+}%
+
+\define@key{attsetweightfromafterblock}{from}{\def\attsetweightfromafterblock@From{#1}}
+\define@key{attsetweightfromafterblock}{to}{\def\attsetweightfromafterblock@To{#1}}
+\define@key{attsetweightfromafterblock}{val}{\def\attsetweightfromafterblock@Val{#1}}
+\define@key{attsetweightfromafterblock}{when}{\def\attsetweightfromafterblock@When{#1}}
+\define@key{attsetweightfromafterblock}{chkp}{\def\attsetweightfromafterblock@ValSetChkp{#1}}
+\setkeys{attsetweightfromafterblock}{from=,to=,val=,when=}
+\newcommand{\attsetweightfromafterblock}[2][]{%
+    \setkeys{attsetweightfromafterblock}{#1}%
+    \ensuremath{{\addweight{#2}}_{\attsetweightfromafterblock@From +}^{\attsetweightfromafterblock@To,\attsetweightfromafterblock@Val,\attsetweightfromafterblock@When,\attsetweightfromafterblock@ValSetChkp}}%
+    \setkeys{attsetweightfromafterblock}{from=,to=,val=,when=,chkp=}%
 }%
 
 \define@key{indicatorfromblock}{from}{\def\indicatorfromblock@From{#1}}
@@ -789,6 +812,9 @@
 
 \newcommand{\allattsweight}[0]{S}
 \newcommand{\allatts}[0]{\mathcal{\allattsweight}}
+
+\newcommand{\exactattsweight}[0]{T}
+\newcommand{\exactatts}[0]{\mathcal{\exactattsweight}}
 
 \newcommand{\advvalsweight}[0]{A}
 \newcommand{\advvals}[0]{\mathcal{\advvalsweight}}
