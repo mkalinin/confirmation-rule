@@ -68,7 +68,7 @@ def get_block_epoch(store: Store, root: Root) -> Epoch:
     return compute_epoch_at_slot(store.blocks[root].slot)
 
 def get_checkpoint_for_block(store: Store, root: Root, epoch: Epoch) -> Checkpoint:
-    return Checkpoint(get_checkpoint_block(store, root, epoch). epoch)
+    return Checkpoint(get_checkpoint_block(store, root, epoch), epoch)
 
 
 def get_weight(store: Store, root: Root, checkpoint_state: BeaconState = None) -> Gwei:
