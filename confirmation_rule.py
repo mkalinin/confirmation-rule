@@ -71,9 +71,10 @@ def get_checkpoint_for_block(store: Store, root: Root, epoch: Epoch) -> Checkpoi
     return Checkpoint(get_checkpoint_block(store, root, epoch), epoch)
 
 
-def get_net_weight(store: Store, root: Root, checkpoint_state: BeaconState = None) -> Gwei:
+def get_attestation_score(store: Store, root: Root, checkpoint_state: BeaconState = None) -> Gwei:
     """
     Get LMD block weight without proposed boost
+    TODO: reuse this method in ForkChoice get_weight() method later
     """
     if checkpoint_state is None:
         state = store.checkpoint_states[store.justified_checkpoint]
@@ -163,7 +164,7 @@ def is_one_confirmed(store: Store, block_root: Root) -> bool:
     else:
         weighting_checkpoint = store.prev_slot_justified_checkpoint
     weighting_checkpoint_state = store.checkpoint_states[weighting_checkpoint]
-    support = get_net_weight(store, block_root, weighting_checkpoint_state)
+    support = get_attestation_score(store, block_root, weighting_checkpoint_state)
     maximum_support = estimate_committee_weight_between_slots(
         weighting_checkpoint_state, Slot(parent_block.slot + 1), Slot(current_slot - 1))
     proposer_score = get_proposer_score(store)
