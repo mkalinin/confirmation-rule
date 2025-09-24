@@ -327,7 +327,7 @@ def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) 
         # retrieve suffix of the canonical chain
         # verify the latest_confirmed_root belongs to it
         canonical_roots = get_canonical_roots(store, confirmed_root)
-        assert canonical_roots.pop(0) == ancestor_root
+        assert canonical_roots.pop(0) == confirmed_root
 
         # starting with the child of the latest_confirmed_root
         # move towards the head in attempt to advance confirmed block
