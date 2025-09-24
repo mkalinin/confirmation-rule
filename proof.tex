@@ -2740,6 +2740,18 @@ By cases.
     Thus either $b_c \notin \var[val=v,time=\slotstartslot{t}]{\bcands}$.
 \end{proof}
 
+\begin{assumption}\label{assum:maxratiowttoonecommittee}
+    For any
+    honest validator $v$,
+    time $t\geq \GGST$,
+    slot s,
+    valid block $b$, 
+    and checkpoint $C \in \allU(b)$,
+    % \teffbalass $\calB$ in the view of validator $v$ at any point in time,
+    $\commweightfromslot[from=s,to=s,chkp=C,when=t,val=v]{\allvals} \geq \frac{\totvalsetweight[chkp=C]{\allvals}}{\maxratiowttoonecommittee}$.
+    % \footnote{Given Assumption~\ref{assum:no-change-to-the-validator-set}, an equivalent condition is assuming that $\valsetweightfromslot[from=s,to=s',chkp={\genesis}]{\honvals} \geq (1-\beta) \valsetweightfromslot[from=s,to=s',chkp={\genesis}]{\allvals}$.}
+\end{assumption}
+
 \begin{lemma}\label{lem:beta-less-than-quarter-no-reconfirmation-required}
     Let $s' := \firstslot(\epoch(t)+1)$, $\chkp' := \guattime[val=v,time=\slotstart(s'-1)]$.
     Pick any block $b$ such that $b \preceq \var[val=v,time=\slotstartslot{t})]{\bconfirmed}$.
@@ -2747,7 +2759,7 @@ By cases.
     \begin{enumerate}
         \item $\slotstart(\epoch(t)) \geq \GST$
         \item $\epoch(b) = \epoch(t)$
-        \item $\beta \leq \frac{1}{4}$
+        \item  $\beta  \leq \frac{1-\frac{4\beta \maxratiowttoonecommittee \penr}{1-\beta}}{4}$
     \end{enumerate},
     then,
     \begin{enumerate}
@@ -2767,7 +2779,8 @@ By cases.
     \def\alignexplwidth{5cm}
     \allowdisplaybreaks
     \begin{align*}
-        \indicatorfromblock[from=b,to=s'-1,val=v,when=\slotstart(s'),chkp={C'}]{\indQ}  &=
+        &\hspace{3ex} \indicatorfromblock[from=b,to=s'-1,val=v,when=\slotstart(s'),chkp={C'}]{\indQ}\\  
+        &=
         \frac
             {\attsetweightfromblock[from=b,to=s'-1,val=v,when=\slotstart(s'),chkp={C'}]{\allatts}}
             {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
@@ -2816,7 +2829,7 @@ By cases.
         \end{aligned}
         &&\alignexpl[\alignexplwidth]{By simplification.}
         \\
-        &=
+        &\geq
         \begin{aligned}[t]
             &\frac
                 {\commweightfromslot[from={s},to=s'-1,val=v,when=\slotstart(s'),chkp={C'}]{\honvals} - \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s'),chkp={C'}]{\slashvals}}
@@ -2824,14 +2837,28 @@ By cases.
             \\
             &+
             \frac
-                {\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\allatts}}
+                {\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\allatts}-2\beta\totvalsetweight[chkp=C]{\allvals}\penr}
                 {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
             +
             \frac
                 {\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\slashvals}}
                 {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
         \end{aligned}
-        &&\alignexpl[\alignexplwidth]{Let $C := \gjattime[val=v,time=\slotstart(s)-1]$, then due to \Cref{lem:gu-prev-slot-descendant-of-gj-prev-slot} together with Assumption 1 of the Paper.}
+        &&\alignexpl[\alignexplwidth]{
+        Let $C := \gjattime[val=v,time=\slotstart(s)-1]$.
+        Given that $\epoch(b)=\epoch(t)$, we know that $s > \firstslot(\epoch(t))$.
+        Then, due \Cref{lem:epoch-gu-less-than-two-epoch-ago-start-epoch} we know that $\epoch(C)\geq \epoch(C')-2$.
+        From Assumption 1 of the paper we know that balance can only change for Byzantine validators.
+        Finally, from \Cref{lem:gu-prev-slot-descendant-of-gj-prev-slot} and Property 3 of the paper, 
+        $\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C'}]{\allatts}
+        \geq
+        \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\allatts}-(\beta\totvalsetweight[chkp=C]{\allvals}-\beta\totvalsetweight[chkp=C]{\allvals}(1-\penr)^2)
+        =
+        \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\allatts}-\beta\totvalsetweight[chkp=C]{\allvals}+\beta\totvalsetweight[chkp=C]{\allvals}(1-\penr)^2        
+        \geq
+        \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\allatts}-\beta\totvalsetweight[chkp=C]{\allvals}+\beta\totvalsetweight[chkp=C]{\allvals}(1-2\penr) 
+        =
+        \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\allatts}-2\beta\penr\totvalsetweight[chkp=C]{\allvals}$.}
         \\
         &=
         \begin{aligned}[t]
@@ -2841,7 +2868,8 @@ By cases.
             \\
             &+
             \frac
-                {\indicatorfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\indQ} \commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}
+                {\indicatorfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\indQ} \commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}
+                -2\beta\totvalsetweight[chkp=C]{\allvals}\penr}
                 {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
             +
             \frac
@@ -2858,7 +2886,7 @@ By cases.
             \\
             &+
             \frac
-                {\left(\frac{1}{2}\left(1 + \frac{\boostweight[chkp=C]}{\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}\right) + \beta - \frac{\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\slashvals}}{\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}\right) \commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}
+                {\left(\frac{1}{2}\left(1 + \frac{\boostweight[chkp=C]}{\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}\right) + \beta - \frac{\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\slashvals}}{\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}\right) \commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}-2\beta\totvalsetweight[chkp=C]{\allvals} \penr}
                 {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
             \\
             &+
@@ -2876,7 +2904,8 @@ By cases.
             \\
             &+
             \frac
-                {\frac{1}{2}\left(\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals} + \boostweight[chkp=C]\right) + \beta \commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals} - \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\slashvals}}
+                {\frac{1}{2}\left(\commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals} 
+                + \boostweight[chkp=C]\right) + \beta \commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals}-\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\slashvals}-2\beta\totvalsetweight[chkp=C]{\allvals} \penr}
                 {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
             \\
             &+
@@ -2886,19 +2915,6 @@ By cases.
         \end{aligned}
         &&\alignexpl[\alignexplwidth]{By simplification.}
         \\
-        &=
-        \begin{aligned}[t]
-            &\frac
-                {\commweightfromslot[from={s},to=s'-1,val=v,when=\slotstart(s'),chkp={C'}]{\honvals} - \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s'),chkp={C'}]{\slashvals}}
-                {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
-            \\
-            &+
-            \frac
-                {\frac{1}{2}\left(\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals} + \boostweight[chkp=C]\right) + \beta \commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}
-                {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
-        \end{aligned}
-        &&\alignexpl[\alignexplwidth]{By simplification again.}
-        \\
         &\geq
         \begin{aligned}[t]
             &\frac
@@ -2907,10 +2923,24 @@ By cases.
             \\
             &+
             \frac
-                {\frac{1}{2}\left(\commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals} + \boostweight[chkp=C']\right) + \beta \commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals}}
+                {\frac{1}{2}\left(\commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals} 
+                + \boostweight[chkp=C]\right) + \beta \commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals}-2\beta\totvalsetweight[chkp=C]{\allvals} \penr}
                 {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
         \end{aligned}
-        &&\alignexpl[\alignexplwidth]{As, $\commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals} \leq \commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}$ and $\boostweight[chkp=C'] \leq \boostweight[chkp=C]$ due to \Cref{lem:gu-prev-slot-descendant-of-gj-prev-slot} together with Assumption 1 of the Paper.}
+        &&\alignexpl[\alignexplwidth]{By simplification.}
+        % \\
+        % &\geq
+        % \begin{aligned}[t]
+        %     &\frac
+        %         {\commweightfromslot[from={s},to=s'-1,val=v,when=\slotstart(s'),chkp={C'}]{\honvals} - \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s'),chkp={C'}]{\slashvals}}
+        %         {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        %     \\
+        %     &+
+        %     \frac
+        %         {\left(\frac{1}{2}\left(\commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals} + \boostweight[chkp=C]\right) + \beta \commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals}\right)(1-2\penr)}
+        %         {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        % \end{aligned}
+        % &&\alignexpl[\alignexplwidth]{As, $\commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals} \leq \commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}$ and $\boostweight[chkp=C] \leq \boostweight[chkp=C]$ due to \Cref{lem:gu-prev-slot-descendant-of-gj-prev-slot} together with Assumption 1 of the Paper.}
         \\
         &\geq
         \begin{aligned}[t]
@@ -2920,7 +2950,8 @@ By cases.
             \\
             &+
             \frac
-                {\frac{1}{2}\left(\commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals} + \boostweight[chkp=C']\right) + \beta \commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals}}
+                {\frac{1}{2}\left(\commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals} 
+                + \boostweight[chkp=C]\right) + \beta \commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals}-2\beta\totvalsetweight[chkp=C]{\allvals} \penr}
                 {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
         \end{aligned}
         &&\alignexpl[\alignexplwidth]{By Assumption 2 of the paper.}
@@ -2928,17 +2959,65 @@ By cases.
         &\geq
         \begin{aligned}[t]
             &\frac
-                {\left(\frac{1}{2}+\beta\right) \commweightfromblock[from=s,to=s'-1,chkp={C'}]{\allvals} - \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s'),chkp={C'}]{\slashvals}}
+                {\left(\frac{1}{2}+\beta+\frac{2\beta \maxratiowttoonecommittee \penr}{1-\beta} \right) \commweightfromblock[from=s,to=s'-1,chkp={C'}]{\allvals} - \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s'),chkp={C'}]{\slashvals}}
                 {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
             \\
             &+
             \frac
-                {\frac{1}{2}\left(\commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals} + \boostweight[chkp=C']\right) + \beta \commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals}}
+                {\frac{1}{2}\left(\commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals} 
+                + \boostweight[chkp=C]\right) + \beta \commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals}-2\beta\totvalsetweight[chkp=C]{\allvals} \penr}
                 {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
         \end{aligned}
-        &&\alignexpl[\alignexplwidth]{As, $1-\beta \geq \frac{1}{2}+\beta$ because $\beta \leq \frac{1}{4}$.}
+        &&\alignexpl[\alignexplwidth]{We know that $\beta  \leq \frac{1-\frac{4\beta \maxratiowttoonecommittee \penr}{1-\beta}}{4}$.
+        Let $\gamma = \frac{2\beta \maxratiowttoonecommittee \penr}{1-\beta}$ which means that
+        $\beta \leq \frac{1-2\gamma}{4}$
+        Then, 
+        $1-\beta 
+        \geq
+        1- \frac{1-2\gamma}{4}
+        \geq 
+        \frac{3-2\gamma}{4}
+        =
+        \frac{2+1-2\gamma+4\gamma}{4}
+        \geq
+        \frac{1}{2}+\beta+\gamma
+        =
+        \frac{1}{2}+\beta+\frac{2\beta \maxratiowttoonecommittee \penr}{1-\beta}$.}        
         \\
         &=
+        \begin{aligned}[t]
+            &\frac
+                {\frac{1}{2}\left(\commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals} + \commweightfromblock[from=s,to=s'-1,chkp={C'}]{\allvals} + \boostweight[chkp=C]\right)}
+                {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+            \\
+            &+
+            \frac
+                {\left(\commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals}+ \commweightfromblock[from=s,to=s'-1,chkp={C'}]{\allvals}\right) \beta - \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s'),chkp={C'}]{\slashvals}}
+                {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+            \\
+            &+\frac
+            {\frac{2 \maxratiowttoonecommittee \penr\beta}{1-\beta}\commweightfromblock[from=s,to=s'-1,chkp={C'}]{\allvals}  - 2\beta\totvalsetweight[chkp=C]{\allvals} \penr }
+            {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        \end{aligned}
+        &&\alignexpl[\alignexplwidth]{By simplification.}
+        \\
+        &\geq
+        \begin{aligned}[t]
+            &\frac
+                {\frac{1}{2}\left(\commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals} + \commweightfromblock[from=s,to=s'-1,chkp={C'}]{\allvals} + \boostweight[chkp=C]\right)}
+                {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+            \\
+            &+
+            \frac
+                {\left(\commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals}+ \commweightfromblock[from=s,to=s'-1,chkp={C'}]{\allvals}\right) \beta - \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s'),chkp={C'}]{\slashvals}}
+                {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
+        \end{aligned}
+        &&\alignexpl[\alignexplwidth]{$\maxratiowttoonecommittee = \frac{\totvalsetweight[chkp=C']{\allvals}}{\frac{\totvalsetweight[chkp=C']{\allvals}}{\maxratiowttoonecommittee}}\geq\frac{\totvalsetweight[chkp=C']{\allvals}}{\commweightfromblock[from=s,to=s'-1,chkp={C'}]{\allvals}}$ due to \Cref{assum:maxratiowttoonecommittee} and $s'-1\geq s$.
+        Then, $\frac{\maxratiowttoonecommittee}{1-\beta}
+        \geq \frac{\totvalsetweight[chkp=C']{\allvals}}{(1-\beta)\commweightfromblock[from=s,to=s'-1,chkp={C'}]{\allvals}}
+        \geq\frac{\totvalsetweight[chkp=C]{\allvals}}{\commweightfromblock[from=s,to=s'-1,chkp={C'}]{\allvals}}$ as $\totvalsetweight[chkp=C']{\allvals}\geq(1-\beta)\totvalsetweight[chkp=C]{\allvals}$ because at most the balances of dishonest validators can be removed from $C$ and this is at most $\beta\totvalsetweight[chkp=C]{\allvals}$.}
+        \\        
+        &\geq
         \begin{aligned}[t]
             &\frac
                 {\frac{1}{2}\left(\commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals} + \commweightfromblock[from=s,to=s'-1,chkp={C'}]{\allvals} + \boostweight[chkp=C']\right)}
@@ -2946,11 +3025,12 @@ By cases.
             \\
             &+
             \frac
-                {\left(\commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals} + \commweightfromblock[from=s,to=s'-1,chkp={C'}]{\allvals}\right) \beta - \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s'),chkp={C'}]{\slashvals}}
+                {\left(\commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals}+ \commweightfromblock[from=s,to=s'-1,chkp={C'}]{\allvals}\right) \beta - \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s'),chkp={C'}]{\slashvals}}
                 {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
         \end{aligned}
-        &&\alignexpl[\alignexplwidth]{By simplification.}
-        \\
+        &&\alignexpl[\alignexplwidth]{As $\boostweight[chkp=C]\geq\boostweight[chkp=C']$ due to \Cref{lem:gu-prev-slot-descendant-of-gj-prev-slot} and Assumption 1 of the paper.}        
+        \\        
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         &\geq
         \begin{aligned}[t]
             &\frac
@@ -2962,7 +3042,7 @@ By cases.
                 {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals} \beta - \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s'),chkp={C'}]{\slashvals}}
                 {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
         \end{aligned}
-        &&\alignexpl[\alignexplwidth]{As, $\commfromblock[from=b,to=s'-1]{\allvals} = \commfromblock[from=b,to=s-1]{\allvals} \cup \commfromblock[from=s,to=s'-1]{\allvals}$.}
+        &&\alignexpl[\alignexplwidth]{As, $\commfromblock[from=b,to=s'-1]{\allvals} = \commfromblock[from=b,to=s-1]{\allvals} \cup \commfromblock[from=s,to=s'-1]{\allvals}$.}         
         \\
         &=
             \frac{1}{2}\left(1 + \frac{\boostweight[chkp=C']}{\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}\right)
