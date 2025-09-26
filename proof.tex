@@ -1400,9 +1400,8 @@ By cases.
     The \LMDGHOST safety condition for block $b$ according to checkpoint $C$ and the view of validator $v$ at time $t\geq\GGST$ starting from block $b_mathsf{s}$, corresponds to the following condition, formally named $\var[val=v]{\mathrm{isLMDGHOSTSafe}}(b,C,t)$.
     $$
 \begin{aligned}
-        \var[val=v]{\mathrm{isLMDGHOSTSafeFrom}}(b,C,t,b_\mathsf{s}) := &b \succeq b_\mathsf{s} \land \\
-        &\forall b',\; b_\mathsf{s} \preceq b' \preceq b \implies
-                \indicatorfromblock[from=b',to=\slot(t)-1,val=v,when=t,chkp=C]{\indQ}
+        \var[val=v]{\mathrm{isLMDGHOSTSafeFrom}}&(b,C,t,b_\mathsf{s}) := b \succeq b_\mathsf{s} \land \forall b',\; b_\mathsf{s} \preceq b' \preceq b \implies\\
+                &\indicatorfromblock[from=b',to=\slot(t)-1,val=v,when=t,chkp=C]{\indQ}
                 >
                     \frac{1}{2}
                         \left( 1+
@@ -1410,7 +1409,10 @@ By cases.
                             {\boostweight[chkp=C]}
                             {\commweightfromblock[from=b',to=\slot(t)-1,chkp=C,when=t,val=v]{\allvals}}
                         \right)
-                    + \beta  
+                    + \beta
+                    - \frac
+                        {\commweightfromblock[from=b',to=\slot(t)-1,chkp=C,when=t,val=v]{\slashvals}}
+                        {\commweightfromblock[from=b',to=\slot(t)-1,chkp=C,when=t,val=v]{\allvals}}
 \end{aligned}   
                 $$
 \end{definition}
@@ -1432,7 +1434,7 @@ By cases.
         % \end{enumerate}
         % \item\label{def:induction-conditions:ub} by time $\slotstart(\firstslot(\epoch(b)+2))$, in the view of any honest node there exists a block $b' \succeq b$  such that $\chkp(b) \in \allU(b') \land \epoch(b') < \epoch(b)+2$.
         \siritem{$(b)$}
-        \label{def:induction-conditions:ub} by time $\slotstart(\firstslot(\epoch(b)+2))$, in the view of any honest node there exists a block $b' \succeq b$ and checkpoint $C \succeq b$ such that $C \in \allU(b') \land \epoch(b') < \epoch(b)+2$.
+        \label{def:induction-conditions:ub} by time $\slotstart(\firstslot(\epoch(b)+2))$, in the view of any honest node there exists a block $b' \succeq b$ and checkpoint $C \succeq \chkp(b)$ such that $C \in \allU(b') \land \epoch(b') < \epoch(b)+2$.
         \siritem{$(b,e_1,e_2)$}
         \label{def:induction-conditions:no-conflicting} no checkpoint $C$ with $\epoch(C) \in [e_1,e_2]$ which conflicts with $b$ can ever be justified.
     \end{enumerate}
@@ -1463,7 +1465,7 @@ By cases.
             \item $\gjattime[time=t'',val=v''] \succeq C$,
             % \item $\gjattime[time=t'',val=v''] \succeq C_\mathsf{s}$ and
             \item $b \in \filtered[time=t'',val=v'']$,
-            \item $b_\mathsf{s} \preceq  \LMDGHOSTHFC(\viewattime[val=v',time=t'])$
+            \item $b_\mathsf{s} \preceq  \LMDGHOSTHFC(\viewattime[val=v'',time=t''])$
         \end{enumerate}
         % \item\label{itm:thm:lmd-confirmed-changing-balances:cond-on-justified-next-epoch} by the end of epoch $\epoch(t) + 1$, any honest validator has in their view a block $b''$ such that $\epoch(U(b'')) = \epoch(t) \land U(b'') \succeq \gjblock(b)$
     \end{enumerate}
@@ -1584,8 +1586,102 @@ By cases.
     \Cref{lem:conf-current-epoch-then-gu-curr-epoch} implies that $\exists b' \in \viewattime[val=v,time=\slotstart(s-1)], b' \succeq \var[val=v,time=\slotstart(s-1)]{\bconfirmed} \land \epoch(\gu(b')) \geq \epoch(s-1) = \epoch(s)-2$.
 \end{proof}
 
+% \begin{proof}
+%     From \Cref{lem:epoch-gu-less-than-two-epoch-ago-start-epoch} and the synchrony assumption.
+% \end{proof}
+
+\begin{lemma}\label{lem:no-conflicting-e-1-chkp-if-reconfirmed}
+    If
+    \begin{enumerate}
+        \item $\slotstart(\prevfirstslotepoch{t}) \geq \GST$
+        \item \label{itm:lem:no-conflicting-e-1-chkp-if-reconfirmed:2} \sloppy{the \KwSty{if} condition at line \Cref{ln:if-bcand-npreceq-head} during the execution of $\var[val=v,time=\slotstart(\epoch(t))]{\getlatestconfirmed}(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})])$ is false}
+    \end{enumerate},
+    then,
+    \begin{enumerate}
+        \item no checkpoint $C$ s.t. $\epoch(C) = \epoch(t)-1$ and $\block(C)$ conflicts with  $\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]$ can ever be justified
+    \end{enumerate}
+\end{lemma}
+
 \begin{proof}
-    From \Cref{lem:epoch-gu-less-than-two-epoch-ago-start-epoch} and the synchrony assumption.
+    Assumption \ref{itm:lem:no-conflicting-e-1-chkp-if-reconfirmed:2} of the Lemma implies $\epoch(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]) = \epoch(t)-1$.
+    Then due to \Cref{lem:epoch-gu-less-than-two-epoch-ago-start-epoch} $\epoch(\guattime[time=\slotstart(\prevfirstslotepoch{t}),val=v]) \geq \epoch(t)-2$.
+    If $\epoch(\guattime[time=\slotstart(\prevfirstslotepoch{t}),val=v])=\epoch(t)-1$ then the proof is trivially concluded.
+    Let $C' := \chkp(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})])$ and $b' := \block(C')$.
+    For the case when $\epoch(\guattime[time=\slotstart(\prevfirstslotepoch{t}),val=v])=\epoch(t)-2$ due to Lemma's assumption \ref{itm:lem:no-conflicting-e-1-chkp-if-reconfirmed:2} we know that $\var[val=v]{\mathit{is\_chain\_one\_confirmed}}(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})],\guattime[val=v,time={\slotstart(\firstslot(\epoch(t))-1)}])$.
+    Which implies $$
+    \begin{aligned}
+        &\indicatorfromblock[from=b',to=s'-1,val=v,when=\slotstart(s'),chkp=C]{\indQ}
+        >
+            \frac{1}{2}
+                \left( 1+
+                    \frac
+                    {\boostweight[chkp=C]}
+                    {\commweightfromblock[from=b',to=s'-1,chkp=C]{\allvals}}
+                \right)
+            + \beta
+            - \frac
+                {\commweightfromblock[from=b',to=s'-1,chkp=C,when=\slotstart(s'),val=v]{\slashvals}}
+                {\commweightfromblock[from=b',to=s'-1,chkp=C]{\allvals}},
+        \\&\text{where $s':=\firstslot(\epoch(t)), C := \guattime[time=\slotstart(\prevfirstslotepoch{t}),val=v]$.}
+    \end{aligned}$$
+
+    \def\alignexplwidth{5cm}
+    \allowdisplaybreaks
+    \begin{align*}
+        \weightofset[chkp=C]{\ffgvalsetallsentraw[time=\slotstart(s'),source=,target=C'] \cap \totvalset[chkp=]{\honvals}}
+        &\geq
+        \attsetweightfromblock[from=b',to=s'-1,val=v,when=\slotstart(s'),chkp={C}]{\honatts}
+        &&\alignexpl[\alignexplwidth]{As, $b' = \block(C')$ and due to Property 1.3 of the Paper.}
+        \\
+        &\geq
+        \attsetweightfromblock[from=b',to=s'-1,val=v,when=\slotstart(s'),chkp={C}]{\allatts} - \attsetweightfromblock[from=b',to=s'-1,val=v,when=\slotstart(s'),chkp={C}]{\advvals}
+        &&\alignexpl[\alignexplwidth]{By definition.}
+        \\
+        &\geq
+        \indicatorfromblock[from=b',to=s'-1,val=v,when=\slotstart(s'),chkp={C}]{\indQ} \commweightfromblock[from=b',to=s'-1,chkp=C]{\allvals} - \attsetweightfromblock[from=b',to=s'-1,val=v,when=\slotstart(s'),chkp={C}]{\advvals}
+        &&\alignexpl[\alignexplwidth]{By definition.}
+        \\
+        &\geq
+        \begin{aligned}[t]
+            &\left(\frac{1}{2}
+                    \left( 1+
+                        \frac
+                        {\boostweight[chkp=C]}
+                        {\commweightfromblock[from=b',to=s'-1,chkp=C]{\allvals}}
+                    \right)
+                + \beta
+                - \frac
+                    {\commweightfromblock[from=b',to=s'-1,chkp=C,when=\slotstart(s'),val=v]{\slashvals}}
+                    {\commweightfromblock[from=b',to=s'-1,chkp=C]{\allvals}}\right) \commweightfromblock[from=b',to=s'-1,chkp=C]{\allvals}
+            \\
+            &- \attsetweightfromblock[from=b',to=s'-1,val=v,when=\slotstart(s'),chkp={C}]{\advvals}
+        \end{aligned}
+        &&\alignexpl[\alignexplwidth]{Due to Lemma's assumption \ref{itm:lem:no-conflicting-e-1-chkp-if-reconfirmed:2}.}
+        \\
+        &\geq
+        \begin{aligned}[t]
+            &\frac{1}{2}
+                    \left(
+                        \commweightfromblock[from=b',to=s'-1,chkp=C]{\allvals} +
+                        \boostweight[chkp=C]
+                    \right)
+                + \beta \commweightfromblock[from=b',to=s'-1,chkp=C]{\allvals}
+                - \commweightfromblock[from=b',to=s'-1,chkp=C,when=\slotstart(s'),val=v]{\slashvals}
+            \\
+            &- \attsetweightfromblock[from=b',to=s'-1,val=v,when=\slotstart(s'),chkp={C}]{\advvals}
+        \end{aligned}
+        &&\alignexpl[\alignexplwidth]{By simplification.}
+        \\
+        &\geq
+            \frac{1}{2} \left(\commweightfromblock[from=b',to=s'-1,chkp=C]{\allvals} + \boostweight[chkp=C]\right)
+        &&\alignexpl[\alignexplwidth]{As, $\beta \commweightfromblock[from=b',to=s'-1,chkp=C]{\allvals} \geq \attsetweightfromblock[from=b',to=s'-1,val=v,when=\slotstart(s'),chkp={C}]{\advvals}$ and $\valsetfromblock[from=b',to=s'-1,chkp=C]{\slashvals} \subseteq \valsetfromblock[from=b',to=s'-1,chkp=C]{\advvals}$.}
+        \\
+        &\geq
+            \frac{1}{2} \left(\totvalsetweight[chkp=C]{\allvals} + \boostweight[chkp=C]\right)
+        &&\alignexpl[\alignexplwidth]{As, $\parentslotplusone(b') \leq \firstslot(\epoch(t)-1)$ and $s' - 1 = \lastslot(\epoch(t)-1)$.}
+    \end{align*}
+    Given the above, the fact that $C \prec C'$ and Assumption 1 of the Paper we conclude $\weightofset[chkp=C']{\ffgvalsetallsentraw[time=\slotstart(s'),source=,target=C'] \cap \totvalset[chkp=]{\honvals}} \geq \frac{1}{2} \left(\totvalsetweight[chkp=C']{\allvals} + \boostweight[chkp=C']\right) > \frac{1}{3}\totvalsetweight[chkp=C']{\allvals}$.
+    Which concludes the proof.
 \end{proof}
 
 \begin{lemma}\label{lem:gj-prec-prev-confirmed-at-start-of-epoch}
@@ -1703,7 +1799,7 @@ By cases.
     Lemma's assumption~\ref{itm:lem:conf-prev-slot-canonical-at-the-start-of-an-epoch:3}
     implies that $\epoch(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]) = \epoch(t)-1$ and $\var[val=v]{\mathit{is\_chain\_one\_confirmed}}(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})],\guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{t}))-1)}])$.
     
-    Note that this implies that $\slotstart(epoch(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]) +2) = \slotstart(\epoch(t)+1)$.
+    Note that this implies that $\slotstart(\epoch(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]) +2) = \slotstart(\epoch(t)+1)$.
 
 
     % Now, we prove tha $\sir(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})],t,\guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{t}))-1)}],\block(\guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{t}))-1)}]))$ holds.
@@ -2124,7 +2220,7 @@ By cases.
     Because of condition~\ref{itm:lem:no-conflicting-to-c-b-at-the-start-of-an-epoch:3},
     we know that $\epoch(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})])\geq\epoch(t)-1$. 
     From \Cref{lem:no-curr-epochconflict-chkp-is-justified}, we know that there exists a time $t' \in \{\slotstart(s): s \in [\firstslot(\epoch(t)-1),\lastslot(\epoch(t)-1)]\}$ such that $\var[val=v,time=t']{\willChkpBeJustified}(\bconfirmed[val=v,time=t'])$ and $\epoch(\bconfirmed[val=v,time=t'] ) = \epoch(t)-1$.
-    \Cref{lem:conf-beginning-epoch-prec-bcand} then implies that $\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})] \preceq \bconfirmed[val=v,time=t'] \preceq \bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]$ and $\epoch(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})] ) \geq \epoch(t)-2$.
+    \Cref{lem:conf-beginning-epoch-prec-bcand} then implies that $\bconfirmed[val=v,time=\slotstart(\firstslot(\epoch(t)-1))] \preceq \bconfirmed[val=v,time=t'] \preceq \bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]$ and $\epoch(\bconfirmed[val=v,time=\slotstart(\firstslot(\epoch(t)-1))] ) \geq \epoch(t)-2$.
 
     Then, given Lemma 13 of the paper, to conclude the proof it is sufficient to prove that  $\canonical[blck={\bconfirmed[val=v,time=t']},time=t',to=\slotstart(\epoch(t))]$.
 
@@ -2479,7 +2575,7 @@ By cases.
     \begin{enumerate}
         \item $\slotstart(\prevfirstslot{\epoch(t)-1})\geq \GST$
         % \item  $t = \slotstart(\slot(t))$
-        \item $\epoch(\bconfirmed[val=v,time=\slotstartslot{t}])=\epoch(t)-1$
+        \item $\epoch(\bconfirmed[val=v,time=\slotstartslot{t}]) \geq \epoch(t)-1$
         % \item \ref{def:induction-conditions:ub} holds for $\var[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$
         % \item $\slotstart(\lastslot(\epoch(t)-1)) \geq \GST$
         % \item $\epoch(b_c) \geq \epoch(t)-1$
@@ -2737,20 +2833,8 @@ By cases.
         {\commweightfromblock[from=b',to=s-1,chkp={C}]{\allvals}}$}.
     Given that together with the fact that \Cref{set-btcand-to-btemp} is the only place where $\bcand$ gets assigned to a block from $\epoch(t)$,
     the check in \Cref{ln:if-is-one-confirmed-second-loop} must never be true for $b'$.
-    Thus either $b_c \notin \var[val=v,time=\slotstartslot{t}]{\bcands}$.
+    Thus $b_c \notin \var[val=v,time=\slotstartslot{t}]{\bcands}$.
 \end{proof}
-
-\begin{assumption}\label{assum:maxratiowttoonecommittee}
-    For any
-    honest validator $v$,
-    time $t\geq \GGST$,
-    slot s,
-    valid block $b$, 
-    and checkpoint $C \in \allU(b)$,
-    % \teffbalass $\calB$ in the view of validator $v$ at any point in time,
-    $\commweightfromslot[from=s,to=s,chkp=C,when=t,val=v]{\allvals} \geq \frac{\totvalsetweight[chkp=C]{\allvals}}{\maxratiowttoonecommittee}$.
-    % \footnote{Given Assumption~\ref{assum:no-change-to-the-validator-set}, an equivalent condition is assuming that $\valsetweightfromslot[from=s,to=s',chkp={\genesis}]{\honvals} \geq (1-\beta) \valsetweightfromslot[from=s,to=s',chkp={\genesis}]{\allvals}$.}
-\end{assumption}
 
 \begin{lemma}\label{lem:beta-less-than-quarter-no-reconfirmation-required}
     Let $s' := \firstslot(\epoch(t)+1)$, $\chkp' := \guattime[val=v,time=\slotstart(s'-1)]$.
@@ -2759,7 +2843,7 @@ By cases.
     \begin{enumerate}
         \item $\slotstart(\epoch(t)) \geq \GST$
         \item $\epoch(b) = \epoch(t)$
-        \item  $\beta  \leq \frac{1-\frac{4\beta \maxratiowttoonecommittee \penr}{1-\beta}}{4}$
+        \item $\beta \leq \frac{1}{4}$
     \end{enumerate},
     then,
     \begin{enumerate}
@@ -2779,8 +2863,7 @@ By cases.
     \def\alignexplwidth{5cm}
     \allowdisplaybreaks
     \begin{align*}
-        &\hspace{3ex} \indicatorfromblock[from=b,to=s'-1,val=v,when=\slotstart(s'),chkp={C'}]{\indQ}\\  
-        &=
+        \indicatorfromblock[from=b,to=s'-1,val=v,when=\slotstart(s'),chkp={C'}]{\indQ}  &=
         \frac
             {\attsetweightfromblock[from=b,to=s'-1,val=v,when=\slotstart(s'),chkp={C'}]{\allatts}}
             {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
@@ -2829,7 +2912,7 @@ By cases.
         \end{aligned}
         &&\alignexpl[\alignexplwidth]{By simplification.}
         \\
-        &\geq
+        &=
         \begin{aligned}[t]
             &\frac
                 {\commweightfromslot[from={s},to=s'-1,val=v,when=\slotstart(s'),chkp={C'}]{\honvals} - \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s'),chkp={C'}]{\slashvals}}
@@ -2837,28 +2920,14 @@ By cases.
             \\
             &+
             \frac
-                {\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\allatts}-2\beta\totvalsetweight[chkp=C]{\allvals}\penr}
+                {\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\allatts}}
                 {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
             +
             \frac
                 {\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\slashvals}}
                 {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
         \end{aligned}
-        &&\alignexpl[\alignexplwidth]{
-        Let $C := \gjattime[val=v,time=\slotstart(s)-1]$.
-        Given that $\epoch(b)=\epoch(t)$, we know that $s > \firstslot(\epoch(t))$.
-        Then, due \Cref{lem:epoch-gu-less-than-two-epoch-ago-start-epoch} we know that $\epoch(C)\geq \epoch(C')-2$.
-        From Assumption 1 of the paper we know that balance can only change for Byzantine validators.
-        Finally, from \Cref{lem:gu-prev-slot-descendant-of-gj-prev-slot} and Property 3 of the paper, 
-        $\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C'}]{\allatts}
-        \geq
-        \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\allatts}-(\beta\totvalsetweight[chkp=C]{\allvals}-\beta\totvalsetweight[chkp=C]{\allvals}(1-\penr)^2)
-        =
-        \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\allatts}-\beta\totvalsetweight[chkp=C]{\allvals}+\beta\totvalsetweight[chkp=C]{\allvals}(1-\penr)^2        
-        \geq
-        \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\allatts}-\beta\totvalsetweight[chkp=C]{\allvals}+\beta\totvalsetweight[chkp=C]{\allvals}(1-2\penr) 
-        =
-        \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\allatts}-2\beta\penr\totvalsetweight[chkp=C]{\allvals}$.}
+        &&\alignexpl[\alignexplwidth]{Let $C := \gjattime[val=v,time=\slotstart(s)-1]$, then due to \Cref{lem:gu-prev-slot-descendant-of-gj-prev-slot} together with Assumption 1 of the Paper.}
         \\
         &=
         \begin{aligned}[t]
@@ -2868,8 +2937,7 @@ By cases.
             \\
             &+
             \frac
-                {\indicatorfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\indQ} \commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}
-                -2\beta\totvalsetweight[chkp=C]{\allvals}\penr}
+                {\indicatorfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\indQ} \commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}
                 {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
             +
             \frac
@@ -2886,7 +2954,7 @@ By cases.
             \\
             &+
             \frac
-                {\left(\frac{1}{2}\left(1 + \frac{\boostweight[chkp=C]}{\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}\right) + \beta - \frac{\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\slashvals}}{\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}\right) \commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}-2\beta\totvalsetweight[chkp=C]{\allvals} \penr}
+                {\left(\frac{1}{2}\left(1 + \frac{\boostweight[chkp=C]}{\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}\right) + \beta - \frac{\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\slashvals}}{\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}\right) \commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}
                 {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
             \\
             &+
@@ -2915,7 +2983,7 @@ By cases.
         \end{aligned}
         &&\alignexpl[\alignexplwidth]{By simplification.}
         \\
-        &\geq
+        &=
         \begin{aligned}[t]
             &\frac
                 {\commweightfromslot[from={s},to=s'-1,val=v,when=\slotstart(s'),chkp={C'}]{\honvals} - \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s'),chkp={C'}]{\slashvals}}
@@ -2927,20 +2995,7 @@ By cases.
                 + \boostweight[chkp=C]\right) + \beta \commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}-2\beta\totvalsetweight[chkp=C]{\allvals} \penr}
                 {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
         \end{aligned}
-        &&\alignexpl[\alignexplwidth]{By simplification.}
-        % \\
-        % &\geq
-        % \begin{aligned}[t]
-        %     &\frac
-        %         {\commweightfromslot[from={s},to=s'-1,val=v,when=\slotstart(s'),chkp={C'}]{\honvals} - \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s'),chkp={C'}]{\slashvals}}
-        %         {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
-        %     \\
-        %     &+
-        %     \frac
-        %         {\left(\frac{1}{2}\left(\commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals} + \boostweight[chkp=C]\right) + \beta \commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals}\right)(1-2\penr)}
-        %         {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
-        % \end{aligned}
-        % &&\alignexpl[\alignexplwidth]{As, $\commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals} \leq \commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}$ and $\boostweight[chkp=C] \leq \boostweight[chkp=C]$ due to \Cref{lem:gu-prev-slot-descendant-of-gj-prev-slot} together with Assumption 1 of the Paper.}
+        &&\alignexpl[\alignexplwidth]{By simplification again.}
         \\
         &\geq
         \begin{aligned}[t]
@@ -2971,7 +3026,7 @@ By cases.
                 -2\beta\totvalsetweight[chkp=C]{\allvals} \penr}
                 {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
         \end{aligned}
-        &&\alignexpl[\alignexplwidth]{By Assumption 2 of the paper.}
+        &&\alignexpl[\alignexplwidth]{As, $\commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals} \leq \commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}$ and $\boostweight[chkp=C'] \leq \boostweight[chkp=C]$ due to \Cref{lem:gu-prev-slot-descendant-of-gj-prev-slot} together with Assumption 1 of the Paper.}
         \\
         &\geq
         \begin{aligned}[t]
@@ -3009,14 +3064,10 @@ By cases.
             \\
             &+
             \frac
-                {\left(\commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals}+ \commweightfromblock[from=s,to=s'-1,chkp={C'}]{\allvals}\right) \beta - \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s'),chkp={C'}]{\slashvals}}
+                {\frac{1}{2}\left(\commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals} + \boostweight[chkp=C']\right) + \beta \commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals}}
                 {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
-            \\
-            &+\frac
-            {\frac{2 \maxratiowttoonecommittee \penr\beta}{1-\beta}\commweightfromblock[from=s,to=s'-1,chkp={C'}]{\allvals}  - 2\beta\totvalsetweight[chkp=C]{\allvals} \penr }
-            {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
         \end{aligned}
-        &&\alignexpl[\alignexplwidth]{By simplification.}
+        &&\alignexpl[\alignexplwidth]{By Assumption 2 of the paper.}
         \\
         &\geq
         \begin{aligned}[t]
@@ -3026,7 +3077,7 @@ By cases.
             \\
             &+
             \frac
-                {\left(\commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals}+ \commweightfromblock[from=s,to=s'-1,chkp={C'}]{\allvals}\right) \beta - \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s'),chkp={C'}]{\slashvals}}
+                {\frac{1}{2}\left(\commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals} + \boostweight[chkp=C']\right) + \beta \commweightfromblock[from=b,to=s-1,chkp={C'}]{\allvals}}
                 {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
         \end{aligned}
         &&\alignexpl[\alignexplwidth]{$\maxratiowttoonecommittee = \frac{\totvalsetweight[chkp=C']{\allvals}}{\frac{\totvalsetweight[chkp=C']{\allvals}}{\maxratiowttoonecommittee}}\geq\frac{\totvalsetweight[chkp=C']{\allvals}}{\commweightfromblock[from=s,to=s'-1,chkp={C'}]{\allvals}}$ due to \Cref{assum:maxratiowttoonecommittee} and $s'-1\geq s$.
@@ -3046,7 +3097,7 @@ By cases.
                 {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals} \beta - \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s'),chkp={C'}]{\slashvals}}
                 {\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}
         \end{aligned}
-        &&\alignexpl[\alignexplwidth]{As, $\commfromblock[from=b,to=s'-1]{\allvals} = \commfromblock[from=b,to=s-1]{\allvals} \cup \commfromblock[from=s,to=s'-1]{\allvals}$.}         
+        &&\alignexpl[\alignexplwidth]{As, $\commfromblock[from=b,to=s'-1]{\allvals} = \commfromblock[from=b,to=s-1]{\allvals} \cup \commfromblock[from=s,to=s'-1]{\allvals}$.}
         \\
         &=
             \frac{1}{2}\left(1 + \frac{\boostweight[chkp=C']}{\commweightfromblock[from=b,to=s'-1,chkp={C'}]{\allvals}}\right)
