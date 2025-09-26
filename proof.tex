@@ -3167,9 +3167,14 @@ By cases.
 \section{Improve performance with missed slots}
 
 
-Let $\attsetfromafterblock[from=b,to=s,when=t,val=v]{\exactatts}$ be the set of validators be the set of validators in $\commfromslot[from=\slot(b)+1, to=s',when=t,val=v]{\allvals}$ that, according to $\viewattime[val=v,time=t]$, have sent a \GHOST vote that \LMDGHOST voted \emph{exactly} $b$, \ie, not for any $b' \succ b$, just exactly for $b$.
+% Let $\attsettobediscfromblock[from=b,to=s,when=t,val=v]{\allatts}$ be the set of validators in $\commfromslot[from=\parentslotplusone(b), to=\slot(b)-1,when=t,val=v]{\allvals}\setminus \commfromslot[from=\slot(b), to=s,when=t,val=v]{\allvals}$ that, according to $\viewattime[val=v,time=t]$, have sent a \GHOST vote that \LMDGHOST voted \emph{exactly} for $\parent(b)$, \ie, not for any $b' \succ \parent(b)$, just exactly for $\parent(b)$.
 
-\begin{lemma}\label{lem:condition-on-h-for-canonical}
+Let $\attsettobediscfromblock[from=b,to=s,when=t,val=v]{\allatts}$ be the set of validators in $\commfromslot[from=\slot(\parent(b))+1, to=s,when=t,val=v]{\allvals}$ that, according to view $\FILLMD(\FILINV(\FILCUR(\FILEQ(\viewattime[val=v,time=t]),t)))$, have sent a \GHOST vote that \emph{does not} \LMDGHOST voted for a block $\succ b$, \ie, it \LMDGHOST votes for either a block $\preceq b$ or a block conflicting with $b$.
+
+
+Let $\attsettobediscfromblock[from=b,to=s,when=t,val=v]{\honatts}$ be $\attsettobediscfromblock[from=b,to=s,when=t,val=v]{\allatts} \cap \honvals$.
+
+\begin{lemma}[Analogous of Lemma 2 in the paper]\label{lem:condition-on-h-for-canonical}
     Let $v$ be any honest validator, $t$ be any time and $b$ be any block, if
     \begin{enumerate}
         \item $t\geq \GGST$,
@@ -3179,8 +3184,11 @@ Let $\attsetfromafterblock[from=b,to=s,when=t,val=v]{\exactatts}$ be the set of 
         \attsetweightfromblock[from=b',to=\slot(t)-1,val=v,when=t,chkp={\gjattime[val=v,time=t]}]{\honatts}
         >
         \frac
-            {\commweightfromblock[from=b',to=\slot(t)-1,chkp={\gjattime[val=v,time=t]}]
-            {\allvals}-\attsetweightfromafterblock[from=\parent(b),to=\slot(t)-1,when=t,val=v,chkp={\gjattime[val=v,time=t]}]{\exactatts}+\boostweight[chkp={\gjattime[val=v,time=t]}]}{2}
+            {
+                \commweightfromblock[from=b',to=\slot(t)-1,chkp={\gjattime[val=v,time=t]}]{\allvals}
+                -\attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\honatts}
+                +\boostweight[chkp={\gjattime[val=v,time=t]}]}
+            {2}
         $,
     \end{enumerate}
     then block $b$ is canonical in the view of validator $v$ at time $t$.
@@ -3214,7 +3222,7 @@ Let $\attsetfromafterblock[from=b,to=s,when=t,val=v]{\exactatts}$ be the set of 
             Let $b_c$ be the child of $b_i$ in the chain of $b$, \ie, $b_c \preceq b \land \parent(b_c) = b_i$, and let $b'$ be any child of $b_i$.
             Let $\FIL_\LMDGHOST(\View, t) := \FILLMD(\FILINV(\FILCUR(\FILEQ(\View),t)))$ and
             note that, for $\LMDGHOST^{\gjviewsym}$, the argument of $\argmax$ at line~\ref{ln:alg:GHOST:argmax} of Algorithm~\ref{alg:GHOST} corresponds to $\weightofset[chkp={\gjattime[time=t,val=v]}]{\ghostvoters[block=b',view={\FIL_\LMDGHOST(\View), t}]}$.
-            Due to \FILINV and \FILCUR, the maximum value that such expression can evaluate to corresponds to the weight of the the committees between slot $\slot(b)+1$ and slot $\slot(t)-1$ plus, potentially, the proposer boost weight, \ie, $\commweightfromblock[from={b},to={\slot(t)-1},chkp={\gjattime[time=t,val=v]}]{\allvals} + \boostweight[chkp={\gjattime[val=v,time=t]}]$.
+            Due to \FILINV and \FILCUR, the maximum value that such expression can evaluate to corresponds to the weight of the the committees between slot $\slot(b_i)+1$ and slot $\slot(t)-1$ plus, potentially, the proposer boost weight less the weight of the honest validators in the committees between $\slot(b_i)+1$ and $\slot(b)$, \ie, $\commweightfromblock[from={b},to={\slot(t)-1},chkp={\gjattime[time=t,val=v]}]{\allvals} + \boostweight[chkp={\gjattime[val=v,time=t]}]$.
             % Note that $\FILLATE(\FILCUR(\FILINV(\View), t), t) \subseteq \FIL_\LMDGHOST(\View, t)$.
             Given that honest validators never equivocate, we have that
             $$
@@ -3225,19 +3233,23 @@ Let $\attsetfromafterblock[from=b,to=s,when=t,val=v]{\exactatts}$ be the set of 
             \frac
                 {\commweightfromblock[from=b,to=\slot(t)-1,chkp={\gjattime[val=v,time=t]}]
                 {\allvals}
-                -\attsetweightfromafterblock[from=\parent(b),to=\slot(t)-1,when=t,val=v,chkp={\gjattime[val=v,time=t]}]{\exactatts}
+                -\attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\honatts}
                 +\boostweight[chkp={\gjattime[val=v,time=t]}] }{2}
             $$
+
             Take any $b' \neq b_c$.
+            Given that honest validators never equivocates, the maximum amount of weight that can vote for a descendant of $\parent(b)$  
+
             This means that $b'$ and $b_c$ conflict which implies that
             
             \begin{align*}
-                \weightofset[chkp={\gjattime[time=t,val=v]}]{\ghostvoters[block=b',view={\FIL_\LMDGHOST(\View, t)}]} &< \commweightfromblock[from={b},to={\slot(t)-1},chkp={\gjattime[time=t,val=v]}]{\allvals}-\attsetweightfromafterblock[from=\parent(b),to=\slot(t)-1,when=t,val=v,chkp={\gjattime[val=v,time=t]}]{\exactatts} + \boostweight[chkp={\gjattime[val=v,time=t]}] -  \weightofset[chkp={\gjattime[time=t,val=v]}]{\ghostvoters[block=b_c,view={\FIL_\LMDGHOST(\View, t)}]}\\
+                \weightofset[chkp={\gjattime[time=t,val=v]}]{\ghostvoters[block=b',view={\FIL_\LMDGHOST(\View, t)}]} &< \commweightfromblock[from={b},to={\slot(t)-1},chkp={\gjattime[time=t,val=v]}]{\allvals}-\attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\honatts} 
+                + \boostweight[chkp={\gjattime[val=v,time=t]}] -  \weightofset[chkp={\gjattime[time=t,val=v]}]{\ghostvoters[block=b_c,view={\FIL_\LMDGHOST(\View, t)}]}\\
                 &\leq
                 \frac
                 {\commweightfromblock[from=b,to=\slot(t)-1,chkp={\gjattime[val=v,time=t]}]
                 {\allvals}
-                -\attsetweightfromafterblock[from=\parent(b),to=\slot(t)-1,when=t,val=v,chkp={\gjattime[val=v,time=t]}]{\exactatts}
+                -\attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\honatts}
                 +\boostweight[chkp={\gjattime[val=v,time=t]}] }{2}
             \end{align*}
 
@@ -3252,6 +3264,1089 @@ Let $\attsetfromafterblock[from=b,to=s,when=t,val=v]{\exactatts}$ be the set of 
     Given that we assume $\slot(b) \leq \slot(t)$, honest validators never \GHOST vote for an invalid block
     and that above we have established that $\fcparam[fc=\LMDGHOST,balf=\gjviewsym,val=v](t) \succeq b \lor \fcparam[fc=\LMDGHOST,balf=\gjviewsym,val=v](t) \preceq b$, we can conclude the proof for this Lemma.
 \end{proof}
+
+% \begin{definition}\label{def:safety-indicator-1-ex}
+%     Let $\indicatordiscfromblock[from=b,to=s',val=v,when=t,chkp=\calB]{\indP}:=\frac{\attsetweightfromblock[from=b,to=s',val=v,when=t,chkp=\calB]{\honatts}}{\commweightfromblock[from=b,to=s',chkp=\calB,when=t,val=v]{\honvals}-\attsetweighttobediscfromblock[from=b,to=s',when=t,val=v,chkp=\calB]{\honatts}}$.
+% \end{definition}
+
+% \begin{lemma}\label{lem:lmd-p-monotonic-ex}
+%     Given Assumption~\ref{assum:no-change-to-the-validator-set}\RSfn{Left like this in case we copy the assumption from the paper in here},
+%     for any two honest validator $v$ and $v'$, block $b$, times $t'$ and $t$, and any two checkpoints $C$ and $C'$,
+%     if
+%     \begin{enumerate}
+%         \item $\slotstart(\slot(t)-1)\geq\GGST$,
+%         \item $t'\geq \slotstart(\slot(t))$ and
+%         \item all honest validators in the committees for slots $[\slot(t),\slot(t') -1]$ \GHOST vote in support of $b$,
+%     \end{enumerate}
+%     then
+%     $$
+%     \forall b' \preceq b,\;
+%     \indicatordiscfromblock[from=b',to=\slot(t')-1,val=v',when=t',chkp={C'}]{\indP}
+%     \geq
+%     \indicatordiscfromblock[from=b',to=\slot(t)-1,val=v,when=t,chkp={C}]{\indP}
+%     $$
+% \end{lemma}
+
+% \begin{proof}
+%     Let $s := \slot(t)$, $s' := \slot(t')$, and $b'$ any block such that $b' \preceq b$.
+%     Then we can proceed as follows.
+%     \def\alignexplwidth{7cm}
+%     \allowdisplaybreaks
+%     \begin{align*}
+%         &\quad\indicatordiscfromblock[from=b',to=s'-1,val=v,when=t',chkp={C '}]{\indP}
+%         \\  
+%         % &=
+%         % \frac
+%         %     {\attsetweightfromblock[from=b', to=s'-1,val=v',when=t', chkp={C '}]{\honatts}}
+%         %     {\commweightfromblock[from=b', to=s'-1, chkp={C '}]{\honvals}
+%         %     -\attsetweighttobediscfromblock[from=b',to=s'-1,when=t,val=v',chkp=C']{\allatts}}
+%         % &&\alignexpl[\alignexplwidth]{By definition.}
+%         % \\
+%         &=
+%         \frac
+%             {\attsetweightfromblock[from=b', to=s'-1,val=v',when=t', chkp={C}]{\honatts}}
+%             {\commweightfromblock[from=b', to=s'-1, chkp={C}]{\honvals}
+%             -\attsetweighttobediscfromblock[from=b',to=s'-1,when=t',val=v',chkp=C]{\honatts}}
+%         &&\alignexpl[\alignexplwidth]{As, per Assumption~\ref{assum:no-change-to-the-validator-set}, the effictive balance of honest validators never changes.}
+%         \\
+%         &=
+%         \frac
+%         {
+%             \attsetweightfromblock[from=b', to=s'-1, val=v, when=t', chkp={C}]{\honatts}
+%         }
+%         {
+%             \commweightfromblock[from=b', to=s'-1, chkp={C}]{\honvals}
+%             -\attsetweighttobediscfromblock[from=b',to=s'-1,when=t',val=v,chkp=C]{\honatts}
+%         }
+%         &&\alignexpl[\alignexplwidth]{Given that $\slotstart(s'-1)\geq\slotstart(s-1)\geq\GGST$ and $t' \geq \slotstart(s')$, any honest attestation for slots up to $s'-1$ received by $v'$ at time $t'$, it is also received by $v'$ by the same time $t'$.}\\
+%         &=
+%         \frac
+%         {
+%             \attsetweightfromblock[from=b', to=s-1, val=v, when=t, chkp={C}]{\honatts}
+%             +
+%             \weightofset[chkp=C]{
+%                 \commfromslot[from=s, to=s'-1]{\honvals}
+%                 \setminus
+%                 \attsetfromblockunfiltered[from=b', to=s-1, val=v, when=t]{\honatts}
+%             }
+%         }
+%         {
+%             \commweightfromblock[from=b', to=s'-1, chkp={C}]{\honvals}
+%             -\attsetweighttobediscfromblock[from=b',to=s'-1,when=t',val=v,chkp=C]{\honatts}
+%         }
+%         &&\alignexpl[\alignexplwidth]{$\attsetfromblockunfiltered[from=b', to=s'-1, val=v, when=t']{\honatts}$ corresponds to the union of the honest validators whose \GHOST votes in support of $b$ and for slots up to $s-1$ are in the view of validator $v$ at time $t$ with the honest validators in the committees between slot $s$ ans slot $s'-1$, as we assume that any of these validators has \GHOST voted in support of $b$ and $\slotstart(\slot(s))\geq \GGST$.}
+%         \\
+%         &=
+%         \frac
+%         {
+%             \begin{aligned}[t]
+%                 &\attsetweightfromblock[from=b', to=s-1, val=v,when=t, chkp={C}]{\honatts}
+%                 +
+%                 \weightofset[chkp=C]{
+%                     \commfromslot[from=s, to=s'-1]{\honvals}
+%                     \setminus
+%                     \attsetfromblockunfiltered[from=b', to=s-1, val=v, when=t]{\honatts}
+%                     \setminus
+%                     \attsettobediscfromblock[from=b',to=s-1,when=t,val=v]{\honatts}
+%                 }
+%                 \\
+%                 &+
+%                 \weightofset[chkp=C]{
+%                     \attsettobediscfromblock[from=b,to=s-1,when=t,val=v]{\honatts}
+%                     \cap
+%                     \commfromslot[from=s, to=s'-1]{\honvals}
+%                 }
+%             \end{aligned}
+%         }
+%         {
+%             \commweightfromblock[from=b', to=s'-1, chkp={C}]{\honvals}
+%             -\attsetweighttobediscfromblock[from=b',to=s'-1,when=t',val=v,chkp=C]{\honatts}
+%         } 
+%         &&\alignexpl[\alignexplwidth]{
+%             As $|A| = |A\setminus B| + |A \cap B|$ and 
+%             $\attsettobediscfromblock[from=b,to=s-1,when=t,val=v]{\honatts}
+%                     \cap
+%             \left(\commfromslot[from=s, to=s'-1]{\honvals}
+%                     \setminus
+%                     \attsetfromblockunfiltered[from=b', to=s-1, val=v, when=t]{\honatts}\right)
+%                     =
+%             \attsettobediscfromblock[from=b,to=s-1,when=t,val=v]{\honatts}
+%                     \cap
+%             \commfromslot[from=s, to=s'-1]{\honvals}$ because 
+%             $\attsetfromblockunfiltered[from=b', to=s-1, val=v, when=t]{\honatts} \cap \attsettobediscfromblock[from=b,to=s-1,when=t,val=v]{\honatts} =\emptyset $ by definition.
+%         }
+%         \\        
+%         &=
+%         \frac
+%         {
+%             \begin{aligned}[t]
+%                 &\attsetweightfromblock[from=b', to=s-1, val=v,when=t, chkp={C}]{\honatts}
+%                 +
+%                 \weightofset[chkp=C]{
+%                     \commfromslot[from=s, to=s'-1]{\honvals}
+%                     \setminus
+%                     \attsetfromblockunfiltered[from=b', to=s-1, val=v, when=t]{\honatts}
+%                     \setminus
+%                     \attsettobediscfromblock[from=b,to=s-1,when=t,val=v]{\honatts}
+%                 }
+%                 \\
+%                 &+
+%                 \weightofset[chkp=C]{
+%                     \attsettobediscfromblock[from=b',to=s-1,when=t,val=v]{\honatts}
+%                     \cap
+%                     \commfromslot[from=s, to=s'-1]{\honvals}
+%                 }
+%             \end{aligned}
+%         }
+%         {
+%             \begin{aligned}[t]
+%                 &\commweightfromblock[from=b', to=s-1, chkp={C}]{\honvals}
+%                 +
+%                 \weightofset[chkp=C]{
+%                     \commfromslot[from=s, to=s'-1]{\honvals}
+%                     \setminus
+%                     \commfromblock[from=b', to=s-1]{\honvals}
+%                 }
+%                 -\attsetweighttobediscfromblock[from=b',to=s'-1,when=t',val=v,chkp=C]{\honatts}
+%             \end{aligned}
+%         } 
+%         &&\alignexpl[\alignexplwidth]{By definition}
+%         \\        
+%         &=
+%         \frac
+%         {
+%             \begin{aligned}[t]
+%                 &\attsetweightfromblock[from=b', to=s-1, val=v,when=t, chkp={C}]{\honatts}
+%                 +
+%                 \weightofset[chkp=C]{
+%                     \commfromslot[from=s, to=s'-1]{\honvals}
+%                     \setminus
+%                     \attsetfromblockunfiltered[from=b', to=s-1, val=v, when=t]{\honatts}
+%                     \setminus
+%                     \attsettobediscfromblock[from=b,to=s-1,when=t,val=v]{\honatts}
+%                 }
+%                 \\
+%                 &+
+%                 \weightofset[chkp=C]{
+%                     \attsettobediscfromblock[from=b,to=s-1,when=t,val=v]{\honatts}
+%                     \cap
+%                     \commfromslot[from=s, to=s'-1]{\honvals}
+%                 }
+%             \end{aligned}
+%         }
+%         {
+%             \begin{aligned}[t]
+%                 &\commweightfromblock[from=b', to=s-1, chkp={C}]{\honvals}
+%                 +
+%                 \weightofset[chkp=C]{
+%                     \commfromslot[from=s, to=s'-1]{\honvals}
+%                     \setminus
+%                     \commfromblock[from=b', to=s-1]{\honvals}
+%                     \setminus
+%                     \attsettobediscfromblock[from=b,to=s-1,when=t,val=v]{\honatts}
+%                 }
+%                 \\
+%                 &-
+%                 \left(
+%                     \attsetweighttobediscfromblock[from=b',to=s-1,when=t,val=v,chkp=C]{\honatts}
+%                     -
+%                     \weightofset[chkp=C]{
+%                     \attsettobediscfromblock[from=b,to=s-1,when=t,val=v]{\honatts}
+%                     \cap
+%                     \commfromslot[from=s, to=s'-1]{\honvals}
+%                     }
+%                 \right) 
+%             \end{aligned}
+%         } 
+%         &&\alignexpl[\alignexplwidth]{By definition}
+%         \\
+%         &\geq
+%         \frac
+%         {
+%             \attsetweightfromblock[from=b', to=s-1, val=v, when=t, chkp={C}]{\honatts}
+%         }
+%         {
+%             \commweightfromblock[from=b', to=s-1, chkp={C}]{\honvals}
+%             -\attsetweighttobediscfromblock[from=b',to=s-1,when=t,val=v,chkp=C]{\honatts}
+%         }
+%         &&\alignexpl[\alignexplwidth]{
+%             From,
+%                 $\attsetfromblockunfiltered[from=b', to=s-1, val=v, when=t]{\honatts} \subseteq \commfromblock[from=b', to=s-1]{\honvals}$ and the fact that
+%                 $\frac{a+x}{b+y} \geq \frac{a}{b}$, if $a \leq b \land x \geq y$.
+%         }
+%         \\
+%         &=
+%         \indicatordiscfromblock[from=b',to=s-1,val=v,when=t,chkp={C}]{\indP}
+%     \end{align*}
+% \end{proof}
+
+% \begin{proof}
+%     Let $s := \slot(t)$, $s' := \slot(t')$, and $b'$ any block such that $b' \preceq b$.
+%     Then we can proceed as follows.
+%     \def\alignexplwidth{7cm}
+%     \allowdisplaybreaks
+%     \begin{align*}
+%         &\quad\indicatordiscfromblock[from=b',to=s'-1,val=v,when=t',chkp={C '}]{\indP}
+%         \\  
+%         &=
+%         \frac
+%             {\attsetweightfromblock[from=b', to=s'-1,val=v',when=t', chkp={C '}]{\honatts}}
+%             {\commweightfromblock[from=b', to=s'-1, chkp={C '}]{\honvals}
+%             -\attsetweighttobediscfromblock[from=b',to=s'-1,when=t,val=v',chkp=C']{\honatts}}
+%         &&\alignexpl[\alignexplwidth]{By definition.}
+%         \\
+%         &=
+%         \frac
+%             {\attsetweightfromblock[from=b', to=s'-1,val=v',when=t', chkp={C}]{\honatts}}
+%             {\commweightfromblock[from=b', to=s'-1, chkp={C}]{\honvals}
+%             -\attsetweighttobediscfromblock[from=b',to=s'-1,when=t',val=v',chkp=C]{\honatts}}
+%         &&\alignexpl[\alignexplwidth]{As, per Assumption~\ref{assum:no-change-to-the-validator-set}, the effictive balance of honest validators never changes.}
+%         \\
+%         &=
+%         \frac
+%         {
+%             \attsetweightfromblock[from=b', to=s'-1, val=v, when=t', chkp={C}]{\honatts}
+%         }
+%         {
+%             \commweightfromblock[from=b', to=s'-1, chkp={C}]{\honvals}
+%             -\attsetweighttobediscfromblock[from=b',to=s'-1,when=t',val=v,chkp=C]{\honatts}
+%         }
+%         &&\alignexpl[\alignexplwidth]{Given that $\slotstart(s'-1)\geq\slotstart(s-1)\geq\GGST$ and $t' \geq \slotstart(s')$, any honest attestation for slots up to $s'-1$ received by $v'$ at time $t'$, it is also received by $v'$ by the same time $t'$.}\\
+%         &=
+%         \frac
+%         {
+%             \attsetweightfromblock[from=b', to=s-1, val=v, when=t, chkp={C}]{\honatts}
+%             +
+%             \weightofset[chkp=C]{
+%                 \commfromslot[from=s, to=s'-1]{\honvals}
+%                 \setminus
+%                 \attsetfromblockunfiltered[from=b', to=s-1, val=v, when=t]{\honatts}
+%             }
+%         }
+%         {
+%             \commweightfromblock[from=b', to=s'-1, chkp={C}]{\honvals}
+%         }
+%         &&\alignexpl[\alignexplwidth]{$\attsetfromblockunfiltered[from=b', to=s'-1, val=v, when=t']{\honatts}$ corresponds to the union of the honest validators whose \GHOST votes in support of $b$ and for slots up to $s-1$ are in the view of validator $v$ at time $t$ with the honest validators in the committees between slot $s$ ans slot $s'-1$, as we assume that any of these validators has \GHOST voted in support of $b$ and $\slotstart(\slot(s))\geq \GGST$.}\\
+%         &=
+%         \frac
+%         {
+%             \begin{aligned}[t]
+%                 &\attsetweightfromblock[from=b', to=s-1, val=v,when=t, chkp={C}]{\honatts}
+%                 +
+%                 \weightofset[chkp=C]{
+%                     \commfromslot[from=s, to=s'-1]{\honvals}
+%                     \setminus
+%                     \attsetfromblockunfiltered[from=b', to=s-1, val=v, when=t]{\honatts}
+%                     \setminus
+%                     \attsettobediscfromblock[from=b,to=s-1,when=t,val=v]{\honatts}
+%                 }
+%                 \\
+%                 &+
+%                 \weightofset[chkp=C]{
+%                     \attsettobediscfromblock[from=b,to=s-1,when=t,val=v]{\honatts}
+%                     \cap
+%                     \commfromslot[from=s, to=s'-1]{\honvals}
+%                 }
+%             \end{aligned}
+%         }
+%         {
+%             \begin{aligned}[t]
+%                 &\commweightfromblock[from=b', to=s-1, chkp={C}]{\honvals}
+%                 +
+%                 \weightofset[chkp=C]{
+%                     \commfromslot[from=s, to=s'-1]{\honvals}
+%                     \setminus
+%                     \commfromblock[from=b', to=s-1]{\honvals}
+%                     \setminus
+%                     \attsettobediscfromblock[from=b,to=s-1,when=t,val=v]{\honatts}
+%                 }
+%                 \\
+%                 &-
+%                 \left(
+%                     \attsetweighttobediscfromblock[from=b',to=s-1,when=t,val=v,chkp=C]{\honatts}
+%                     -
+%                     \weightofset[chkp=C]{
+%                     \attsettobediscfromblock[from=b,to=s-1,when=t,val=v]{\honatts}
+%                     \cap
+%                     \commfromslot[from=s, to=s'-1]{\honvals}
+%                     }
+%                 \right) 
+%             \end{aligned}
+%         } 
+%         &&\alignexpl[\alignexplwidth]{By definition}\\
+%         &\geq
+%         \frac
+%         {
+%             \attsetweightfromblock[from=b', to=s-1, val=v, when=t, chkp={C}]{\honatts}
+%         }
+%         {
+%             \commweightfromblock[from=b', to=s-1, chkp={C}]{\honvals}
+%         }
+%         &&\alignexpl[\alignexplwidth]{
+%             From,
+%                 $\attsetfromblockunfiltered[from=b', to=s-1, val=v, when=t]{\honatts} \subseteq \commfromblock[from=b', to=s-1]{\honvals}$ and the fact that
+%                 $\frac{a+x}{b+y} \geq \frac{a}{b}$, if $a \leq b \land x \geq y$.
+%         }
+%         \\
+%         &=
+%         \indicatorfromblock[from=b',to=s-1,val=v,when=t,chkp={C}]{\indP}
+%     \end{align*}
+% \end{proof}
+
+\begin{lemma}[Analogous of Lemma 3 in the paper]\label{lem:lmd-cond-on-p-implies-cond-on-h-ex}
+    Given Assumption~\ref{assum:beta},
+    for any time $t\geq\GGST$,
+    honest validator $v$,
+    block $b$,
+    slot $s$,% such that $slot(b) \leq s$ % \leq \slotattime{t}$
+    and checkpoint $C \in \allU(b)$ with $b$ being any valid block,\\% that is canonical in the view of validator $v$ at time $t$,\\
+    if
+    $\forall b' \preceq b,\;
+    \indicatorfromblock[from=b',to=s,val=v,when=t,chkp=C]{\indP}
+    > \frac{1}{2(1-\beta)}
+    \left( 1+
+        \frac
+            {
+                \boostweight[chkp=C]
+                -
+                \max\left(
+                    \attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}
+                    -\beta \commweightfromblock[from=b',to=\slot(b)-1,chkp=C]{\allvals}
+                    ,0
+                \right)
+            }
+        {\commweightfromblock[from=b',to=s,chkp=C]{\allvals}}
+    \right)$
+    then,
+    $\forall b' \preceq b,\;
+    \attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\honatts}
+    >
+    \frac
+    {
+        \commweightfromblock[from=b',to=s,chkp=C]{\allvals} + \boostweight[chkp=C]
+        - \attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\honatts}  
+    }
+    {2}$.
+\end{lemma}
+
+
+
+\begin{proof}
+    Let $b'$ by any block such that $b' \preceq b$.
+    Now we can proceed as follows.
+    \def\alignexplwidth{4cm}
+    \begin{align*}
+        \attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\honatts}
+        &=
+        \indicatorfromblock[from=b',to=s,val=v,when=t,chkp=C]{\indP}  \commweightfromblock[from=b',to=s,chkp=C]{\honvals}
+        &&\alignexpl{By definition}
+        \\
+        &>
+        \frac{\commweightfromblock[from=b',to=s,chkp=C]{\honvals}}{2(1-\beta)}
+        \left( 1+
+            \frac
+            {
+                \boostweight[chkp=C]
+                -
+                \max\left(
+                    \attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}
+                    -\beta \commweightfromblock[from=b',to=\slot(b)-1,chkp=C]{\allvals}
+                    ,0
+                \right)
+            }
+            {\commweightfromblock[from=b',to=s,chkp=C]{\allvals}}
+        \right)
+        &&\alignexpl[\alignexplwidth]{By expanding the condition on \indicatorfromblock[from=b',to=s,val=v,when=t,chkp=C]{\indP}}\\
+        &\geq
+        \frac{\commweightfromblock[from=b',to=s,chkp=C]{\allvals}(1-\beta)}{2(1-\beta)}
+        \left( 1+
+            \frac
+            {
+                \boostweight[chkp=C]
+                -
+                \max\left(
+                    \attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}
+                    -\beta \commweightfromblock[from=b',to=\slot(b)-1,chkp=C]{\allvals}
+                    ,0
+                \right)
+            }
+            {\commweightfromblock[from=b',to=s,chkp=C]{\allvals}}
+        \right)
+        &&\alignexpl{As, due to Assumption~\ref{assum:beta}, $\commweightfromblock[from=b',to=s,chkp=C]{\honvals} \geq \commweightfromblock[from=b',to=s,chkp=C]{\allvals}(1-\beta)$}\\
+        &=
+        \frac
+        {
+            \commweightfromblock[from=b',to=s,chkp=C]{\allvals} 
+            + \boostweight[chkp=C]
+            -
+            \max\left(
+                \attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}
+                -\beta \commweightfromblock[from=b',to=\slot(b)-1,chkp=C]{\allvals}
+                ,0
+            \right)            
+        }
+        {2}
+        \\
+        &\geq
+        \frac
+        {
+            \commweightfromblock[from=b',to=s,chkp=C]{\allvals} 
+            + \boostweight[chkp=C]
+            - \attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\honatts}      
+        }
+        {2}        
+    \end{align*}
+\end{proof}
+
+\begin{lemma}[Analogous of Lemma 4 in the paper]\label{lem:lmd-cond-on-q-implies-cond-on-p-ex2}
+    Given Assumption~\ref{assum:beta},
+    for any time $t\geq\GGST$,
+    honest validator $v$,
+    block $b'$,
+    slot $s$
+    % such that $slot(b') \leq s$ % \leq \slotattime{t}$
+    and checkpoint $C \in \allU(b')$ with $b'$ being any valid block,\\
+    % that is canonical in the view of validator $v$ at time $t$ and
+    % checkpoint $C$,\\
+    % Let $b'$, $v$, $s$, $t$, $C$ and $C$ be any block, honest validator, slot, time and two checkpoints respectively.
+    if
+    $
+    \indicatorfromblock[from=b',to=s,val=v,when=t,chkp=C]{Q}
+    >
+    \frac{1}{2}
+        \left( 1+
+            \frac
+            {
+                \boostweight[chkp=C] 
+                -\max\left(
+                    \attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}
+                    -\beta \commweightfromblock[from=b',to=\slot(b)-1,chkp=C]{\allvals}
+                    ,0
+                \right)                  
+            }
+            {\commweightfromblock[from=b',to=s,chkp=C]{\allvals}}
+        \right)
+        + \beta$, then
+    $\indicatorfromblock[from=b',to=s,val=v,when=t,chkp=C]{\indP}
+    >
+    \frac{1}{2(1-\beta)}
+        \left( 1+
+            \frac
+            {
+                \boostweight[chkp=C] 
+                -\max\left(
+                    \attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}
+                    -\beta \commweightfromblock[from=b',to=\slot(b)-1,chkp=C]{\allvals}
+                    ,0
+                \right)                  
+            }
+            {\commweightfromblock[from=b',to=s,chkp=C]{\allvals}}
+        \right)
+    $
+\end{lemma}
+
+\begin{proof}
+We proceed as follows.\\
+\def\alignexplwidth{5cm}
+\begin{align*}
+    \indicatorfromblock[from=b',to=s,val=v,when=t,chkp=C]{\indP}
+    &=
+    \frac
+    {\attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\honatts}}
+    {\commweightfromblock[from=b',to=s,chkp=C]{\honvals}}
+    &&\alignexpl[\alignexplwidth]{By definition.}
+    \\
+    &\geq
+    \frac
+    {\attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}-
+    \commweightfromblock[from=b',to=s,chkp=C]{\advvals}}
+    {\commweightfromblock[from=b',to=s,chkp=C]{\honvals}}
+    &&\alignexpl[\alignexplwidth]{By definition, $\commweightfromblock[from=b',to=s,chkp=C]{\advvals}= \valsetfromblock[from=b',to=s,chkp=C]{\allvals}  \setminus \honvals$.}
+    \\
+    &=
+    \frac
+    {\attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}-
+    \commweightfromblock[from=b',to=s,chkp=C]{\advvals}}
+    {\commweightfromblock[from=b',to=s,chkp=C]{\allvals} - \commweightfromblock[from=b',to=s,chkp=C]{\advvals}}
+    &&\alignexpl[\alignexplwidth]{By definition, $\commweightfromblock[from=b',to=s,chkp=C]{\allvals} = \commweightfromblock[from=b',to=s,chkp=C]{\honvals} + \commweightfromblock[from=b',to=s,chkp=C]{\advvals}$.}
+    \\    
+    &\geq
+    \frac
+    {\attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}-
+    \beta \commweightfromblock[from=b',to=s,chkp=C]{\allvals}}
+    {\commweightfromblock[from=b',to=s,chkp=C]{\allvals} - \beta \commweightfromblock[from=b',to=s,chkp=C]{\allvals}}
+    &&\alignexpl[\alignexplwidth]{
+        By Assumption~\ref{assum:beta}, $\commweightfromblock[from=b',to=s,chkp=C]{\advvals}\leq \beta \commweightfromblock[from=b',to=s,chkp=C]{\allvals}$, and, given that $\attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts} \leq \commweightfromblock[from=b',to=s,chkp=C]{\allvals}$, the function $g(x)=\frac{\attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}-x}{\commweightfromblock[from=b',to=s,chkp=C]{\allvals}-x}$ is monotone decreasing in $[0,\commweightfromblock[from=b',to=s,chkp=C]{\allvals}]$
+    }
+    \\
+    &=
+    \frac
+    {\attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}-
+    \beta \commweightfromblock[from=b',to=s,chkp=C]{\allvals}}
+    {\commweightfromblock[from=b',to=s,chkp=C]{\allvals}}
+    \left( \frac{1}{1-\beta} \right)
+    &&\alignexpl[\alignexplwidth]{Simplification.}
+    \\
+    &=
+    \left(\indicatorfromblock[from=b',to=s,val=v,when=t,chkp=C]{\indQ}  -\beta\right)\left(\frac{1}{1-\beta}\right)
+    &&\alignexpl[\alignexplwidth]{Simplification.}
+    \\
+    &>
+        \frac{1}{2(1-\beta)}
+            \left( 1+
+                \frac
+                {
+                    \boostweight[chkp=C] 
+                    -\max\left(
+                        \attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}
+                        -\beta \commweightfromblock[from=b',to=\slot(b)-1,chkp=C]{\allvals}
+                        ,0
+                    \right)                  
+                }
+                {\commweightfromblock[from=b',to=s,chkp=C]{\allvals}}
+            \right)
+    &&\alignexpl[\alignexplwidth]{By applying the condition on $\indicatorfromblock[from=b',to=s,val=v,when=t,chkp=C]{\indQ}$.}
+\end{align*}
+\end{proof}
+
+
+% \begin{lemma}\label{lem:lmd-cond-on-p-implies-cond-on-h-ex2}
+%     Given Assumption~\ref{assum:beta},
+%     for any time $t\geq\GGST$,
+%     honest validator $v$,
+%     block $b$,
+%     slot $s$,% such that $slot(b) \leq s$ % \leq \slotattime{t}$
+%     and checkpoint $C \in \allU(b)$ with $b$ being any valid block,\\% that is canonical in the view of validator $v$ at time $t$,\\
+%     if
+%     % $$\forall b' \preceq b,\;
+%     % \indicatorfromblock[from=b',to=s,val=v,when=t,chkp=C]{\indP}
+%     % > \frac{1}{2(1-\beta)}
+%     % \left( 1+
+%     %     \frac
+%     %     {\boostweight[chkp=C]}
+%     %     {
+%     %         \commweightfromblock[from=b',to=s,chkp=C]{\allvals}
+%     %         -
+%     %         % \min\left(
+%     %         %     \commweightfromblock[from=b',to=\slot(b)-1,chkp=C]{\allvals}
+%     %         %     ,
+%     %             \frac
+%     %                 {\attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}}
+%     %                 {1-\beta}
+%     %         % \right)
+%     %     }
+%     % \right)$$
+%     $$\forall b' \preceq b,\;
+%     \indicatordiscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\indP}
+%     \begin{aligned}[t]
+%         &>  \begin{aligned}[t]
+%             &\frac
+%             {1}
+%             {2\left(
+%                 \frac
+%                     {
+%                         (1-\beta)\commweightfromblock[from=b',to=s,chkp=C]{\allvals}
+%                         -\attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\honatts}
+%                     }
+%                     {
+%                         \commweightfromblock[from=b',to=s,chkp=C]{\allvals}
+%                         -\max\left(
+%                             \attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}
+%                             -\beta \commweightfromblock[from=b',to=\slot(b)-1,chkp=C]{\allvals}
+%                             ,0
+%                         \right)
+%                     }
+%             \right)}
+%             \\
+%             &\left( 1+
+%                 \frac
+%                 {\boostweight[chkp=C]}
+%                 {
+%                     \commweightfromblock[from=b',to=s,chkp=C]{\allvals}
+%                     -\max\left(
+%                         \attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}
+%                         -\beta \commweightfromblock[from=b',to=\slot(b)-1,chkp=C]{\allvals}
+%                         ,0
+%                     \right)
+%                 }
+%             \right)
+%             \end{aligned}
+%         \\
+%         &=
+%         \frac
+%             {\commweightfromblock[from=b',to=s,chkp=C]{\allvals}-
+%             \max\left(
+%                 \attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}
+%                 -\beta \commweightfromblock[from=b',to=\slot(b)-1,chkp=C]{\allvals}
+%                 ,0
+%             \right)
+%             +\boostweight[chkp=C]
+%             }
+%             {2\left((1-\beta)\commweightfromblock[from=b',to=s,chkp=C]{\allvals}-\attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\honatts}\right)}
+%     \end{aligned}
+%     $$    
+%     then,
+%     $$\forall b' \preceq b,\;
+%     \attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\honatts}
+%     >
+%     \frac{
+%             \commweightfromblock[from=b',to=s,chkp=C]{\allvals}
+%             -\attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\honatts}
+%             +\boostweight[chkp=C]
+%         }
+%         {
+%             2
+%         }
+%     $$.
+% \end{lemma}
+
+
+
+% \begin{proof}
+%     Let $b'$ by any block such that $b' \preceq b$.
+%     Now we can proceed as follows.
+%     \def\alignexplwidth{5cm}
+%     \begin{align*}
+%         \attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\honatts}
+%         &=
+%         \left(
+%             \commweightfromblock[from=b',to=s,chkp=C]{\honvals}
+%             -\attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\honatts}
+%         \right)
+%         \indicatordiscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\indP}  
+%         &&\alignexpl{By definition}
+%         \\      
+%         &\geq
+%         \left(
+%             (1-\beta)\commweightfromblock[from=b',to=s,chkp=C]{\allvals}
+%             -\attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\honatts}
+%         \right)
+%         \indicatordiscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\indP}  
+%         &&\alignexpl{}
+%         \\
+%         &>
+%         \frac{
+%             \commweightfromblock[from=b',to=s,chkp=C]{\allvals}-
+%             \max\left(
+%                 \attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}
+%                 -\beta \commweightfromblock[from=b',to=\slot(b)-1,chkp=C]{\allvals}
+%                 ,0
+%             \right)
+%             +\boostweight[chkp=C]
+%         }
+%         {
+%             2
+%         }
+%         \\   
+%         &\geq        
+%         \frac{
+%             \commweightfromblock[from=b',to=s,chkp=C]{\allvals}-
+%             \attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\honatts}
+%             +\boostweight[chkp=C]
+%         }
+%         {
+%             2
+%         }
+%     \end{align*}
+% \end{proof}
+
+% \begin{lemma}\label{lem:lmd-cond-on-q-implies-cond-on-p}
+%     Given Assumption~\ref{assum:beta},
+%     for any time $t\geq\GGST$,
+%     honest validator $v$,
+%     block $b'$,
+%     slot $s$
+%     % such that $slot(b') \leq s$ % \leq \slotattime{t}$
+%     and checkpoint $C \in \allU(b')$ with $b'$ being any valid block,\\
+%     % that is canonical in the view of validator $v$ at time $t$ and
+%     % checkpoint $C$,\\
+%     % Let $b'$, $v$, $s$, $t$, $C$ and $C$ be any block, honest validator, slot, time and two checkpoints respectively.
+%     if
+%     % $$
+%     % \begin{aligned}[t]
+%     %     &\frac
+%     %     {\attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts} }
+%     %     {(1-\beta)\commweightfromblock[from=b',to=s,chkp=C]{\allvals}  
+%     %     -\max\left(
+%     %         \attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}
+%     %         -\beta\commweightfromblock[from=b',to=\slot(b')-1,chkp=C]{\allvals}
+%     %     ,0
+%     %     \right)
+%     %     }   
+%     %     >
+%     %     \\
+%     %     &\hspace{5cm}\frac
+%     %             {\commweightfromblock[from=b',to=s,chkp=C]{\allvals}-
+%     %             \max\left(
+%     %                 \attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}
+%     %                 -\beta \commweightfromblock[from=b',to=\slot(b)-1,chkp=C]{\allvals}
+%     %                 ,0
+%     %             \right)
+%     %             +\boostweight[chkp=C]
+%     %             }
+%     %             {2\left((1-\beta)\commweightfromblock[from=b',to=s,chkp=C]{\allvals}-\attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}\right)}
+%     %     \\
+%     %     &\hspace{5cm} +
+%     %     \frac
+%     %         {\beta\commweightfromblock[from=b',to=s,chkp=C]{\allvals}}
+%     %         {(1-\beta)\commweightfromblock[from=b',to=s,chkp=C]{\allvals}  
+%     %         -\max\left(
+%     %             \attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}
+%     %             -\beta\commweightfromblock[from=b',to=\slot(b')-1,chkp=C]{\allvals}
+%     %         ,0
+%     %         \right)
+%     %         }
+%     % \end{aligned}   
+%     % $$
+%     $$
+%     \begin{aligned}[t]
+%         &\attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}
+%         >
+%         \frac
+%                 {\commweightfromblock[from=b',to=s,chkp=C]{\allvals}-
+%                 \max\left(
+%                     \attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}
+%                     -\beta \commweightfromblock[from=b',to=\slot(b)-1,chkp=C]{\allvals}
+%                     ,0
+%                 \right)
+%                 +\boostweight[chkp=C]
+%                 }
+%                 {2}
+%         +
+%         \beta\commweightfromblock[from=b',to=s,chkp=C]{\allvals}
+%     \end{aligned}   
+%     $$  
+    
+%     $$
+%     \begin{aligned}[t]
+%         &\indicatorfromblock[from=b,to=s',val=v,when=t,chkp=\calB]{\indQ}
+%         >
+%         \frac{1}{2}
+%         \left(
+%             1+
+%             \frac
+%                     {
+%                     \boostweight[chkp=C]
+%                     -
+%                     \max\left(
+%                         \attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}
+%                         -\beta \commweightfromblock[from=b',to=\slot(b)-1,chkp=C]{\allvals}
+%                         ,0
+%                     \right)
+%                     }
+%                     {\commweightfromblock[from=b',to=s,chkp=C]{\allvals}}
+%         \right)
+%         +
+%         \beta
+%     \end{aligned}   
+%     $$ 
+%     , then
+%     $$
+%     \indicatorfromblock[from=b',to=s,val=v,when=t,chkp=C]{\indP}
+%     >
+%     \frac{1}{2(1-\beta)}
+%         \left( 1+
+%             \frac
+%             {\boostweight[chkp=C]}
+%             {\commweightfromblock[from=b',to=s,chkp=C]{\allvals}}
+%         \right)
+%     $$
+% \end{lemma}
+
+% \begin{proof}
+
+% \def\alignexplwidth{7cm}
+% \allowdisplaybreaks
+% \begin{align*}
+%     &\indicatordiscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\indP}
+%     \\
+%     &=\frac
+%     {\attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\honatts}}
+%     {\commweightfromblock[from=b',to=s,chkp=C]{\honvals}-\attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\honatts}}
+%     \\
+%     &\geq
+%     \frac
+%     {\attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}-
+%     \commweightfromblock[from=b',to=s,chkp=C]{\advvals}}
+%     {
+%         \commweightfromblock[from=b',to=s,chkp=C]{\honvals}
+%         -\attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\honatts}
+%     }
+%     \\
+%     &=
+%     \frac
+%     {\attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}-
+%     \commweightfromblock[from=b',to=s,chkp=C]{\advvals}}
+%     {\commweightfromblock[from=b',to=s,chkp=C]{\allvals} - \commweightfromblock[from=b',to=s,chkp=C]{\advvals}-\attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\honatts}}
+%     \\
+%     % &\geq
+%     % \frac
+%     % {\attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}-
+%     % \commweightfromblock[from=b',to=s,chkp=C]{\advvals}}
+%     % {\commweightfromblock[from=b',to=s,chkp=C]{\allvals} 
+%     % -\commweightfromblock[from=b',to=s,chkp=C]{\advvals}
+%     % -\max\left(
+%     %     \attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}
+%     %     -\commweightfromblock[from=b',to=\slot(b')-1,chkp=C]{\advvals}
+%     % ,0\right)}
+%     % \\
+%     &\geq
+%     \frac
+%     {\attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}-\beta\commweightfromblock[from=b',to=s,chkp=C]{\allvals} }
+%     {\commweightfromblock[from=b',to=s,chkp=C]{\allvals} 
+%     -\beta\commweightfromblock[from=b',to=s,chkp=C]{\allvals} 
+%     -\attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\honatts}
+%     }   
+%     \\
+%     &=
+%     \frac
+%     {\attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}-\beta\commweightfromblock[from=b',to=s,chkp=C]{\allvals} }
+%     {(1-\beta)\commweightfromblock[from=b',to=s,chkp=C]{\allvals}  
+%     -\attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\honatts}
+%     }  
+%     \\   
+%     &>
+%     \frac
+%     {
+%         \indicatorfromblock[from=b,to=s',val=v,when=t,chkp=\calB]{\indQ}
+%         \commweightfromblock[from=b',to=s,chkp=C]{\allvals}
+%         -\beta\commweightfromblock[from=b',to=s,chkp=C]{\allvals} }
+%     {(1-\beta)\commweightfromblock[from=b',to=s,chkp=C]{\allvals}  
+%     -\attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\honatts}
+%     }
+%     \\
+%     &=
+%     \frac
+%     {
+%         \frac
+%                 {\commweightfromblock[from=b',to=s,chkp=C]{\allvals}-
+%                 \max\left(
+%                     \attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}
+%                     -\beta \commweightfromblock[from=b',to=\slot(b)-1,chkp=C]{\allvals}
+%                     ,0
+%                 \right)
+%                 +\boostweight[chkp=C]
+%                 }
+%                 {2}
+%         +
+%         \beta\commweightfromblock[from=b',to=s,chkp=C]{\allvals}
+%         -\beta\commweightfromblock[from=b',to=s,chkp=C]{\allvals} }
+%     {(1-\beta)\commweightfromblock[from=b',to=s,chkp=C]{\allvals}  
+%     -\attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\honatts}
+%     }
+%     \\   
+%     &=
+%     \frac
+%     {
+%         \commweightfromblock[from=b',to=s,chkp=C]{\allvals}-
+%                 \max\left(
+%                     \attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}
+%                     -\beta \commweightfromblock[from=b',to=\slot(b)-1,chkp=C]{\allvals}
+%                     ,0
+%                 \right)
+%                 +\boostweight[chkp=C] 
+%     }
+%     {2((1-\beta)\commweightfromblock[from=b',to=s,chkp=C]{\allvals}  
+%     -\attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\honatts})
+%     }
+%     % \\      
+%     % &====================================    
+%     % \\
+%     % &\geq
+%     % \frac
+%     % {\attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}-\beta\commweightfromblock[from=b',to=s,chkp=C]{\allvals} }
+%     % {(1-\beta)\commweightfromblock[from=b',to=s,chkp=C]{\allvals}  
+%     % -\max\left(
+%     %     \attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}
+%     %     -\beta\commweightfromblock[from=b',to=\slot(b')-1,chkp=C]{\allvals}
+%     % ,0
+%     % \right)
+%     % }   
+%     % \\
+%     % &=
+%     % \frac
+%     % {\attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}-\beta\commweightfromblock[from=b',to=s,chkp=C]{\allvals} }
+%     % {(1-\beta)
+%     % \left(\commweightfromblock[from=b',to=s,chkp=C]{\allvals}  
+%     %     -\frac{
+%     %         \max(
+%     %             \attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}
+%     %             -\beta\commweightfromblock[from=b',to=\slot(b')-1,chkp=C]{\allvals}
+%     %         ,0
+%     %         )
+%     %     }
+%     %     {1-\beta}
+%     % \right)
+%     % } 
+%     % \\
+%     % &=        
+%     % \left(\indicatordiscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\indQ}  -\beta\right)\left(\frac{1}{1-\beta}\right)  
+%     % \\
+%     % &>
+%     % \frac{1}{2(1-\beta)}
+%     %     \left( 1+
+%     %         \frac
+%     %         {\boostweight[chkp=C]}
+%     %         {\commweightfromblock[from=b',to=s,chkp=C]{\allvals}}
+%     %     \right)       
+% \end{align*}    
+% \end{proof}
+
+% \begin{proof}
+% \def\alignexplwidth{7cm}
+% \allowdisplaybreaks
+% \begin{align*}
+%     &\indicatordiscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\indP}
+%     \\
+%     &=\frac
+%     {\attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\honatts}}
+%     {\commweightfromblock[from=b',to=s,chkp=C]{\honvals}-\attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\honatts}}
+%     \\
+%     &\geq
+%     \frac
+%     {\attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}-
+%     \commweightfromblock[from=b',to=s,chkp=C]{\advvals}}
+%     {
+%         \commweightfromblock[from=b',to=s,chkp=C]{\honvals}
+%         -\attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\honatts}
+%     }
+%     \\
+%     &=
+%     \frac
+%     {\attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}-
+%     \commweightfromblock[from=b',to=s,chkp=C]{\advvals}}
+%     {\commweightfromblock[from=b',to=s,chkp=C]{\allvals} - \commweightfromblock[from=b',to=s,chkp=C]{\advvals}-\attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\honatts}}
+%     \\
+%     &\geq
+%     \frac
+%     {\attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}-
+%     \commweightfromblock[from=b',to=s,chkp=C]{\advvals}}
+%     {\commweightfromblock[from=b',to=s,chkp=C]{\allvals} 
+%     -\commweightfromblock[from=b',to=s,chkp=C]{\advvals}
+%     -\max\left(
+%         \attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}
+%         -\commweightfromblock[from=b',to=\slot(b')-1,chkp=C]{\advvals}
+%     ,0\right)}
+%     \\
+%     &\geq
+%     \frac
+%     {\attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}-\beta\commweightfromblock[from=b',to=s,chkp=C]{\allvals} }
+%     {\commweightfromblock[from=b',to=s,chkp=C]{\allvals} 
+%     -\beta\commweightfromblock[from=b',to=s,chkp=C]{\allvals} 
+%     -\left(
+%         \attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}
+%         -\commweightfromblock[from=b',to=\slot(b')-1,chkp=C]{\advvals}
+%     \right)
+%     }   
+%     \\
+%     &=
+%     \frac
+%     {\attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}-\beta\commweightfromblock[from=b',to=s,chkp=C]{\allvals} }
+%     {(1-\beta)\commweightfromblock[from=b',to=s,chkp=C]{\allvals}  
+%     -\max\left(
+%         \attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}
+%         -\commweightfromblock[from=b',to=\slot(b')-1,chkp=C]{\advvals}
+%     ,0
+%     \right)
+%     }       
+%     \\
+%     &\geq
+%     \frac
+%     {\attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}-\beta\commweightfromblock[from=b',to=s,chkp=C]{\allvals} }
+%     {(1-\beta)\commweightfromblock[from=b',to=s,chkp=C]{\allvals}  
+%     -\max\left(
+%         \attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}
+%         -\beta\commweightfromblock[from=b',to=\slot(b')-1,chkp=C]{\allvals}
+%     ,0
+%     \right)
+%     }   
+%     \\
+%     &=
+%     \frac
+%     {\attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}-\beta\commweightfromblock[from=b',to=s,chkp=C]{\allvals} }
+%     {(1-\beta)
+%     \left(\commweightfromblock[from=b',to=s,chkp=C]{\allvals}  
+%         -\frac{
+%             \max(
+%                 \attsetweighttobediscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}
+%                 -\beta\commweightfromblock[from=b',to=\slot(b')-1,chkp=C]{\allvals}
+%             ,0
+%             )
+%         }
+%         {1-\beta}
+%     \right)
+%     } 
+%     \\
+%     &=        
+%     \left(\indicatordiscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\indQ}  -\beta\right)\left(\frac{1}{1-\beta}\right)  
+%     \\
+%     &>
+%     \frac{1}{2(1-\beta)}
+%         \left( 1+
+%             \frac
+%             {\boostweight[chkp=C]}
+%             {\commweightfromblock[from=b',to=s,chkp=C]{\allvals}}
+%         \right)       
+% \end{align*}    
+% \end{proof}
+
+% \begin{proof}
+% We proceed as follows.\\
+% \begin{tabular}{@{}p{0.1\linewidth}p{0.43\linewidth}@{}p{\dimexpr0.45\linewidth-2\tabcolsep\relax}@{}}
+%     ~$\indicatordiscfromblock[from=b',to=s,val=v,when=t,chkp=C]{\indP}$
+%     &=$\frac
+%     {\attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\honatts}}
+%     {\commweightfromblock[from=b',to=s,chkp=C]{\honvals}}$
+%     &--- By definition.
+%     \\
+%     & $\geq
+%     \frac
+%     {\attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}-
+%     \commweightfromblock[from=b',to=s,chkp=C]{\advvals}}
+%     {\commweightfromblock[from=b',to=s,chkp=C]{\honvals}}$
+%     & \begin{minipage}[t]{\linewidth}
+%         \begin{itemize}[nosep, left= 0pt,label=---]
+%                 \item By definition, $\commweightfromblock[from=b',to=s,chkp=C]{\advvals}= \valsetfromblock[from=b',to=s,chkp=C]{\allvals}  \setminus \honvals$.
+%             \end{itemize}
+%     \end{minipage}
+%     \\
+%     & $=
+%     \frac
+%     {\attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}-
+%     \commweightfromblock[from=b',to=s,chkp=C]{\advvals}}
+%     {\commweightfromblock[from=b',to=s,chkp=C]{\allvals} - \commweightfromblock[from=b',to=s,chkp=C]{\advvals}}$
+%     & --- By definition, $\commweightfromblock[from=b',to=s,chkp=C]{\allvals} = \commweightfromblock[from=b',to=s,chkp=C]{\honvals} + \commweightfromblock[from=b',to=s,chkp=C]{\advvals}$.\\
+%     & $\geq
+%     \frac
+%     {\attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}-
+%     \beta \commweightfromblock[from=b',to=s,chkp=C]{\allvals}}
+%     {\commweightfromblock[from=b',to=s,chkp=C]{\allvals} - \beta \commweightfromblock[from=b',to=s,chkp=C]{\allvals}}$
+%     & \begin{minipage}[t]{\linewidth}
+%         \begin{itemize}[nosep, left= 0pt,label=---]
+%                 \item By Assumption~\ref{assum:beta}, $\commweightfromblock[from=b',to=s,chkp=C]{\advvals}\leq \beta \commweightfromblock[from=b',to=s,chkp=C]{\allvals}$, and, given that $\attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts} \leq \commweightfromblock[from=b',to=s,chkp=C]{\allvals}$, the function $g(x)=\frac{\attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}-x}{\commweightfromblock[from=b',to=s,chkp=C]{\allvals}-x}$ is monotone decreasing in $[0,\commweightfromblock[from=b',to=s,chkp=C]{\allvals}]$.
+%             \end{itemize}
+%     \end{minipage}\\
+%     &=
+%     $\frac
+%     {\attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}-
+%     \beta \commweightfromblock[from=b',to=s,chkp=C]{\allvals}}
+%     {\commweightfromblock[from=b',to=s,chkp=C]{\allvals}}
+%     \left( \frac{1}{1-\beta} \right)$
+%     & --- Simplification. \\
+
+%     & $=\left(\indicatorfromblock[from=b',to=s,val=v,when=t,chkp=C]{\indQ}  -\beta\right)\left(\frac{1}{1-\beta}\right)$ & --- Simplification. \\
+
+%     & $>
+%         \frac{1}{2(1-\beta)}
+%             \left( 1+
+%                 \frac
+%                 {\boostweight[chkp=C]}
+%                 {\commweightfromblock[from=b',to=s,chkp=C]{\allvals}}
+%             \right)
+%     $& --- By applying the condition on $\indicatorfromblock[from=b',to=s,val=v,when=t,chkp=C]{\indQ}.$
+% \end{tabular}
+% \par
+% \end{proof}
 
 \include{old_proofs}
 

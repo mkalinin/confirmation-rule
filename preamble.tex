@@ -253,16 +253,27 @@
     \ensuremath{{#2}_{\attsetfromblock@From}^{\attsetfromblock@To,\attsetfromblock@Val,\attsetfromblock@When}}
 }%
 
-\define@key{attsetfromafterblock}{from}{\def\attsetfromafterblock@From{#1}}
-\define@key{attsetfromafterblock}{to}{\def\attsetfromafterblock@To{#1}}
-\define@key{attsetfromafterblock}{val}{\def\attsetfromafterblock@Val{#1}}
-\define@key{attsetfromafterblock}{when}{\def\attsetfromafterblock@When{#1}}
-% \define@key{attsetfromafterblock}{chkp}{\def\attsetfromafterblock@ValSetChkp{#1}}
-\setkeys{attsetfromafterblock}{from=,to=,val=,when=}
-\newcommand{\attsetfromafterblock}[2][]{%
-    \setkeys{attsetfromafterblock}{#1}%
-    \ensuremath{{#2}_{\attsetfromafterblock@From +}^{\attsetfromafterblock@To,\attsetfromafterblock@Val,\attsetfromafterblock@When}}
+\define@key{attsettobediscfromblock}{from}{\def\attsettobediscfromblock@From{#1}}
+\define@key{attsettobediscfromblock}{to}{\def\attsettobediscfromblock@To{#1}}
+\define@key{attsettobediscfromblock}{val}{\def\attsettobediscfromblock@Val{#1}}
+\define@key{attsettobediscfromblock}{when}{\def\attsettobediscfromblock@When{#1}}
+% \define@key{attsettobediscfromblock}{chkp}{\def\attsettobediscfromblock@ValSetChkp{#1}}
+\setkeys{attsettobediscfromblock}{from=,to=,val=,when=}
+\newcommand{\attsettobediscfromblock}[2][]{%
+    \setkeys{attsettobediscfromblock}{#1}%
+    \ensuremath{\overset{\nsucc}{#2}{}_{\parent(\attsettobediscfromblock@From)}^{\attsettobediscfromblock@To,\attsettobediscfromblock@Val,\attsettobediscfromblock@When}}
 }%
+
+% \define@key{attsettobediscfromblock}{from}{\def\attsettobediscfromblock@From{#1}}
+% \define@key{attsettobediscfromblock}{to}{\def\attsettobediscfromblock@To{#1}}
+% \define@key{attsettobediscfromblock}{val}{\def\attsettobediscfromblock@Val{#1}}
+% \define@key{attsettobediscfromblock}{when}{\def\attsettobediscfromblock@When{#1}}
+% % \define@key{attsettobediscfromblock}{chkp}{\def\attsettobediscfromblock@ValSetChkp{#1}}
+% \setkeys{attsettobediscfromblock}{from=,to=,val=,when=}
+% \newcommand{\attsettobediscfromblock}[2][]{%
+%     \setkeys{attsettobediscfromblock}{#1}%
+%     \ensuremath{\overset{\nsucc}{#2}{}_{\parent(\attsettobediscfromblock@From)}^{\slot(\attsettobediscfromblock@From)-1,\attsettobediscfromblock@Val,\attsettobediscfromblock@When}}
+% }%
 
 \newcommand{\ghostvotersfnname}{\ensuremath{GS}}
 
@@ -297,17 +308,31 @@
     \setkeys{attsetweightfromblock}{from=,to=,val=,when=,chkp=}%
 }%
 
-\define@key{attsetweightfromafterblock}{from}{\def\attsetweightfromafterblock@From{#1}}
-\define@key{attsetweightfromafterblock}{to}{\def\attsetweightfromafterblock@To{#1}}
-\define@key{attsetweightfromafterblock}{val}{\def\attsetweightfromafterblock@Val{#1}}
-\define@key{attsetweightfromafterblock}{when}{\def\attsetweightfromafterblock@When{#1}}
-\define@key{attsetweightfromafterblock}{chkp}{\def\attsetweightfromafterblock@ValSetChkp{#1}}
-\setkeys{attsetweightfromafterblock}{from=,to=,val=,when=}
-\newcommand{\attsetweightfromafterblock}[2][]{%
-    \setkeys{attsetweightfromafterblock}{#1}%
-    \ensuremath{{\addweight{#2}}_{\attsetweightfromafterblock@From +}^{\attsetweightfromafterblock@To,\attsetweightfromafterblock@Val,\attsetweightfromafterblock@When,\attsetweightfromafterblock@ValSetChkp}}%
-    \setkeys{attsetweightfromafterblock}{from=,to=,val=,when=,chkp=}%
+\define@key{attsetweighttobediscfromblock}{from}{\def\attsetweighttobediscfromblock@From{#1}}
+\define@key{attsetweighttobediscfromblock}{to}{\def\attsetweighttobediscfromblock@To{#1}}
+\define@key{attsetweighttobediscfromblock}{val}{\def\attsetweighttobediscfromblock@Val{#1}}
+\define@key{attsetweighttobediscfromblock}{when}{\def\attsetweighttobediscfromblock@When{#1}}
+\define@key{attsetweighttobediscfromblock}{chkp}{\def\attsetweighttobediscfromblock@ValSetChkp{#1}}
+\setkeys{attsetweighttobediscfromblock}{from=,to=,val=,when=}
+\newcommand{\attsetweighttobediscfromblock}[2][]{%
+    \setkeys{attsetweighttobediscfromblock}{#1}%
+    \ensuremath{\overset{\nsucc}{\addweight{#2}}{}_{\parent(\attsetweighttobediscfromblock@From)}^{\attsetweighttobediscfromblock@To,\attsetweighttobediscfromblock@Val,\attsetweighttobediscfromblock@When,\attsetweighttobediscfromblock@ValSetChkp}}%
+    \setkeys{attsetweighttobediscfromblock}{from=,to=,val=,when=,chkp=}%
 }%
+
+
+% \define@key{attsetweighttobediscfromblock}{from}{\def\attsetweighttobediscfromblock@From{#1}}
+% \define@key{attsetweighttobediscfromblock}{to}{\def\attsetweighttobediscfromblock@To{#1}}
+% \define@key{attsetweighttobediscfromblock}{val}{\def\attsetweighttobediscfromblock@Val{#1}}
+% \define@key{attsetweighttobediscfromblock}{when}{\def\attsetweighttobediscfromblock@When{#1}}
+% \define@key{attsetweighttobediscfromblock}{chkp}{\def\attsetweighttobediscfromblock@ValSetChkp{#1}}
+% \setkeys{attsetweighttobediscfromblock}{from=,to=,val=,when=}
+% \newcommand{\attsetweighttobediscfromblock}[2][]{%
+%     \setkeys{attsetweighttobediscfromblock}{#1}%
+%     \ensuremath{\overset{\nsucc}{\addweight{#2}}{}_{\parent(\attsetweighttobediscfromblock@From)}^{\slot(\attsettobediscfromblock@From)-1,\attsetweighttobediscfromblock@Val,\attsetweighttobediscfromblock@When,\attsetweighttobediscfromblock@ValSetChkp}}%
+%     \setkeys{attsetweighttobediscfromblock}{from=,to=,val=,when=,chkp=}%
+% }%
+
 
 \define@key{indicatorfromblock}{from}{\def\indicatorfromblock@From{#1}}
 \define@key{indicatorfromblock}{to}{\def\indicatorfromblock@To{#1}}
@@ -319,6 +344,18 @@
     \setkeys{indicatorfromblock}{#1}%
     \ensuremath{{{#2}}_{\indicatorfromblock@From}^{\indicatorfromblock@To,\indicatorfromblock@Val,\indicatorfromblock@When,\indicatorfromblock@ValSetChkp}}%
     \setkeys{indicatorfromblock}{from=,to=,val=,when=,chkp=}%
+}%
+
+\define@key{indicatordiscfromblock}{from}{\def\indicatordiscfromblock@From{#1}}
+\define@key{indicatordiscfromblock}{to}{\def\indicatordiscfromblock@To{#1}}
+\define@key{indicatordiscfromblock}{val}{\def\indicatordiscfromblock@Val{#1}}
+\define@key{indicatordiscfromblock}{when}{\def\indicatordiscfromblock@When{#1}}
+\define@key{indicatordiscfromblock}{chkp}{\def\indicatordiscfromblock@ValSetChkp{#1}}
+\setkeys{indicatordiscfromblock}{from=,to=,val=,when=,chkp=}
+\newcommand{\indicatordiscfromblock}[2][]{%
+    \setkeys{indicatordiscfromblock}{#1}%
+    \ensuremath{\overset{\mathsf{wdisc}}{#2}{}_{\indicatordiscfromblock@From}^{\indicatordiscfromblock@To,\indicatordiscfromblock@Val,\indicatordiscfromblock@When,\indicatordiscfromblock@ValSetChkp}}%
+    \setkeys{indicatordiscfromblock}{from=,to=,val=,when=,chkp=}%
 }%
 
 \define@key{boostweight}{chkp}{\def\boostweight@Chkp{#1}}
@@ -730,7 +767,7 @@
 \newcommand{\slotstartslot}[1]{\slotstart(\slot(#1))}
 \newcommand{\prevslotstartslot}[1]{\slotstart(\slot(#1)-1)}
 \newcommand{\epoch}{\ensuremath{\mathsf{epoch}}}
-\newcommand{\parent}{\ensuremath{\mathsf{parent}}}
+\newcommand{\parent}{\ensuremath{\mathsf{prnt}}}
 \newcommand{\block}{\ensuremath{\mathsf{block}}}
 % \newcommand{\chain}{\ensuremath{\mathit{chain}}}
 \newcommand{\chkp}{\ensuremath{\mathsf{C}}}
@@ -814,9 +851,6 @@
 
 \newcommand{\allattsweight}[0]{S}
 \newcommand{\allatts}[0]{\mathcal{\allattsweight}}
-
-\newcommand{\exactattsweight}[0]{T}
-\newcommand{\exactatts}[0]{\mathcal{\exactattsweight}}
 
 \newcommand{\advvalsweight}[0]{A}
 \newcommand{\advvals}[0]{\mathcal{\advvalsweight}}
