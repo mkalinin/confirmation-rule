@@ -7,7 +7,7 @@
 % \usepackage{algorithm}
 % \usepackage{algorithmic}
 %\usepackage{algpseudocode}
-% \usepackage{numbertabbing}
+\usepackage{numbertabbing}
 \usepackage{xcolor}
 \usepackage{amsmath,amsfonts}
 \usepackage{listings}
@@ -261,7 +261,7 @@
 \setkeys{attsettobediscfromblock}{from=,to=,val=,when=}
 \newcommand{\attsettobediscfromblock}[2][]{%
     \setkeys{attsettobediscfromblock}{#1}%
-    \ensuremath{\overset{\nsucc}{#2}{}_{\parent(\attsettobediscfromblock@From)}^{\attsettobediscfromblock@To,\attsettobediscfromblock@Val,\attsettobediscfromblock@When}}
+    \ensuremath{\overset{\nsucc}{#2}{}_{\parent(\attsettobediscfromblock@From)+}^{\attsettobediscfromblock@To,\attsettobediscfromblock@Val,\attsettobediscfromblock@When}}
 }%
 
 % \define@key{attsettobediscfromblock}{from}{\def\attsettobediscfromblock@From{#1}}
@@ -316,7 +316,7 @@
 \setkeys{attsetweighttobediscfromblock}{from=,to=,val=,when=}
 \newcommand{\attsetweighttobediscfromblock}[2][]{%
     \setkeys{attsetweighttobediscfromblock}{#1}%
-    \ensuremath{\overset{\nsucc}{\addweight{#2}}{}_{\parent(\attsetweighttobediscfromblock@From)}^{\attsetweighttobediscfromblock@To,\attsetweighttobediscfromblock@Val,\attsetweighttobediscfromblock@When,\attsetweighttobediscfromblock@ValSetChkp}}%
+    \ensuremath{\overset{\nsucc}{\addweight{#2}}{}_{\parent(\attsetweighttobediscfromblock@From)+}^{\attsetweighttobediscfromblock@To,\attsetweighttobediscfromblock@Val,\attsetweighttobediscfromblock@When,\attsetweighttobediscfromblock@ValSetChkp}}%
     \setkeys{attsetweighttobediscfromblock}{from=,to=,val=,when=,chkp=}%
 }%
 
@@ -860,6 +860,9 @@
 
 \newcommand{\honattsweight}[0]{H}
 \newcommand{\honatts}[0]{\mathcal{\honattsweight}}
+
+\newcommand{\honattsubweight}[0]{\underset{\leq}{H}}
+\newcommand{\honattsub}[0]{\underset{\leq}{\mathcal{H}}}
 
 \newcommand{\allvalsweight}[0]{W}
 \newcommand{\allvals}[0]{\mathcal{\allvalsweight}}

@@ -1,0 +1,76 @@
+%% numbertabbing.sty - adapted from numbertabbing.sty of Cachin by Roberto Saltini
+%%
+%% This file contains the ntabbing.sty
+%% Written by Gideon Stupp stupp@math.tau.ac.il
+%%
+%% The ntabbing environment is an extension  of the tabbing environment.
+%% Two commands added:
+%% \label{} -  enumerates the and gives
+%%            a reference to the line just like any \label operation.
+%%
+%% \reset   - Resets line numbering.
+%%
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{numbertabbing}[2020/04/07 resettable tabbing enhancements]
+
+% Ensure cleveref is loaded if not already loaded
+% \RequirePackage{cleveref}
+
+\newcounter{ntabbing@envcount} % Counter to track instances of numbertabbing
+\newcounter{g@globalcounter} % Global counter to maintain continuation of line numbering across environments
+\newbox\g@numbox
+\newdimen\numboxsize          \numboxsize=1.5em
+\newbox\g@seperator           \setbox\g@seperator=\hbox{:}
+
+\def\g@newcounter{%
+  \stepcounter{ntabbing@envcount}%
+  \expandafter\newcounter{linecounter\arabic{ntabbing@envcount}}%
+  \expandafter\setcounter{linecounter\arabic{ntabbing@envcount}}{\value{g@globalcounter}}%
+  \xdef\g@currentcounter{linecounter\arabic{ntabbing@envcount}}%
+  % Dynamically define cleveref formats
+  % \ifcsname cref\endcsname % Check if cleveref is loaded
+  % \crefname{linecounter\arabic{ntabbing@envcount}}{line}{lines}%
+  % \Crefname{linecounter\arabic{ntabbing@envcount}}{Line}{Lines}%
+  % \fi%
+}
+
+\gdef\g@setnumbox{%
+  \refstepcounter{\g@currentcounter}%
+  \global\setbox\g@numbox=\hbox to\numboxsize{\hfil \csname the\g@currentcounter\endcsname\copy\g@seperator\hfil }%
+  \setcounter{g@globalcounter}{\value{\g@currentcounter}} % Update global counter with the last used line number
+}
+
+\gdef\g@newlabel#1{\footnotesize\g@setnumbox\ifx#1\@empty\else\g@oldlabel{#1}\fi}
+
+\gdef\g@newstartline{\global\setbox\g@numbox=\hbox to\numboxsize{}%
+    \g@oldstartline}
+
+\gdef\g@newstopline{\unskip\@stopfield\if@rjfield
+\global\@rjfieldfalse
+   \@tempdima\@totalleftmargin \advance\@tempdima\linewidth
+ \hb@xt@\@tempdima{\@itemfudge\box\g@numbox\hskip\dimen\@curtabmar
+   \box\@curline\hfil\box\@curfield}\else\@addfield
+   \hbox{\@itemfudge\box\g@numbox\hskip\dimen\@curtabmar\box\@curline}\fi}
+
+\def\numbertabbing{%
+  \g@newcounter
+  \def\reset{\setcounter{\g@currentcounter}{0}}%
+  \def\resetto##1{\setcounter{\g@currentcounter}{##1}}%
+
+  \let\g@oldstopline=\@stopline
+  \let\@stopline=\g@newstopline
+
+  \let\g@oldstartline=\@startline
+  \let\@startline=\g@newstartline
+
+  \let\g@oldlabel=\label
+  \let\label=\g@newlabel
+
+  \let\g@oldcaption=\caption
+
+  \def\caption##1{\let\label=\g@oldlabel \g@oldcaption{##1}}
+   \tabbing
+
+} % Of numbertabbing.
+
+\def\endnumbertabbing {\endtabbing}%
