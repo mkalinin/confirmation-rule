@@ -1692,7 +1692,7 @@ By cases.
         % \item  $t = \firstslot(\epoch(t))$
         \item \sloppy{the \KwSty{if} condition at line \Cref{ln:if-bcand-npreceq-head} during the execution of $\var[val=v,time=\slotstart(\epoch(t))]{\getlatestconfirmed}(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})])$ is false}
         % \item \ref{def:induction-conditions:ub} holds for $\var[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$
-        \item  \label{itm:lem:gj-prec-prev-confirmed-at-start-of-epoch:4} no checkpoint $C$ s.t. $\epoch(C) = \epoch(t)-1$ and $\block(C)$ conflicts with  $\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]$ can ever be justified
+        % \item  \label{itm:lem:gj-prec-prev-confirmed-at-start-of-epoch:4} no checkpoint $C$ s.t. $\epoch(C) = \epoch(t)-1$ and $\block(C)$ conflicts with  $\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]$ can ever be justified
         % \item \ref{def:induction-conditions:ub} holds for $\var[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$
         % \item $\slotstart(\lastslot(\epoch(t)-1)) \geq \GST$
         % \item $\epoch(b_c) \geq \epoch(t)-1$
@@ -1712,7 +1712,7 @@ By cases.
     % By cases.
     \begin{description}
         \item[Case 1: {$\epoch(C)=\epoch(t)-1$}.] 
-        Given assumption~\ref{itm:lem:gj-prec-prev-confirmed-at-start-of-epoch:4} of the Lemma and $\epoch(\var[val=v,time=\slotstart(\prevfirstslotepoch{t})]{\bconfirmed}) = \epoch(t)-1$, we know that $C  = \chkp(\var[val=v,time=\slotstart(\prevfirstslotepoch{t})]{\bconfirmed}) \preceq \var[val=v,time=\slotstart(\prevfirstslotepoch{t})]{\bconfirmed}$
+        Given \Cref{lem:no-conflicting-e-1-chkp-if-reconfirmed} and $\epoch(\var[val=v,time=\slotstart(\prevfirstslotepoch{t})]{\bconfirmed}) = \epoch(t)-1$, we know that $C  = \chkp(\var[val=v,time=\slotstart(\prevfirstslotepoch{t})]{\bconfirmed}) \preceq \var[val=v,time=\slotstart(\prevfirstslotepoch{t})]{\bconfirmed}$
         \item[Case 2: {$\epoch(C)=\epoch(\guattime[val=v,time=\slotstart(\prevfirstslotepoch{t})] )=\epoch(t)-2$}.]
         This implies $C = \guattime[val=v,time=\slotstart(\prevfirstslotepoch{t})] \preceq \var[val=v,time=\slotstart(\prevfirstslotepoch{t})]{\bconfirmed}$.
         The last $\preceq$ relation comes from the \KwSty{if} condition at line \Cref{ln:if-bcand-npreceq-head} being false.
@@ -1755,7 +1755,7 @@ By cases.
         \item $\slotstart(\prevfirstslotepoch{t})\geq \GST$
         % \item  $t = \slotstart(\epoch(t))$
         \item \sloppy{the \KwSty{if} condition at line \Cref{ln:if-bcand-npreceq-head} during the execution of $\var[val=v,time=\slotstart(\epoch(t))]{\getlatestconfirmed}(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})])$ is false}
-        \item no checkpoint $C$ s.t. $\epoch(C) = \epoch(t)-1$ and $\block(C)$ conflicts with  $\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]$ can ever be justified
+        % \item no checkpoint $C$ s.t. $\epoch(C) = \epoch(t)-1$ and $\block(C)$ conflicts with  $\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]$ can ever be justified
         % \item \ref{def:induction-conditions:ub} holds for $\var[val=v,time=\slotstart(\prevfirstslotepoch{t})]{\bconfirmed}$
         % \item \ref{def:induction-conditions:ub} holds for $\var[val=v,time=\slotstart(\prevfirstslotepoch{t})]{\bconfirmed}$
         % \item $\slotstart(\lastslot(\epoch(t)-1)) \geq \GST$
@@ -1780,7 +1780,7 @@ By cases.
         \item $\slotstart(\prevfirstslotepoch{t})\geq \GST$
         % \item  $t = \slotstart(\epoch(t))$
         \item \label{itm:lem:conf-prev-slot-canonical-at-the-start-of-an-epoch:3} \sloppy{the \KwSty{if} condition at line \Cref{ln:if-bcand-npreceq-head} during the execution of $\var[val=v,time=\slotstart(\epoch(t))]{\getlatestconfirmed}(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})])$ is false}
-        \item\label{itm:lem:conf-prev-slot-canonical-at-the-start-of-an-epoch:4}  no checkpoint $C$ s.t. $\epoch(C) = \epoch(t)-1$ and $\block(C)$ conflicts with  $\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]$ can ever be justified
+        % \item\label{itm:lem:conf-prev-slot-canonical-at-the-start-of-an-epoch:4}  no checkpoint $C$ s.t. $\epoch(C) = \epoch(t)-1$ and $\block(C)$ conflicts with  $\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]$ can ever be justified
         % \item $\slotstart(\lastslot(\epoch(t)-1)) \geq \GST$
         % \item $\epoch(b_c) \geq \epoch(t)-1$
         % \item $b_c \in \filtered[val=v',time=t']$
@@ -2030,8 +2030,8 @@ By cases.
         \item $\slotstart(\prevfirstslotepoch{t})\geq \GST$
         % \item  $t = \slotstart(\epoch(t))$
         \item $\epoch(\bconfirmed[val=v,time=\slotstart(\epoch(t))])\geq\epoch(t)-1$
-        \item if $\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})] \preceq \bconfirmed[val=v,time=\slotstart(\epoch(t))]$,
-        then  no checkpoint $C$ s.t. $\epoch(C) = \epoch(t)-1$ and $\block(C)$ conflicts with  $\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]$ can ever be justified
+        % \item if $\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})] \preceq \bconfirmed[val=v,time=\slotstart(\epoch(t))]$,
+        % then  no checkpoint $C$ s.t. $\epoch(C) = \epoch(t)-1$ and $\block(C)$ conflicts with  $\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]$ can ever be justified
         % \item \ref{def:induction-conditions:ub} holds for $\var[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$
         % \item \ref{def:induction-conditions:ub} holds for $\var[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$
         % \item $\slotstart(\lastslot(\epoch(t)-1)) \geq \GST$
@@ -2093,8 +2093,8 @@ By cases.
         \item $\slotstart(\prevfirstslotepoch{t})\geq \GST$
         % \item  $t = \slotstart(\slot(t))$
         \item $\epoch(\bconfirmed[val=v,time=\slotstart(\slot(t))])\geq\epoch(t)-1$
-        \item if $\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})] \preceq \bconfirmed[val=v,time=\slotstart(\epoch(t))]$,
-        then  no checkpoint $C$ s.t. $\epoch(C) = \epoch(t)-1$ and $\block(C)$ conflicts with  $\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]$ can ever be justified
+        % \item if $\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})] \preceq \bconfirmed[val=v,time=\slotstart(\epoch(t))]$,
+        % then  no checkpoint $C$ s.t. $\epoch(C) = \epoch(t)-1$ and $\block(C)$ conflicts with  $\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]$ can ever be justified
         % \item \ref{def:induction-conditions:ub} holds for $\var[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}$
         % \item $\slotstart(\lastslot(\epoch(t)-1)) \geq \GST$
         % \item $\epoch(b_c) \geq \epoch(t)-1$
@@ -2222,18 +2222,20 @@ By cases.
     From \Cref{lem:no-curr-epochconflict-chkp-is-justified}, we know that there exists a time $t' \in \{\slotstart(s): s \in [\firstslot(\epoch(t)-1),\lastslot(\epoch(t)-1)]\}$ such that $\var[val=v,time=t']{\willChkpBeJustified}(\bconfirmed[val=v,time=t'])$ and $\epoch(\bconfirmed[val=v,time=t'] ) = \epoch(t)-1$.
     \Cref{lem:conf-beginning-epoch-prec-bcand} then implies that $\bconfirmed[val=v,time=\slotstart(\firstslot(\epoch(t)-1))] \preceq \bconfirmed[val=v,time=t'] \preceq \bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]$ and $\epoch(\bconfirmed[val=v,time=\slotstart(\firstslot(\epoch(t)-1))] ) \geq \epoch(t)-2$.
 
-    Then, given Lemma 13 of the paper, to conclude the proof it is sufficient to prove that  $\canonical[blck={\bconfirmed[val=v,time=t']},time=t',to=\slotstart(\epoch(t))]$.
+    Due to \Cref{lem:canonical-for-current-epoch-with-extra-assum} we know that $\canonical[blck={\bconfirmed[val=v,time=t']},time=t',to=\slotstart(\epoch(t))]$.
+    Then, Lemma 13 of the paper concludes the proof.
+    % Then, given Lemma 13 of the paper, to conclude the proof it is sufficient to prove that  $\canonical[blck={\bconfirmed[val=v,time=t']},time=t',to=\slotstart(\epoch(t))]$.
 
-    Now, if  $\var[val=v,time=\slotstart(\firstslot(\epoch(t)-1)-1)]{\bconfirmed} \npreceq \bconfirmed[val=v,time=t']$, then we can apply \Cref{lem:canonical-for-current-epoch-with-extra-assum} to conclude that $\canonical[blck={\bconfirmed[val=v,time=t']},time=t',to=\slotstart(\epoch(t))]$.
+    % Now, if  $\var[val=v,time=\slotstart(\firstslot(\epoch(t)-1)-1)]{\bconfirmed} \npreceq \bconfirmed[val=v,time=t']$, then we can apply \Cref{lem:canonical-for-current-epoch-with-extra-assum} to conclude that $\canonical[blck={\bconfirmed[val=v,time=t']},time=t',to=\slotstart(\epoch(t))]$.
 
-    Then, assume that $\var[val=v,time=\slotstart(\firstslot(\epoch(t)-1)-1)]{\bconfirmed} \preceq \bconfirmed[val=v,time=t']$.
-    In this case, to apply \Cref{lem:canonical-for-current-epoch-with-extra-assum} we need to show that no checkpoint $C$ s.t. $\epoch(C) = \epoch(t)-2$ and $\block(C)$ conflicts with  $\bconfirmed[val=v,time=\slotstart(\firstslot(\epoch(t)-1)-1)]$ can ever be justified.
-    Then, let $C$ be a justified checkpoint such that $\epoch(C)=\epoch(t)-2$.
-    This implies that $C = \guattime[time=\slotstart(\prevfirstslotepoch{t}),val=v]$.
-    From condition~\ref{itm:lem:no-conflicting-to-c-b-at-the-start-of-an-epoch:3},
-    we know that $\bconfirmed[val=v,time=\slotstart(\firstslot(\epoch(t)-1))] \succeq \guattime[time=\slotstart(\prevfirstslotepoch{t}),val=v]$.
-    Given that $\var[val=v,time=\slotstart(\firstslot(\epoch(t)-1)-1)]{\bconfirmed} \preceq \bconfirmed[val=v,time=t'] \preceq \bconfirmed[val=v,time=\slotstart(\firstslot(\epoch(t)-1))]$, we can conclude that $\block(C)$ does not conflict with 
-    $\bconfirmed[val=v,time=\slotstart(\firstslot(\epoch(t)-1)-1)]$    
+    % Then, assume that $\var[val=v,time=\slotstart(\firstslot(\epoch(t)-1)-1)]{\bconfirmed} \preceq \bconfirmed[val=v,time=t']$.
+    % In this case, to apply \Cref{lem:canonical-for-current-epoch-with-extra-assum} we need to show that no checkpoint $C$ s.t. $\epoch(C) = \epoch(t)-2$ and $\block(C)$ conflicts with  $\bconfirmed[val=v,time=\slotstart(\firstslot(\epoch(t)-1)-1)]$ can ever be justified.
+    % Then, let $C$ be a justified checkpoint such that $\epoch(C)=\epoch(t)-2$.
+    % This implies that $C = \guattime[time=\slotstart(\prevfirstslotepoch{t}),val=v]$.
+    % From condition~\ref{itm:lem:no-conflicting-to-c-b-at-the-start-of-an-epoch:3},
+    % we know that $\bconfirmed[val=v,time=\slotstart(\firstslot(\epoch(t)-1))] \succeq \guattime[time=\slotstart(\prevfirstslotepoch{t}),val=v]$.
+    % Given that $\var[val=v,time=\slotstart(\firstslot(\epoch(t)-1)-1)]{\bconfirmed} \preceq \bconfirmed[val=v,time=t'] \preceq \bconfirmed[val=v,time=\slotstart(\firstslot(\epoch(t)-1))]$, we can conclude that $\block(C)$ does not conflict with 
+    % $\bconfirmed[val=v,time=\slotstart(\firstslot(\epoch(t)-1)-1)]$    
     
     
     % Then, from \Cref{lem:epoch-gu-less-than-two-epoch-ago-start-epoch} we know that $\epoch(\guattime[time=\slotstart(\prevfirstslotepoch{t}),val=v]) \in \{\epoch(t)-2,\epoch(t)-1\}$.
