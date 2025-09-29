@@ -92,6 +92,7 @@ def get_attestation_score(store: Store, root: Root, checkpoint_state: BeaconStat
     ))
     return attestation_score
 
+
 def is_full_validator_set_covered(first_slot: Slot, last_slot: Slot) -> bool:
     """
     Returns whether the range from ``first_slot`` to ``last_slot`` (inclusive of both) includes an entire epoch
@@ -177,6 +178,58 @@ def is_one_confirmed(store: Store, block_root: Root) -> bool:
     return (
         2 * support >
         maximum_support + maximum_support // 50 * CONFIRMATION_BYZANTINE_THRESHOLD + proposer_score
+    )
+
+
+def get_committee_at_slot(state: BeaconState, slot: Slot) -> Sequence[ValidatorIndex]:
+    indices = []
+    committees_count = get_committee_count_per_slot(state, compute_epoch_at_slot(state.slot))
+    for i in range(committees_count):
+        indices.append(get_beacon_committee(state, Slot(slot), CommitteeIndex(i)))
+    return indices
+
+
+def get_chain_prefix_support_between_slots(
+        store: Store, root: Root, balance_source: BeaconState, first_slot: Slot, last_slot: Slot) -> Gwei:
+    state = store.block_states[root]
+    total_support = Gwei(0)
+    for slot in range(first_slot, last_slot + 1):
+        committee_indices = get_committee_at_slot(state, Slot(slot))
+        for validator_index in committee_indices:
+            if (store.latest_messages[validator_index].root == root
+                and validator_index not in store.equivocating_indices):
+                    total_support += balance_source.validators[validator_index].effective_balance
+
+    return total_support
+
+
+def is_one_confirmed_empty_slot_fix(store: Store, block_root: Root) -> bool:
+    current_slot = get_current_slot(store)
+    block = store.blocks[block_root]
+    parent_block = store.blocks[block.parent_root]
+    if is_first_slot_in_epoch(get_current_slot(store)):
+        weighting_checkpoint = store.prev_slot_unrealized_justified_checkpoint
+    else:
+        weighting_checkpoint = store.prev_slot_justified_checkpoint
+    weighting_checkpoint_state = store.checkpoint_states[weighting_checkpoint]
+    support = get_attestation_score(store, block_root, weighting_checkpoint_state)
+    maximum_support = estimate_committee_weight_between_slots(
+        weighting_checkpoint_state, Slot(parent_block.slot + 1), Slot(current_slot - 1))
+    proposer_score = get_proposer_score(store)
+
+    parent_support = get_chain_prefix_support_between_slots(
+        store, block_root.parent_root, weighting_checkpoint_state, Slot(parent_block.slot + 1), Slot(current_slot - 1))
+    honest_parent_support = max(0, parent_support - maximum_support // 100 * CONFIRMATION_BYZANTINE_THRESHOLD)
+
+    # Returns whether the following condition is true using only integer arithmetic
+    # support / maximum_support >
+    # 0.5 * (1 + proposer_score / maximum_support) + CONFIRMATION_BYZANTINE_THRESHOLD / 100
+
+    # 2 * support > maximum_support * (1 + 2 * CONFIRMATION_BYZANTINE_THRESHOLD / 100) + proposer_score
+    return (
+            2 * support >
+            maximum_support + maximum_support // 50 * CONFIRMATION_BYZANTINE_THRESHOLD +
+            proposer_score - honest_parent_support
     )
 
 
