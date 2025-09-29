@@ -3243,7 +3243,7 @@ By cases.
 
 % Let $\attsettobediscfromblock[from=b,to=s,when=t,val=v]{\allatts}$ be the set of validators in $\commfromslot[from=\parentslotplusone(b), to=\slot(b)-1,when=t,val=v]{\allvals}\setminus \commfromslot[from=\slot(b), to=s,when=t,val=v]{\allvals}$ that, according to $\viewattime[val=v,time=t]$, have sent a \GHOST vote that \LMDGHOST voted \emph{exactly} for $\parent(b)$, \ie, not for any $b' \succ \parent(b)$, just exactly for $\parent(b)$.
 
-Let $\attsettobediscfromblock[from=b,to=s,when=t,val=v]{\allatts}$ be the set of validators in $\commfromslot[from=\slot(\parent(b))+1, to=s,when=t,val=v]{\allvals}$ that, according to view $\FILLMD(\FILINV(\FILCUR(\FILEQ(\viewattime[val=v,time=t]),t)))$, have sent a \GHOST vote that \emph{does not} \LMDGHOST voted for a block $\succ b$, \ie, it \LMDGHOST votes for either a block $\preceq b$ or a block conflicting with $b$.
+Let $\attsettobediscfromblock[from=b,to=s,when=t,val=v]{\allatts}$ be the set of validators in $\commfromslot[from=\slot(\parent(b))+1, to=s,when=t,val=v]{\allvals}$ that, according to view $\FILLMD(\FILINV(\FILCUR(\FILEQ(\viewattime[val=v,time=t]),t)))$, have sent a \GHOST vote that \emph{does not} \LMDGHOST voted for a block $\succ \parent(b)$, \ie, it \LMDGHOST votes for either a block $\preceq \parent(b)$ or a block conflicting with $\parent(b)$.
 
 
 Let $\attsettobediscfromblock[from=b,to=s,when=t,val=v]{\honatts}$ be $\attsettobediscfromblock[from=b,to=s,when=t,val=v]{\allatts} \cap \honvals$.
