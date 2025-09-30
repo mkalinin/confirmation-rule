@@ -189,21 +189,33 @@ def get_committee_at_slot(state: BeaconState, slot: Slot) -> Sequence[ValidatorI
     return indices
 
 
-def get_chain_prefix_support(store: Store, block_root: Root, balance_source: BeaconState) -> Gwei:
-    state = store.block_states[block_root]
-    support_in_block_slot = Gwei(0)
-    committee_indices = get_committee_at_slot(state, get_block_slot(store, block_root))
-    for validator_index in committee_indices:
-        if (store.latest_messages[validator_index].root == root
-            and validator_index not in store.equivocating_indices):
-            support_in_block_slot += balance_source.validators[validator_index].effective_balance
+def compute_chain_prefix_support_between_slots(
+        store: Store, block_root: Root, balance_source: BeaconState, first_slot: Slot, last_slot: Slot) -> Gwei:
+    head = get_head(store)
+    head_state = store.block_states[head]
+    support = Gwei(0)
+    for slot in range(first_slot, last_slot + 1):
+        committee = get_committee_at_slot(head_state, get_block_slot(store, block_root))
+        for validator_index in committee:
+            if (store.latest_messages[validator_index].root == block_root
+                and validator_index not in store.equivocating_indices):
+                support += balance_source.validators[validator_index].effective_balance
 
-    children_weight = sum(
-        get_attestation_score(store, root, balance_source)
-        for root in store.blocks.keys() if store.blocks[root].parent_root == block_root
-    )
+    return support
 
-    return get_attestation_score(store, block_root, balance_source) - children_weight - support_in_block_slot
+
+def compute_honest_parent_support(store: Store, block_root: Root, weighting_checkpoint_state: State) -> Gwei:
+    block = store.blocks[block_root]
+    parent_block = store.blocks[block.parent_root]
+    if parent_block.slot + 1 == block.slot:
+        return Gwei(0)
+
+    parent_support = compute_chain_prefix_support_between_slots(
+        store, block_root.parent_root, weighting_checkpoint_state, Slot(parent_block.slot + 1), Slot(block.slot - 1))
+    parent_maximum_support = estimate_committee_weight_between_slots(
+        weighting_checkpoint_state, Slot(parent_block.slot + 1), Slot(block.slot - 1))
+
+    return Gwei(max(0, parent_support - parent_maximum_support // 100 * CONFIRMATION_BYZANTINE_THRESHOLD))
 
 
 def is_one_confirmed_empty_slot_fix(store: Store, block_root: Root) -> bool:
@@ -219,15 +231,14 @@ def is_one_confirmed_empty_slot_fix(store: Store, block_root: Root) -> bool:
     maximum_support = estimate_committee_weight_between_slots(
         weighting_checkpoint_state, Slot(parent_block.slot + 1), Slot(current_slot - 1))
     proposer_score = get_proposer_score(store)
-
-    parent_support = get_chain_prefix_support(store, block_root.parent_root, weighting_checkpoint_state)
-    honest_parent_support = max(0, parent_support - maximum_support // 100 * CONFIRMATION_BYZANTINE_THRESHOLD)
+    honest_parent_support = compute_honest_parent_support(store, block_root, weighting_checkpoint_state)
 
     # Returns whether the following condition is true using only integer arithmetic
     # support / maximum_support >
-    # 0.5 * (1 + proposer_score / maximum_support) + CONFIRMATION_BYZANTINE_THRESHOLD / 100
+    # 0.5 * (1 + (proposer_score - honest_parent_support) / maximum_support) + CONFIRMATION_BYZANTINE_THRESHOLD / 100
 
-    # 2 * support > maximum_support * (1 + 2 * CONFIRMATION_BYZANTINE_THRESHOLD / 100) + proposer_score
+    # 2 * support >
+    # maximum_support * (1 + 2 * CONFIRMATION_BYZANTINE_THRESHOLD / 100) + proposer_score - honest_parent_support
     return (
             2 * support >
             maximum_support + maximum_support // 50 * CONFIRMATION_BYZANTINE_THRESHOLD +
