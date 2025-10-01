@@ -208,15 +208,16 @@ def compute_honest_parent_support(store: Store, block_root: Root, weighting_chec
     block = store.blocks[block_root]
     parent_block = store.blocks[block.parent_root]
     if parent_block.slot + 1 == block.slot:
-        return Gwei(0)
-
-    parent_support = compute_chain_prefix_support_between_slots(
-        store, block_root.parent_root, weighting_checkpoint_state, Slot(parent_block.slot + 1), Slot(block.slot - 1))
-    parent_maximum_support = estimate_committee_weight_between_slots(
-        weighting_checkpoint_state, Slot(parent_block.slot + 1), Slot(block.slot - 1))
+        parent_support = Gwei(0)
+        parent_maximum_support = Gwei(0)
+    else:
+        parent_support = compute_chain_prefix_support_between_slots(
+            store, block_root.parent_root, weighting_checkpoint_state, Slot(parent_block.slot + 1), Slot(block.slot - 1))
+        parent_maximum_support = estimate_committee_weight_between_slots(
+            weighting_checkpoint_state, Slot(parent_block.slot + 1), Slot(block.slot - 1))
 
     parent_support_inclusive = parent_support + compute_chain_prefix_support_between_slots(
-        store, block_root.parent_root, weighting_checkpoint_state, Slot(block.slot - 1), Slot(block.slot))
+        store, block_root.parent_root, weighting_checkpoint_state, Slot(block.slot), Slot(block.slot))
     parent_maximum_support_inclusive = estimate_committee_weight_between_slots(
         weighting_checkpoint_state, Slot(parent_block.slot + 1), Slot(block.slot))
 
