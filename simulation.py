@@ -73,7 +73,7 @@ def compute_strict_maximum_support(block, current_slot):
     return slot_count * SLOT_COMMITTEE_WEIGHT
 
 
-def compute_safety_indicator(block, current_slot, participation_rate=PARTICIPATION_RATE):
+def compute_safety_indicator(block, current_slot, participation_rate):
     support = compute_block_support(block, current_slot, participation_rate)
     maximum_support = compute_maximum_support(block, current_slot)
     if maximum_support == 0:
@@ -95,7 +95,7 @@ def compute_honest_parent_support(block, end_slot, current_slot, participation_r
     return max(0, parent_support - maximum_support // 100 * CONFIRMATION_BYZANTINE_THRESHOLD)
 
 
-def get_honest_parent_support(block, current_slot, with_fix, participation_rate=PARTICIPATION_RATE):
+def get_honest_parent_support(block, current_slot, with_fix, participation_rate):
     if not with_fix:
         return 0
 
@@ -105,7 +105,7 @@ def get_honest_parent_support(block, current_slot, with_fix, participation_rate=
     return max(support_exclusive, support_inclusive)
 
 
-def compute_safety_indicator_threshold(block, current_slot, with_fix=True, participation_rate=PARTICIPATION_RATE):
+def compute_safety_indicator_threshold(block, current_slot, with_fix, participation_rate):
     maximum_support = compute_maximum_support(block, current_slot)
     if with_fix:
         strict_maximum_support = compute_strict_maximum_support(block, current_slot)
@@ -119,10 +119,10 @@ def compute_safety_indicator_threshold(block, current_slot, with_fix=True, parti
 def run(with_fix):
     print (f"CONFIRMATION_BYZANTINE_THRESHOLD={CONFIRMATION_BYZANTINE_THRESHOLD}, PARTICIPATION_RATE={PARTICIPATION_RATE}")
     for slot in range(confirming_block_slot + 1, len(block_slot_tree)):
-        safety_indicator = compute_safety_indicator(confirming_block, slot)
+        safety_indicator = compute_safety_indicator(confirming_block, slot, PARTICIPATION_RATE)
         maximum_support = compute_maximum_support(confirming_block, slot)
-        honest_parent_support = get_honest_parent_support(confirming_block, slot, with_fix)
-        safety_indicator_threshold = compute_safety_indicator_threshold(confirming_block, slot, with_fix)
+        honest_parent_support = get_honest_parent_support(confirming_block, slot, with_fix, PARTICIPATION_RATE)
+        safety_indicator_threshold = compute_safety_indicator_threshold(confirming_block, slot, with_fix, PARTICIPATION_RATE)
         out = f"s + {slot-confirming_block_slot}: Q_b={safety_indicator:.4f} {'>' if safety_indicator > safety_indicator_threshold else '<'} {safety_indicator_threshold:.4f}, honest_parent_fraction={honest_parent_support/maximum_support/2:.4f}, W_b={maximum_support/SLOT_COMMITTEE_WEIGHT:.4f}*W, H_p={honest_parent_support/SLOT_COMMITTEE_WEIGHT:.4f}*W"
         if safety_indicator > safety_indicator_threshold:
             print(f"\033[32m{out}\033[0m")
@@ -144,8 +144,9 @@ def run_with_different_parent_support_rate():
     print(f"| Parent support | Delay before fix | Delay after fix | Diff |")
     print(f"|----------------|------------------|-----------------|------|")
     for parent_block_support_rate in range(10, 101, 5):
-        block_support_in_slot_rate[late_block_slot] = {
-            parent_block: parent_block_support_rate, confirming_block: PARTICIPATION_RATE-parent_block_support_rate
+        block_support_in_slot_rate[confirming_block_slot] = {
+            parent_block: parent_block_support_rate,
+            confirming_block: PARTICIPATION_RATE-parent_block_support_rate
         }
         delay_wout_fix = compute_confirmed_slot_delay(False, PARTICIPATION_RATE)
         delay_with_fix = compute_confirmed_slot_delay(True, PARTICIPATION_RATE)
@@ -155,7 +156,11 @@ def run_with_different_parent_support_rate():
 def run_with_different_participation_rate():
     print(f"| Participation | Delay before fix | Delay after fix | Diff |")
     print(f"|---------------|------------------|-----------------|------|")
-    for participation_rate in range(100, 85, -1):
+    for participation_rate in range(100, 89, -1):
+        block_support_in_slot_rate[confirming_block_slot] = {
+            parent_block: 0,
+            confirming_block: participation_rate
+        }
         delay_wout_fix = compute_confirmed_slot_delay(False, participation_rate)
         delay_with_fix = compute_confirmed_slot_delay(True, participation_rate)
         print(f"| {participation_rate}% | {delay_wout_fix} | {delay_with_fix} | {delay_wout_fix - delay_with_fix} |")
@@ -167,7 +172,7 @@ def run_with_different_parent_support_and_participation_rate():
     for parent_block_support_rate in range(10, 101, 10):
         for participation_rate in range(100, 94, -1):
             confirming_block_support_rate = (100 - parent_block_support_rate) * participation_rate // 100
-            block_support_in_slot_rate[late_block_slot] = {
+            block_support_in_slot_rate[confirming_block_slot] = {
                 parent_block: parent_block_support_rate * participation_rate // 100,
                 confirming_block: confirming_block_support_rate
             }
