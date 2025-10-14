@@ -88,11 +88,14 @@ def compute_honest_parent_support(block, end_slot, current_slot, participation_r
     parent = block_slot_tree[parent_slot]
     parent_support = 0
     maximum_support = 0
+    adversarial_support = 0
     for slot in range(parent_slot + 1, end_slot + 1):
         parent_support += get_block_support_in_slot(parent, slot, participation_rate)
         maximum_support += SLOT_COMMITTEE_WEIGHT
+        if slot < block_slot:
+            adversarial_support += SLOT_COMMITTEE_WEIGHT // 100 * CONFIRMATION_BYZANTINE_THRESHOLD
 
-    return max(0, parent_support - maximum_support // 100 * CONFIRMATION_BYZANTINE_THRESHOLD)
+    return max(0, parent_support - adversarial_support)
 
 
 def get_honest_parent_support(block, current_slot, with_fix, participation_rate):
@@ -169,7 +172,7 @@ def run_with_different_participation_rate():
 def run_with_different_parent_support_and_participation_rate():
     print(f"| Parent support | Participation | Delay before fix | Delay after fix | Diff |")
     print(f"|----------------|---------------|------------------|-----------------|------|")
-    for parent_block_support_rate in range(10, 101, 10):
+    for parent_block_support_rate in range(10, 81, 10):
         for participation_rate in range(100, 94, -1):
             confirming_block_support_rate = (100 - parent_block_support_rate) * participation_rate // 100
             block_support_in_slot_rate[confirming_block_slot] = {
