@@ -253,12 +253,6 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
     $\bcand \gets b_c$\label{ln:bcand-set-beginning-of-find-latest}\\
     \Const $head \gets \LMDGHOSTHFC(\viewattime[time={\var[val=v]{t}},val=v])$\\
     \Const $phead \gets \LMDGHOSTHFC(\viewattime[time={\slotstart(\slot(\var[val=v]{t})-1)},val=v])$\\
-    \uIf{$\slot(\var[val=v]{t}) = \firstslot(\epoch(\var[val=v]{t}))$} {
-        $\chkp_{EBA} \gets \guattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}]$
-    }
-    \uElse {
-        $\chkp_{EBA} \gets \gjattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}]$
-    }
     
 
 
@@ -274,7 +268,7 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
             $\btemp \gets \var[val=v]{\mathit{next\_child}}(\bcand,head)$\\
             \uIf{$\epoch(\btemp) < \epoch(\var[val=v]{t})$ {\bf and}
                 $\btemp \preceq phead$ {\bf and}
-                $\isOneConfirmed_v(\btemp, \chkp_W)$}
+                $\var[val=v]{\isOneConfirmed}(\btemp, \guattime[val=v,time=\slotstart(\prevfirstslotepoch{t})])$}
             {
                 $\bcand \gets \btemp$\label{ln:set-bcand-in-prev-epoch-loop}
             }
@@ -296,7 +290,7 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
             {
                 \Break
             }
-            \uIf{$\isOneConfirmed_v(\btemp, \chkp_{EBA})$\label{ln:if-is-one-confirmed-second-loop}} {
+            \uIf{$\var[val=v]{\isOneConfirmed}(\btemp, \guattime[val=v,time=\slotstart(\prevfirstslotepoch{t})])$\label{ln:if-is-one-confirmed-second-loop}} {
                 $\btcand \gets \btemp$\label{set-btcand-to-btemp}
             }
             \uElse { 
@@ -370,17 +364,17 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
         % {\bf and}
         % $\epoch(\bcand) \geq \epoch(t)-1$  
         {\bf and}
-        $\neg (\var[val=v]{\mathit{is\_chain\_one\_confirmed}}(b_c, \guattime[val=v,time=\slotstart(\slot(t)-1)]))$ {\bf and} $b_c \succeq \guattime[val=v,time=\slotstart(\slot(t)-1)]$\label{ln:if-bcand-npreceq-head}}{
+        $\neg (\var[val=v]{\mathit{is\_chain\_one\_confirmed}}(b_c, \guattime[val=v,time=\slotstart(\prevfirstslotepoch{t})]))$ {\bf and} $b_c \succeq \guattime[val=v,time=\slotstart(\slot(t)-1)]$\label{ln:if-bcand-npreceq-head}}{
         $\bcand \gets \block(\gfattime[val=v,time={\var[val=v]{t}}])$\label{ln:set-bcand-to-fin}
     }
 
     \uIf{$\slot(\var[val=v]{t}) = \firstslot(\epoch(\var[val=v]{t}))$ {\bf and}
-        $\epoch(\guattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}]) = \epoch(\var[val=v]{t})-1$ {\bf and}
-        $\gu(\LMDGHOSTHFC(\viewattime[time={\var[val=v]{t}},val=v])) = \guattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}]$ {\bf and}
-        $\slot(\bcand) < \slot(\block(\guattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}]))$
+        $\epoch(\guattime[val=v,time=\slotstart(\prevfirstslotepoch{t})]) = \epoch(\var[val=v]{t})-1$ {\bf and}
+        $\gu(\LMDGHOSTHFC(\viewattime[time={\var[val=v]{t}},val=v])) = \guattime[val=v,time=\slotstart(\prevfirstslotepoch{t})]$ {\bf and}
+        $\slot(\bcand) < \slot(\block(\guattime[val=v,time=\slotstart(\prevfirstslotepoch{t})]))$
         \label{ln:start-conf-chain}}
     {
-        $\bcand \gets \block(\guattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}])$\label{ln:set-bcan-on-start-conf-chain}
+        $\bcand \gets \block(\guattime[val=v,time=\slotstart(\prevfirstslotepoch{t})])$\label{ln:set-bcan-on-start-conf-chain}
     }
 
     \uIf{$\epoch(\bcand) \geq \epoch(\var[val=v]{t}) - 1$\label{ln:if-bcand-e-1}}
