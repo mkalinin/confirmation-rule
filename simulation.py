@@ -7,25 +7,25 @@ CONFIRMATION_BYZANTINE_THRESHOLD = 25
 PARTICIPATION_RATE = 100
 
 # Empty slot
-empty_slot = 2
-block_slot_tree = [*range(0, empty_slot), empty_slot-1, *range(empty_slot, 31)]
-confirming_block_slot = empty_slot + 1
-confirming_block = block_slot_tree[confirming_block_slot]
-parent_block = block_slot_tree[confirming_block_slot-1]
-block_support_in_slot_rate = {
-    confirming_block_slot: {parent_block: 0, confirming_block: PARTICIPATION_RATE}
-}
-
-# Late block
-# block_slot_tree = [*range(0, 32)]
-# late_block_slot = 2
-# confirming_block_slot = late_block_slot
+# empty_slot = 2
+# block_slot_tree = [*range(0, empty_slot), empty_slot-1, *range(empty_slot, 31)]
+# confirming_block_slot = empty_slot + 1
 # confirming_block = block_slot_tree[confirming_block_slot]
 # parent_block = block_slot_tree[confirming_block_slot-1]
-# parent_block_support_rate = 75
 # block_support_in_slot_rate = {
-#     late_block_slot: {parent_block: parent_block_support_rate, confirming_block: PARTICIPATION_RATE-parent_block_support_rate}
+#     confirming_block_slot: {parent_block: 0, confirming_block: PARTICIPATION_RATE}
 # }
+
+# Late block
+block_slot_tree = [*range(0, 32)]
+late_block_slot = 2
+confirming_block_slot = late_block_slot
+confirming_block = block_slot_tree[confirming_block_slot]
+parent_block = block_slot_tree[confirming_block_slot-1]
+parent_block_support_rate = 75
+block_support_in_slot_rate = {
+    late_block_slot: {parent_block: parent_block_support_rate, confirming_block: PARTICIPATION_RATE-parent_block_support_rate}
+}
 
 
 def find_parent_slot(block):
@@ -183,5 +183,5 @@ def run_with_different_parent_support_and_participation_rate():
 
 # run(True)
 # run_with_different_parent_support_rate()
-run_with_different_participation_rate()
-# run_with_different_parent_support_and_participation_rate()
+# run_with_different_participation_rate()
+run_with_different_parent_support_and_participation_rate()
