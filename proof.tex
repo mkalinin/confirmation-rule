@@ -333,7 +333,7 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
 }
 \Fn{$\var[val=v]{\mathit{is\_chain\_one\_confirmed}}(b_c, C)$}{
     $b \gets b_c$\\
-    \While{$b \neq \block(C) \land \isOneConfirmed_v(b_c, C)$}{
+    \While{$b \neq \block(C) \land \var[val=v]{\isOneConfirmed}(b, C)$}{
         $b \gets \parent(b)$
     }
 
@@ -362,9 +362,11 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
         $\bcand \npreceq \head$ {\bf or}
         $(\slot(\var[val=v]{t}) = \firstslot(\epoch(\var[val=v]{t}))$ 
         % {\bf and}
-        % $\epoch(\bcand) \geq \epoch(t)-1$  
+        % $\epoch(\bcand) \geq \epoch(t)-1$
         {\bf and}
-        $\neg (\var[val=v]{\mathit{is\_chain\_one\_confirmed}}(b_c, \guattime[val=v,time=\slotstart(\prevfirstslotepoch{t})]))$ {\bf and} $b_c \succeq \guattime[val=v,time=\slotstart(\slot(t)-1)]$\label{ln:if-bcand-npreceq-head}}{
+        $\bcand \succeq \guattime[val=v,time=\slotstart(\prevfirstslotepoch{t})]$
+        {\bf and}
+        $\neg \var[val=v]{\mathit{is\_chain\_one\_confirmed}}(\bcand, \guattime[val=v,time=\slotstart(\prevfirstslotepoch{t})]))$\label{ln:if-bcand-npreceq-head}}{
         $\bcand \gets \block(\gfattime[val=v,time={\var[val=v]{t}}])$\label{ln:set-bcand-to-fin}
     }
 
