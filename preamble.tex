@@ -320,6 +320,18 @@
     \setkeys{attsetweighttobediscfromblock}{from=,to=,val=,when=,chkp=}%
 }%
 
+\define@key{attsetweighttobediscsimplefromblock}{from}{\def\attsetweighttobediscsimplefromblock@From{#1}}
+\define@key{attsetweighttobediscsimplefromblock}{to}{\def\attsetweighttobediscsimplefromblock@To{#1}}
+\define@key{attsetweighttobediscsimplefromblock}{val}{\def\attsetweighttobediscsimplefromblock@Val{#1}}
+\define@key{attsetweighttobediscsimplefromblock}{when}{\def\attsetweighttobediscsimplefromblock@When{#1}}
+\define@key{attsetweighttobediscsimplefromblock}{chkp}{\def\attsetweighttobediscsimplefromblock@ValSetChkp{#1}}
+\setkeys{attsetweighttobediscsimplefromblock}{from=,to=,val=,when=}
+\newcommand{\attsetweighttobediscsimplefromblock}[2][]{%
+    \setkeys{attsetweighttobediscsimplefromblock}{#1}%
+    \ensuremath{\overset{=}{\addweight{#2}}{}_{\parent(\attsetweighttobediscsimplefromblock@From)+}^{\attsetweighttobediscsimplefromblock@To,\attsetweighttobediscsimplefromblock@Val,\attsetweighttobediscsimplefromblock@When,\attsetweighttobediscsimplefromblock@ValSetChkp}}%
+    \setkeys{attsetweighttobediscsimplefromblock}{from=,to=,val=,when=,chkp=}%
+}%
+
 
 % \define@key{attsetweighttobediscfromblock}{from}{\def\attsetweighttobediscfromblock@From{#1}}
 % \define@key{attsetweighttobediscfromblock}{to}{\def\attsetweighttobediscfromblock@To{#1}}

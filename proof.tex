@@ -3155,7 +3155,7 @@ By cases.
 
 % Let $\attsettobediscfromblock[from=b,to=s,when=t,val=v]{\allatts}$ be the set of validators in $\commfromslot[from=\parentslotplusone(b), to=\slot(b)-1,when=t,val=v]{\allvals}\setminus \commfromslot[from=\slot(b), to=s,when=t,val=v]{\allvals}$ that, according to $\viewattime[val=v,time=t]$, have sent a \GHOST vote that \LMDGHOST voted \emph{exactly} for $\parent(b)$, \ie, not for any $b' \succ \parent(b)$, just exactly for $\parent(b)$.
 
-Let $\attsettobediscfromblock[from=b,to=s,when=t,val=v]{\allatts}$ be the set of validators in $\commfromslot[from=\slot(\parent(b))+1, to=s,when=t,val=v]{\allvals}$ that, according to view $\FILLMD(\FILINV(\FILCUR(\FILEQ(\viewattime[val=v,time=t]),t)))$, have sent a \GHOST vote that \emph{does not} \LMDGHOST voted for a block $\succ \parent(b)$, \ie, it \LMDGHOST votes for either a block $\preceq \parent(b)$ or a block conflicting with $\parent(b)$.
+Let $\attsettobediscfromblock[from=b,to=s,when=t,val=v]{\allatts}$ be the set of validators in $\commfromslot[from=\slot(\parent(b))+1, to=s,when=t,val=v]{\allvals}$ that, according to view $\FILLMD(\FILINV(\FILCUR(\FILEQ(\viewattime[val=v,time=t]),t)))$, have sent a \GHOST vote that \emph{does not} \LMDGHOST vote for a block $\succ \parent(b)$, \ie, it \LMDGHOST votes for either a block $\preceq \parent(b)$ or a block conflicting with $\parent(b)$.
 
 
 Let $\attsettobediscfromblock[from=b,to=s,when=t,val=v]{\honatts}$ be $\attsettobediscfromblock[from=b,to=s,when=t,val=v]{\allatts} \cap \honvals$.
@@ -3166,8 +3166,8 @@ Let $\attsettobediscfromblock[from=b,to=s,when=t,val=v]{\honatts}$ be $\attsetto
     =
     \max\left(
         \attsetweighttobediscfromblock[from=b',to=\slot(b')-1,val=v,when=t,chkp=C]{\allatts}
-        -\beta \commweightfromblock[from=b',to=\slot(b)-1,chkp=C]{\allvals}
-        +\attsetweightfromblock[from=b',to=\slot(b)-1,val=v,when=t,chkp=C]{\slashvals}
+        -\beta \commweightfromblock[from=b',to=\slot(b')-1,chkp=C]{\allvals}
+        +\attsetweightfromblock[from=b',to=\slot(b')-1,val=v,when=t,chkp=C]{\slashvals}
         ,0
     \right)    
     $$
@@ -3189,6 +3189,8 @@ Let $\attsettobediscfromblock[from=b,to=s,when=t,val=v]{\honatts}$ be $\attsetto
                         {\commweightfromblock[from=b',to=\slot(t)-1,chkp=C,when=t,val=v]{\allvals}}
                     \right)
                 + \beta 
+                    \frac{\commweightfromslot[from=\slot(b'),to=\slot(t)-1,chkp=C,when=t,val=v]{\allvals}}
+                        {\commweightfromblock[from=b',to=\slot(t)-1,chkp=C,when=t,val=v]{\allvals}}
                 \\
                 &\lor
                 b' = \genesis
@@ -4721,6 +4723,287 @@ We proceed as follows.\\
                 {\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s'),chkp={C}]{\slashvals}}
                 {\commweightfromblock[from=b,to=s'-1,chkp={C}]{\allvals}}
         &&\alignexpl[\alignexplwidth]{By simplification.}
+    \end{align*}
+\end{proof}
+
+\begin{lemma}\label{lem:beta-less-than-quarter-no-reconfirmation-required-bconf-prev-epoch-ex}
+    Let $s := \firstslot(\epoch(t)+1)$, $\chkp := \guattime[val=v,time=\slotstart(s-1)]$.
+    If
+    \begin{enumerate}
+        \item $\slotstart(\epoch(t)) \geq \GST$
+        \item $\epoch(\var[val=v,time=\slotstartslot{t}]{\bconfirmed}) = \epoch(t)$
+        \item $\beta \leq \frac{1}{4}$
+    \end{enumerate},
+    then, $\forall b' \prec \var[val=v,time=\slotstartslot{t}]{\bconfirmed}$ such that $\epoch(b') = \epoch(t)-1$,
+    \begin{enumerate}
+        \item {$\indicatorfromblock[from=b',to=s-1,val=v,when=\slotstart(s),chkp={C}]{\indQ}
+        > \frac{1}{2}\left(1 + \frac{\boostweight[chkp={C}]}{\commweightfromblock[from=b',to=s-1,chkp={C}]{\allvals}}\right)
+        + \beta
+        - \frac
+            {\attsetweightfromblock[from=b',to=s-1,val=v,when=\slotstart(s),chkp={C}]{\slashvals}}
+            {\commweightfromblock[from=b',to=s-1,chkp={C}]{\allvals}}$}
+    \end{enumerate}
+\end{lemma}
+
+\begin{proof}
+    Let $b$ be the lowest block in the chain of $\var[val=v,time=\slotstartslot{t}]{\bconfirmed}$ such that $\epoch(b)=\epoch(t)$.
+    Given that $\commweightfromblock[from=b',to=s-1,chkp={C}]{\allvals} = \commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals} = \totvalsetweight[chkp=C]{\allvals}$,
+    because $\parentslotplusone(b') \leq \parentslotplusone(b) \leq \firstslot(\epoch(t))$.
+
+    Also let $\attsetweighttobediscsimplefromblock[from=b,to=s,when=t,val=v,chkp=C]{\allatts}$ be the weight, according to $C$, of the set of validators in $\commfromslot[from=\slot(\parent(b))+1, to=s,when=t,val=v]{\allvals}$ that, according to view $\FILLMD(\FILINV(\FILCUR(\FILEQ(\viewattime[val=v,time=t]),t)))$, have sent a \GHOST vote excatly for $\parent(b)$, not for a descendant of it.
+
+    % \begin{enumerate}
+    %     \item $V := \FILLMD(\FILINV(\FILCUR(\FILEQ(\viewattime[val=v,time=t]),t)))$
+    %     \item $P$ be the validator that according to $V$ have \LMDGHOST voted for a block $b'' \preceq \parent(b')$
+    
+    %     \item  $\overset{\preceq \parent(b')}{S}$ be the validator that according to $V$ have \LMDGHOST voted for a block $b''$ such that $b'\preceq b'' \preceq \parent(b)$
+        
+    %     \item  $\overset{b' \preceq, \preceq \parent(b)}{S}$ be the validator that according to $V$ have \LMDGHOST voted for a block $b''$ such that $b'\preceq b'' \preceq \parent(b)$
+        
+    %     \item $\overset{\succ \parent(b'), \npreceq\nsucceq \parent(b)}{S}$ be the validator that according to $V$ have \LMDGHOST voted for a block $b''$ such that $b'\succ \parent(b') \land b' \nsucceq \parent(b) \land b' \npreceq \parent(b)$, \ie, it conflicts with $\parent(b)$ but it is a descendant of $\parent(b')$
+        
+    %     \item $\overset{\nsucc \parent(b'), \nsucc \parent(b)}{S}$ be the validator that according to $V$ have \LMDGHOST voted for a block $b''$ such that $b'\nsucc \parent(b') \land b' \nsucc \parent(b)$        
+    % \end{enumerate}
+    With this in mind we proceed as the following:
+    \def\alignexplwidth{5cm}
+    \allowdisplaybreaks
+    \begin{align*}
+        \indicatorfromblock[from=b',to=s-1,val=v,when=\slotstart(s),chkp={C}]{\indQ}
+        &=
+        \frac
+            {\attsetweightfromblock[from=b',to=s-1,val=v,when=\slotstart(s),chkp={C}]{\allatts}}
+            {\commweightfromblock[from=b',to=s-1,chkp={C}]{\allvals}}
+        &&\alignexpl{By definition.}
+        \\
+        &=
+        \frac
+            {\attsetweightfromblock[from=b',to=s-1,val=v,when=\slotstart(s),chkp={C}]{\allatts}}
+            {\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}
+        &&\alignexpl{As, $\commweightfromblock[from=b',to=s-1,chkp={C}]{\allvals} = \commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}$.}
+        \\
+        &\geq
+        \frac
+            {
+                \attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\allatts}
+                +\attsetweighttobediscsimplefromblock[from=b,to=\slot(b)-1,val=v,when=t,chkp=C]{\allatts}
+            }
+            {\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}
+        &&\alignexpl{As, $\attsetfromblockunfiltered[from=b,to=s-1,val=v,when=\slotstart(s)]{\allatts} \subseteq \attsetfromblockunfiltered[from=b',to=s-1,val=v,when=\slotstart(s)]{\allatts}$, because $b' \prec b$.}
+        \\
+        &\geq
+        \indicatorfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\indQ}
+        +
+        \frac
+            {\attsetweighttobediscsimplefromblock[from=b,to=\slot(b)-1,val=v,when=t,chkp=C]{\allatts}}
+            {\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}
+        &&\alignexpl{By definition.}
+        \\
+        &> 
+        \begin{aligned}[t]
+            &\frac{1}{2}\left(1 + 
+            \frac
+                {
+                    \boostweight[chkp={C}]
+                    -
+                    \max
+                    \left(
+                        \attsetweighttobediscsimplefromblock[from=b,to=\slot(b)-1,val=v,when=t,chkp=C]{\allatts}
+                        -\beta \commweightfromblock[from=b,to=\slot(b)-1,chkp=C]{\allvals}
+                        +\attsetweightfromblock[from=b,to=\slot(b)-1,val=v,when=t,chkp=C]{\slashvals}
+                        ,
+                        0
+                    \right)                
+                }
+                {\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}\right)
+            \\
+            &+ \beta
+            - \frac
+                {\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\slashvals}}
+                {\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}
+            +
+            \frac
+                {\attsetweighttobediscsimplefromblock[from=b,to=\slot(b)-1,val=v,when=t,chkp=C]{\allatts}}
+                {\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}                
+        \end{aligned}        
+        &&\alignexpl{Due to \Cref{lem:beta-less-than-quarter-no-reconfirmation-required-ex}.}
+    \end{align*}
+
+    \textbf{Case 1: $\attsetweighttobediscsimplefromblock[from=b,to=\slot(b)-1,val=v,when=t,chkp=C]{\allatts}
+                        -\beta \commweightfromblock[from=b,to=\slot(b)-1,chkp=C]{\allvals}
+                        +\attsetweightfromblock[from=b,to=\slot(b)-1,val=v,when=t,chkp=C]{\slashvals}
+                        >
+                        0$.}
+
+    \begin{align*}
+            &\hphantom{{}={}}
+            \begin{aligned}[t]
+            &\frac{1}{2}\left(1 + 
+            \frac
+                {
+                    \boostweight[chkp={C}]
+                    -
+                    \max
+                    \left(
+                        \attsetweighttobediscsimplefromblock[from=b,to=\slot(b)-1,val=v,when=t,chkp=C]{\allatts}
+                        -\beta \commweightfromblock[from=b,to=\slot(b)-1,chkp=C]{\allvals}
+                        +\attsetweightfromblock[from=b,to=\slot(b)-1,val=v,when=t,chkp=C]{\slashvals}
+                        ,
+                        0
+                    \right)                
+                }
+                {\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}\right)
+            \\
+            &+ \beta
+            - \frac
+                {\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\slashvals}}
+                {\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}
+            +
+            \frac
+                {\attsetweighttobediscsimplefromblock[from=b,to=\slot(b)-1,val=v,when=t,chkp=C]{\allatts}}
+                {\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}                
+        \end{aligned}  
+        \\              
+        &= 
+        \begin{aligned}[t]
+            &\frac{1}{2}\left(1 + 
+            \frac
+                {
+                    \boostweight[chkp={C}]
+                    +
+                    \attsetweighttobediscsimplefromblock[from=b,to=\slot(b)-1,val=v,when=t,chkp=C]{\allatts}
+                    +
+                    \left(
+                        \beta \commweightfromblock[from=b,to=\slot(b)-1,chkp=C]{\allvals}
+                        -\attsetweightfromblock[from=b,to=\slot(b)-1,val=v,when=t,chkp=C]{\slashvals}
+                    \right)                
+                }
+                {\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}\right)
+            \\
+            &+ \beta
+            - \frac
+                {\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\slashvals}}
+                {\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}               
+        \end{aligned}        
+        &&\alignexpl{By simplification.}
+        \\
+        &\geq
+        \begin{aligned}[t]
+            &\frac{1}{2}\left(1 + 
+            \frac
+                {
+                    \boostweight[chkp={C}]               
+                }
+                {\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}\right)
+            + \beta
+            - \frac
+                {\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\slashvals}}
+                {\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}               
+        \end{aligned}        
+        &&\alignexpl[\alignexplwidth]{As $\attsetweighttobediscsimplefromblock[from=b,to=\slot(b)-1,val=v,when=t,chkp=C]{\allatts}\geq 0$ and $\beta \commweightfromblock[from=b,to=\slot(b)-1,chkp=C]{\allvals}
+                        \geq\attsetweightfromblock[from=b,to=\slot(b)-1,val=v,when=t,chkp=C]{\slashvals}$.}        
+    \end{align*}
+
+    \textbf{Case 2: $\attsetweighttobediscsimplefromblock[from=b,to=\slot(b)-1,val=v,when=t,chkp=C]{\allatts}
+                        -\beta \commweightfromblock[from=b,to=\slot(b)-1,chkp=C]{\allvals}
+                        +\attsetweightfromblock[from=b,to=\slot(b)-1,val=v,when=t,chkp=C]{\slashvals}
+                        <
+                        0$.}
+
+    \begin{align*}
+        &\hphantom{{}={}}
+            \begin{aligned}[t]
+            &\frac{1}{2}\left(1 + 
+            \frac
+                {
+                    \boostweight[chkp={C}]
+                    -
+                    \max
+                    \left(
+                        \attsetweighttobediscsimplefromblock[from=b,to=\slot(b)-1,val=v,when=t,chkp=C]{\allatts}
+                        -\beta \commweightfromblock[from=b,to=\slot(b)-1,chkp=C]{\allvals}
+                        +\attsetweightfromblock[from=b,to=\slot(b)-1,val=v,when=t,chkp=C]{\slashvals}
+                        ,
+                        0
+                    \right)                
+                }
+                {\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}\right)
+            \\
+            &+ \beta
+            - \frac
+                {\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\slashvals}}
+                {\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}
+            +
+            \frac
+                {\attsetweighttobediscsimplefromblock[from=b,to=\slot(b)-1,val=v,when=t,chkp=C]{\allatts}}
+                {\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}                
+        \end{aligned}  
+        \\     
+        &\geq\begin{aligned}[t]
+            &\frac{1}{2}\left(1 + 
+            \frac
+                {
+                    \boostweight[chkp={C}]               
+                }
+                {\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}\right)
+            + \beta
+            - \frac
+                {\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\slashvals}}
+                {\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}
+            +
+            \frac
+                {\attsetweighttobediscsimplefromblock[from=b,to=\slot(b)-1,val=v,when=t,chkp=C]{\allatts}}
+                {\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}                
+        \end{aligned}  
+        \\                 
+        &\geq
+        \begin{aligned}[t]
+            &\frac{1}{2}\left(1 + 
+            \frac
+                {
+                    \boostweight[chkp={C}]               
+                }
+                {\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}\right)
+            + \beta
+            - \frac
+                {\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\slashvals}}
+                {\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}               
+        \end{aligned}        
+        &&\alignexpl[\alignexplwidth]{As $\attsetweighttobediscsimplefromblock[from=b,to=\slot(b)-1,val=v,when=t,chkp=C]{\allatts}\geq 0$.}        
+    \end{align*}                        
+                        
+    Then, continuing from what we concluded from the two cases above:
+
+    \begin{align*}
+        &\hphantom{{}={}}
+        \frac{1}{2}\left(1 + 
+            \frac
+                {
+                    \boostweight[chkp={C}]               
+                }
+                {\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}\right)
+            + \beta
+            - \frac
+                {\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\slashvals}}
+                {\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals}}  
+        \\
+        &> \frac{1}{2}\left(1 + 
+            \frac
+                {\boostweight[chkp={C}]
+                }
+                {\commweightfromblock[from=b',to=s-1,chkp={C}]{\allvals}}
+            \right)
+        + \beta
+        - \frac
+            {\attsetweightfromblock[from=b,to=s-1,val=v,when=\slotstart(s),chkp={C}]{\slashvals}}
+            {\commweightfromblock[from=b',to=s-1,chkp={C}]{\allvals}}
+        &&\alignexpl{As, $\commweightfromblock[from=b,to=s-1,chkp={C}]{\allvals} = \commweightfromblock[from=b',to=s-1,chkp={C}]{\allvals}$.}
+        \\
+        &> \frac{1}{2}\left(1 + \frac{\boostweight[chkp={C}]}{\commweightfromblock[from=b',to=s-1,chkp={C}]{\allvals}}\right)
+        + \beta
+        - \frac
+            {\attsetweightfromblock[from=b',to=s-1,val=v,when=\slotstart(s),chkp={C}]{\slashvals}}
+            {\commweightfromblock[from=b',to=s-1,chkp={C}]{\allvals}}
+        &&\alignexpl{As, $\attsetfromblockunfiltered[from=b,to=s-1,val=v,when=\slotstart(s)]{\slashvals} \subseteq \attsetfromblockunfiltered[from=b',to=s-1,val=v,when=\slotstart(s)]{\slashvals}$.}        
     \end{align*}
 \end{proof}
 
