@@ -97,6 +97,28 @@ def get_attestation_score(store: Store, root: Root, checkpoint_state: BeaconStat
     ))
     return attestation_score
 
+
+def get_slot_committee(state: BeaconState, slot: Slot) -> Sequence[ValidatorIndex]:
+    indices = []
+    committees_count = get_committee_count_per_slot(state, compute_epoch_at_slot(state.slot))
+    for i in range(committees_count):
+        indices.append(get_beacon_committee(state, Slot(slot), CommitteeIndex(i)))
+    return indices
+
+
+def get_equivocation_score(store: Store, state: BeaconState, first_slot: Slot, last_slot: Slot) -> Gwei:
+    committee_indices = set()
+    for slot in range(first_slot, last_slot + 1):
+        committee_indices.update(get_slot_committee(state, slot))
+
+    equivocating_committee_indices = committee_indices.intersection(store.equivocating_indices)
+    equivocation_score = Gwei(0)
+    for index in equivocating_committee_indices:
+        equivocation_score += state.validators[index].effective_balance
+
+    return equivocation_score
+
+
 def is_full_validator_set_covered(first_slot: Slot, last_slot: Slot) -> bool:
     """
     Returns whether the range from ``first_slot`` to ``last_slot`` (inclusive of both) includes an entire epoch
@@ -169,15 +191,16 @@ def is_one_confirmed(store: Store, block_root: Root) -> bool:
     maximum_support = estimate_committee_weight_between_slots(
         state, Slot(parent_block.slot + 1), Slot(current_slot - 1))
     proposer_score = get_proposer_score(store)
+    equivocation_score = get_equivocation_score(store, state, block.slot, current_slot - 1)
 
     # Returns whether the following condition is true using only integer arithmetic
     # support / maximum_support >
-    # 0.5 * (1 + proposer_score / maximum_support) + CONFIRMATION_BYZANTINE_THRESHOLD / 100
-
-    # 2 * support > maximum_support * (1 + 2 * CONFIRMATION_BYZANTINE_THRESHOLD / 100) + proposer_score
+    #     0.5 * (1 + proposer_score / maximum_support) +
+    #     max(0, CONFIRMATION_BYZANTINE_THRESHOLD / 100 - equivocation_score / maximum_support)
     return (
         2 * support >
-        maximum_support + maximum_support // 50 * CONFIRMATION_BYZANTINE_THRESHOLD + proposer_score
+        maximum_support + proposer_score +
+        max(0, maximum_support // 50 * CONFIRMATION_BYZANTINE_THRESHOLD - 2 * equivocation_score)
     )
 
 
