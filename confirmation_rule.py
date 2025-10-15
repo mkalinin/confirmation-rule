@@ -181,7 +181,7 @@ def is_one_confirmed(store: Store, block_root: Root) -> bool:
     )
 
 
-def get_checkpoint_weight(store: Store, checkpoint: Checkpoint, checkpoint_state: BeaconState) -> Gwei:
+def get_checkpoint_weight(store: Store, checkpoint: Checkpoint, state: BeaconState) -> Gwei:
     """
     Uses LMD-GHOST votes to estimate FFG support for a checkpoint.
     """
@@ -193,7 +193,7 @@ def get_checkpoint_weight(store: Store, checkpoint: Checkpoint, checkpoint_state
         vote_target = get_checkpoint_for_block(store, latest_message.root, latest_message.epoch)
         # checkpoint matches vote's target
         if checkpoint == vote_target:
-            checkpoint_weight += checkpoint_state.validators[validator_index].effective_balance
+            checkpoint_weight += state.validators[validator_index].effective_balance
 
     return Gwei(checkpoint_weight)
 
@@ -208,19 +208,15 @@ def get_ffg_weight_till_slot(slot: Slot, epoch: Epoch, total_active_balance: Gwe
         return total_active_balance // SLOTS_PER_EPOCH * slots_passed
 
 
-def checkpoint_justification_indicator(store: Store, checkpoint: Checkpoint, multiplier: int) -> bool:
+def compute_honest_ffg_support(store: Store, checkpoint: Checkpoint, state: BeaconState) -> Gwei:
     assert checkpoint.epoch == get_current_epoch_store(store)
 
     current_slot = get_current_slot(store)
     current_epoch = compute_epoch_at_slot(current_slot)
-
-    store_target_checkpoint_state(store, checkpoint)
-    checkpoint_state = store.checkpoint_states[checkpoint]
-
-    total_active_balance = get_total_active_balance(checkpoint_state)
+    total_active_balance = get_total_active_balance(state)
 
     # compute FFG support for checkpoint
-    ffg_support_for_checkpoint = get_checkpoint_weight(store, checkpoint, checkpoint_state)
+    ffg_support_for_checkpoint = get_checkpoint_weight(store, checkpoint, state)
 
     # compute total FFG weight till current slot
     ffg_weight_till_now = get_ffg_weight_till_slot(current_slot, current_epoch, total_active_balance)
@@ -236,25 +232,34 @@ def checkpoint_justification_indicator(store: Store, checkpoint: Checkpoint, mul
         ffg_support_for_checkpoint
     )
 
-    return 3 * (min_honest_ffg_support + remaining_honest_ffg_weight) >= multiplier * total_active_balance
+    return Gwei(min_honest_ffg_support + remaining_honest_ffg_weight)
 
-def will_current_epoch_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
-    return checkpoint_justification_indicator(store, checkpoint, 2)
 
 def will_no_conflicting_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
-    return checkpoint_justification_indicator(store, checkpoint, 1)
+    # Works for current epoch checkpoint only
+    if checkpoint.epoch < get_current_epoch_store(store):
+        return False
 
-def will_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
-    if checkpoint == store.justified_checkpoint:
-        return True
-
+    # This condition implies that no conflicting checkpoint can ever be justified
     if checkpoint == store.unrealized_justified_checkpoint:
         return True
 
-    if checkpoint.epoch == get_current_epoch_store(store):
-        return will_current_epoch_checkpoint_be_justified(store, checkpoint)
+    state = store.block_states[checkpoint.root]
+    total_active_balance = get_total_active_balance(state)
+    honest_ffg_support = compute_honest_ffg_support(store, checkpoint, state)
+    return 3 * honest_ffg_support >= 1 * total_active_balance
 
-    return False
+
+def will_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
+    # Works for current epoch checkpoint only
+    if checkpoint.epoch < get_current_epoch_store(store):
+        return False
+
+    state = store.block_states[checkpoint.root]
+    total_active_balance = get_total_active_balance(state)
+    honest_ffg_support = compute_honest_ffg_support(store, checkpoint, state)
+    return 3 * honest_ffg_support >= 2 * total_active_balance
+
 
 def get_canonical_roots(store: Store, ancestor_root: Root) -> Sequence[Root]:
     """
