@@ -18,10 +18,10 @@ class Store(object):
     checkpoint_states: Dict[Checkpoint, BeaconState] = field(default_factory=dict)
     latest_messages: Dict[ValidatorIndex, LatestMessage] = field(default_factory=dict)
     unrealized_justifications: Dict[Root, Checkpoint] = field(default_factory=dict)
-    confirmed_root: Root  # New for confirmation rule
-    prev_slot_justified_checkpoint: Checkpoint  # New for confirmation rule
-    prev_slot_unrealized_justified_checkpoint: Checkpoint # New for confirmation rule
-    prev_slot_head: Root # New for confirmation rule
+    # New in [Confirmation Rule]
+    confirmed_root: Root
+    prev_epoch_unrealized_justified_checkpoint: Checkpoint
+    prev_slot_head: Root
 
 
 def get_forkchoice_store(anchor_state: BeaconState, anchor_block: BeaconBlock) -> Store:
@@ -44,12 +44,16 @@ def get_forkchoice_store(anchor_state: BeaconState, anchor_block: BeaconBlock) -
         block_states={anchor_root: copy(anchor_state)},
         checkpoint_states={justified_checkpoint: copy(anchor_state)},
         unrealized_justifications={anchor_root: justified_checkpoint},
-        confirmed_root=finalized_checkpoint.root,  # New for confirmation rule
-        prev_slot_justified_checkpoint=justified_checkpoint,  # New for confirmation rule
+        # New in [Confirmation Rule]
+        confirmed_root=finalized_checkpoint.root,
+        prev_epoch_unrealized_justified_checkpoint=justified_checkpoint,
+        prev_slot_head=anchor_block,
     )
+
 
 def is_first_slot_in_epoch(slot: Slot) -> bool:
     return compute_slots_since_epoch_start(slot) == 0
+
 
 def is_ancestor(store: Store, root: Root, ancestor: Root):
     assert root in store.blocks
@@ -66,6 +70,7 @@ def get_block_slot(store: Store, root: Root) -> Slot:
 def get_block_epoch(store: Store, root: Root) -> Epoch:
     assert root in store.blocks
     return compute_epoch_at_slot(store.blocks[root].slot)
+
 
 def get_checkpoint_for_block(store: Store, root: Root, epoch: Epoch) -> Checkpoint:
     return Checkpoint(get_checkpoint_block(store, root, epoch), epoch)
@@ -159,14 +164,10 @@ def is_one_confirmed(store: Store, block_root: Root) -> bool:
     current_slot = get_current_slot(store)
     block = store.blocks[block_root]
     parent_block = store.blocks[block.parent_root]
-    if is_first_slot_in_epoch(get_current_slot(store)):
-        weighting_checkpoint = store.prev_slot_unrealized_justified_checkpoint
-    else:
-        weighting_checkpoint = store.prev_slot_justified_checkpoint
-    weighting_checkpoint_state = store.checkpoint_states[weighting_checkpoint]
-    support = get_attestation_score(store, block_root, weighting_checkpoint_state)
+    state = store.checkpoint_states[store.prev_epoch_unrealized_justified_checkpoint]
+    support = get_attestation_score(store, block_root, state)
     maximum_support = estimate_committee_weight_between_slots(
-        weighting_checkpoint_state, Slot(parent_block.slot + 1), Slot(current_slot - 1))
+        state, Slot(parent_block.slot + 1), Slot(current_slot - 1))
     proposer_score = get_proposer_score(store)
 
     # Returns whether the following condition is true using only integer arithmetic
@@ -371,12 +372,12 @@ def get_latest_confirmed(store: Store) -> Root:
     # checkpoint as, under synchrony, such a checkpoint is for sure now the greatest justified checkpoint in the view
     # of any honest validator and, therefore, any honest validator will keep voting for it for the entire epoch
     confirmed_block_slot = store.blocks[confirmed_root].slot
-    prev_unrealized_justified_checkpoint_slot = store.blocks[store.prev_slot_unrealized_justified_checkpoint.root].slot
+    prev_unrealized_justified_checkpoint_slot = store.blocks[store.prev_epoch_unrealized_justified_checkpoint.root].slot
 
     if (is_first_slot_in_epoch(get_current_slot(store))
-        and store.prev_slot_unrealized_justified_checkpoint.epoch + 1 == current_epoch 
+        and store.prev_epoch_unrealized_justified_checkpoint.epoch + 1 == current_epoch 
         and confirmed_block_slot < prev_unrealized_justified_checkpoint_slot):
-        confirmed_root = store.prev_slot_unrealized_justified_checkpoint.root
+        confirmed_root = store.prev_epoch_unrealized_justified_checkpoint.root
 
     # attempt to further advance the latest confirmed block
     confirmed_block_epoch = get_block_epoch(confirmed_root)
@@ -392,6 +393,6 @@ def on_tick_per_slot_after_attestations_applied(store: Store):
     # 2) attestations from the previous slot are apllied to the store
     # 3) on_tick_per_slot_after_attestations_applied(store) is called
     store.confirmed_root = get_latest_confirmed(store)
-    store.prev_slot_justified_checkpoint = store.justified_checkpoint
-    store.prev_slot_unrealized_justified_checkpoint = store.store.unrealized_justified_checkpoint
+    if is_first_slot_in_epoch(get_current_slot(store) + 1):
+        store.prev_epoch_unrealized_justified_checkpoint = store.unrealized_justified_checkpoint
     store.prev_slot_head = get_head(store)
