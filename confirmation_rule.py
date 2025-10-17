@@ -182,23 +182,21 @@ def is_one_confirmed(store: Store, block_root: Root) -> bool:
     )
 
 
-def is_chain_one_confirmed(store: Store, start_root: Root, end_root: Root) -> bool:
+def get_chain_roots(store: Store, ancestor_root: Root, root: Root) -> Sequence[Root]:
     """
-    Checks if ``is_one_confirmed(store, block_root)`` returns ``True`` for each block
-    starting from ``end_root`` inclusive down to ``start_root`` exclusive.
-    Returns ``True`` only if each block passes the check.
+    Returns block roots from ``ancestor_root`` exclusive till ``root`` inclusive.
+    Returns empty list if ``ancestor_root`` is not an ancestor of ``root``.
     """
-    block_root = end_root
-    while get_block_slot(block_root) > get_block_slot(start_root):
-        if is_one_confirmed(store, block_root):
-            block_root = store.blocks[block_root].parent_root
-        else:
-            break
+    ancestor_slot = get_block_slot(store, ancestor_root)
+    chain_roots = [root]
+    while store.blocks[root].slot > ancestor_slot:
+        root = store.blocks[root].parent_root
+        chain_roots.insert(0, root)
 
-    if block_root == start_root:
-        return True
+    if ancestor_root == store.blocks[chain_roots[0]].parent_root:
+        return chain_roots
     else:
-        return False
+        return []
 
 
 def is_chain_reconfirmed(store: Store, confirmed_root: Root) -> bool:
@@ -208,16 +206,18 @@ def is_chain_reconfirmed(store: Store, confirmed_root: Root) -> bool:
 
     current_epoch = get_current_store_epoch(store)
     if store.prev_epoch_unrealized_justified_checkpoint.epoch + 1 >= current_epoch:
-        # Stop at the unrealized checkpoint block as the checkpoint block itself
-        # will always be canonical in this case
+        # Exclude unrealized checkpoint block
+        # as the this block will always be canonical in this case
         start_root = store.prev_epoch_unrealized_justified_checkpoint.root
     else:
-        # Stop at the checkpoint block's parent as successful reconfirmation of a checkpoint block
-        # implies successful reconfirmation of each of its ancestors
+        # Limit reconfirmation to the checkpoint block
+        # as if it's successful, reconfirmation of the ancestors is implied
         checkpoint = get_checkpoint_for_block(store, confirmed_root, current_epoch - 1)
         start_root = store.blocks[checkpoint.root].parent_root
 
-    return is_chain_one_confirmed(store, start_root, confirmed_root)
+    # Run is_one_confirmed for each block in the confirmed chain
+    chain_roots = get_chain_roots(store, start_root, confirmed_root)
+    return all(is_one_confirmed(store, root) for root in chain_roots)
 
 
 def get_checkpoint_weight(store: Store, checkpoint: Checkpoint, checkpoint_state: BeaconState) -> Gwei:
@@ -299,20 +299,6 @@ def will_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
     return False
 
 
-def get_canonical_roots(store: Store, ancestor_root: Root) -> Sequence[Root]:
-    """
-    Returns a suffix of the canonical chain starting from ``ancestor_root`` (included at index 0)
-    """
-    ancestor_slot = get_block_slot(store, ancestor_root)
-    root = get_head(store)
-    canonical_roots = [root]
-    while store.blocks[root].slot > ancestor_slot:
-        root = store.blocks[root].parent_root
-        canonical_roots.insert(0, root)
-
-    return canonical_roots
-
-
 def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) -> Root:
     """
     This function assumes that the ``latest_confirmed_root`` belongs to the canonical chain
@@ -332,10 +318,8 @@ def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) 
              or (will_no_conflicting_checkpoint_be_justified(store, get_checkpoint_for_block(store, head, current_epoch))
                  and (store.unrealized_justifications[store.prev_slot_head].epoch + 1 >= current_epoch
                       or store.unrealized_justifications[head].epoch + 1 >= current_epoch)))):
-        # retrieve suffix of the canonical chain
-        # verify the latest_confirmed_root belongs to it
-        canonical_roots = get_canonical_roots(store, confirmed_root)
-        assert canonical_roots.pop(0) == confirmed_root
+        # get suffix of the canonical chain
+        canonical_roots = get_chain_roots(store, confirmed_root, head)
 
         # starting with the child of the latest_confirmed_root
         # move towards the head in attempt to advance confirmed block
@@ -358,10 +342,8 @@ def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) 
             
     if (is_first_slot_in_epoch(get_current_slot(store))
         or store.unrealized_justifications[head].epoch + 1 >= current_epoch):
-        # retrieve suffix of the canonical chain
-        # verify the latest_confirmed_root belongs to it
-        canonical_roots = get_canonical_roots(store, confirmed_root)
-        assert canonical_roots.pop(0) == confirmed_root
+        # get suffix of the canonical chain
+        canonical_roots = get_chain_roots(store, confirmed_root, head)
 
         tentative_confirmed_root = confirmed_root
 
