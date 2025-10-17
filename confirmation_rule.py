@@ -182,7 +182,6 @@ def is_one_confirmed(store: Store, block_root: Root) -> bool:
     )
 
 
-<<<<<<< HEAD
 def get_chain_roots(store: Store, ancestor_root: Root, root: Root) -> Sequence[Root]:
     """
     Returns block roots from ``ancestor_root`` exclusive till ``root`` inclusive.
