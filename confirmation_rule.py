@@ -212,9 +212,7 @@ def get_block_support_in_slots(balance_source: BeaconState, block_root: Root, fi
     ))
 
 
-def compute_empty_slot_support_discount(store: Store,
-                                        balance_source: BeaconState,
-                                        block_root: Root) -> Gwei:
+def compute_empty_slot_support_discount(store: Store, balance_source: BeaconState, block_root: Root) -> Gwei:
     # No empty slot
     if parent_block.slot + 1 == block.slot:
         return Gwei()
