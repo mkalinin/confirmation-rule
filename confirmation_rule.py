@@ -263,21 +263,64 @@ def is_one_confirmed(store: Store, block_root: Root) -> bool:
     return 2 * support + support_discount > maximum_support + proposer_score + 2 * adversarial_weight
 
 
-def get_checkpoint_weight(store: Store, checkpoint: Checkpoint, checkpoint_state: BeaconState) -> Gwei:
+def get_chain_roots(store: Store, ancestor_root: Root, root: Root) -> Sequence[Root]:
+    """
+    Returns block roots from ``ancestor_root`` exclusive till ``root`` inclusive.
+    Returns empty list if ``ancestor_root`` is not an ancestor of ``root``.
+    """
+    ancestor_slot = get_block_slot(store, ancestor_root)
+    chain_roots = [root]
+    while store.blocks[root].slot > ancestor_slot:
+        root = store.blocks[root].parent_root
+        chain_roots.insert(0, root)
+
+    if ancestor_root == store.blocks[chain_roots[0]].parent_root:
+        return chain_roots
+    else:
+        return []
+
+
+def is_chain_reconfirmed(store: Store, confirmed_root: Root) -> bool:
+    # Check if the confirmed_root is descendant of prev_epoch_unrealized_justified_checkpoint
+    if not is_ancestor(store, confirmed_root, store.prev_epoch_unrealized_justified_checkpoint.root):
+        return False
+
+    current_epoch = get_current_store_epoch(store)
+    if store.prev_epoch_unrealized_justified_checkpoint.epoch + 1 >= current_epoch:
+        # Exclude unrealized checkpoint block
+        # as the this block will always be canonical in this case
+        start_root = store.prev_epoch_unrealized_justified_checkpoint.root
+    else:
+        # Limit reconfirmation to the checkpoint block
+        # as if it's successful, reconfirmation of the ancestors is implied
+        checkpoint = get_checkpoint_for_block(store, confirmed_root, current_epoch - 1)
+        start_root = store.blocks[checkpoint.root].parent_root
+
+    # Run is_one_confirmed for each block in the confirmed chain
+    chain_roots = get_chain_roots(store, start_root, confirmed_root)
+    return all(is_one_confirmed(store, root) for root in chain_roots)
+
+
+def get_checkpoint_weight(store: Store, target: Checkpoint) -> Gwei:
     """
     Uses LMD-GHOST votes to estimate FFG support for a checkpoint.
     """
-    if get_current_slot(store) <= compute_start_slot_at_epoch(checkpoint.epoch):
+    # No attestation with a vote for the target has yet been processed
+    if target not in store.checkpoint_states:
         return Gwei(0)
 
-    checkpoint_weight = 0
-    for validator_index, latest_message in store.latest_messages.items():
-        vote_target = get_checkpoint_for_block(store, latest_message.root, latest_message.epoch)
-        # checkpoint matches vote's target
-        if checkpoint == vote_target:
-            checkpoint_weight += checkpoint_state.validators[validator_index].effective_balance
-
-    return Gwei(checkpoint_weight)
+    state = store.checkpoint_states[checkpoint]
+    unslashed_and_active_indices = [
+        i for i in get_active_validator_indices(state, get_current_epoch(state))
+        if not state.validators[i].slashed
+    ]
+    return Gwei(sum(
+        state.validators[i].effective_balance for i in unslashed_and_active_indices
+        if (i in store.latest_messages
+            and i not in store.equivocating_indices
+            and target == get_checkpoint_for_block(
+                    store, store.latest_messages[i].root, store.latest_messages[i].epoch))
+    ))
 
 
 def get_ffg_weight_till_slot(slot: Slot, epoch: Epoch, total_active_balance: Gwei) -> Gwei:
@@ -290,19 +333,15 @@ def get_ffg_weight_till_slot(slot: Slot, epoch: Epoch, total_active_balance: Gwe
         return total_active_balance // SLOTS_PER_EPOCH * slots_passed
 
 
-def checkpoint_justification_indicator(store: Store, checkpoint: Checkpoint, multiplier: int) -> bool:
+def compute_honest_ffg_support(store: Store, checkpoint: Checkpoint, state: BeaconState) -> Gwei:
     assert checkpoint.epoch == get_current_epoch_store(store)
 
     current_slot = get_current_slot(store)
     current_epoch = compute_epoch_at_slot(current_slot)
-
-    store_target_checkpoint_state(store, checkpoint)
-    checkpoint_state = store.checkpoint_states[checkpoint]
-
-    total_active_balance = get_total_active_balance(checkpoint_state)
+    total_active_balance = get_total_active_balance(state)
 
     # compute FFG support for checkpoint
-    ffg_support_for_checkpoint = get_checkpoint_weight(store, checkpoint, checkpoint_state)
+    ffg_support_for_checkpoint = get_checkpoint_weight(store, checkpoint)
 
     # compute total FFG weight till current slot
     ffg_weight_till_now = get_ffg_weight_till_slot(current_slot, current_epoch, total_active_balance)
@@ -318,38 +357,39 @@ def checkpoint_justification_indicator(store: Store, checkpoint: Checkpoint, mul
         ffg_support_for_checkpoint
     )
 
-    return 3 * (min_honest_ffg_support + remaining_honest_ffg_weight) >= multiplier * total_active_balance
+    return Gwei(min_honest_ffg_support + remaining_honest_ffg_weight)
 
-def will_current_epoch_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
-    return checkpoint_justification_indicator(store, checkpoint, 2)
 
-def will_no_conflicting_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
-    return checkpoint_justification_indicator(store, checkpoint, 1)
+def get_checkpoint_state(store: Store, checkpoint: Checkpoint) -> BeaconState:
+    if checkpoint in store.checkpoint_states:
+        return store.checkpoint_states[checkpoint]
+    else if checkpoint.epoch == compute_epoch_at_slot(store.block_states[checkpoint.root].slot):
+        return store.block_states[checkpoint.root]
+    else:
+        base_state = copy(store.block_states[checkpoint.root])
+        process_slots(base_state, compute_start_slot_at_epoch(target.epoch))
+        return base_state
 
-def will_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
-    if checkpoint == store.justified_checkpoint:
-        return True
 
+def will_no_conflicting_checkpoint_be_justified(store: Store, block_root: Root, block_epoch: Epoch) -> bool:
+    checkpoint = get_checkpoint_for_block(store, block_root, block_epoch)
+
+    # If checkpoint is unrealized justified then no conflicting checkpoint can be justified
     if checkpoint == store.unrealized_justified_checkpoint:
         return True
 
-    if checkpoint.epoch == get_current_epoch_store(store):
-        return will_current_epoch_checkpoint_be_justified(store, checkpoint)
+    state = get_checkpoint_state(store, checkpoint)
+    total_active_balance = get_total_active_balance(state)
+    honest_ffg_support = compute_honest_ffg_support(store, checkpoint, state)
+    return 3 * honest_ffg_support >= 1 * total_active_balance
 
-    return False
 
-def get_canonical_roots(store: Store, ancestor_root: Root) -> Sequence[Root]:
-    """
-    Returns a suffix of the canonical chain starting from ``ancestor_root`` (included at index 0)
-    """
-    ancestor_slot = get_block_slot(store, ancestor_root)
-    root = get_head(store)
-    canonical_roots = [root]
-    while store.blocks[root].slot > ancestor_slot:
-        root = store.blocks[root].parent_root
-        canonical_roots.insert(0, root)
-
-    return canonical_roots
+def will_checkpoint_be_justified(store: Store, block_root: Root, block_epoch: Epoch) -> bool:
+    checkpoint = get_checkpoint_for_block(store, block_root, block_epoch)
+    state = get_checkpoint_state(store, checkpoint)
+    total_active_balance = get_total_active_balance(state)
+    honest_ffg_support = compute_honest_ffg_support(store, checkpoint, state)
+    return 3 * honest_ffg_support >= 2 * total_active_balance
 
 
 def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) -> Root:
@@ -368,13 +408,11 @@ def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) 
     if (get_block_epoch(store, confirmed_root) + 1 == current_epoch
         and get_voting_source(store, store.prev_slot_head).epoch + 2 >= current_epoch 
         and (is_first_slot_in_epoch(get_current_slot(store))
-             or (will_no_conflicting_checkpoint_be_justified(store, get_checkpoint_for_block(store, head, current_epoch))
+             or (will_no_conflicting_checkpoint_be_justified(store, head, current_epoch)
                  and (store.unrealized_justifications[store.prev_slot_head].epoch + 1 >= current_epoch
                       or store.unrealized_justifications[head].epoch + 1 >= current_epoch)))):
-        # retrieve suffix of the canonical chain
-        # verify the latest_confirmed_root belongs to it
-        canonical_roots = get_canonical_roots(store, confirmed_root)
-        assert canonical_roots.pop(0) == confirmed_root
+        # get suffix of the canonical chain
+        canonical_roots = get_chain_roots(store, confirmed_root, head)
 
         # starting with the child of the latest_confirmed_root
         # move towards the head in attempt to advance confirmed block
@@ -397,10 +435,8 @@ def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) 
             
     if (is_first_slot_in_epoch(get_current_slot(store))
         or store.unrealized_justifications[head].epoch + 1 >= current_epoch):
-        # retrieve suffix of the canonical chain
-        # verify the latest_confirmed_root belongs to it
-        canonical_roots = get_canonical_roots(store, confirmed_root)
-        assert canonical_roots.pop(0) == confirmed_root
+        # get suffix of the canonical chain
+        canonical_roots = get_chain_roots(store, confirmed_root, head)
 
         tentative_confirmed_root = confirmed_root
 
@@ -410,14 +446,11 @@ def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) 
             
             # The following condition can only be true the first time that we advance to a block from the current epoch
             if block_epoch > tentative_confirmed_epoch:
-                checkpoint = get_checkpoint_for_block(store, block_root, block_epoch)
-
                 # To confirm blocks from the current epoch ensure that
                 # current epoch checkpoint will be justified
-                if not will_checkpoint_be_justified(store, checkpoint):
+                if not will_checkpoint_be_justified(store, block_root, block_epoch):
                     break  
-            
-                    
+
             if not is_one_confirmed(store, block_root):
                 break
                 
@@ -427,7 +460,7 @@ def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) 
         if (get_block_epoch(store, tentative_confirmed_root) == current_epoch
             or (get_voting_source(store, tentative_confirmed_root).epoch + 2 >= current_epoch
                 and (is_first_slot_in_epoch(get_current_slot(store))
-                     or will_no_conflicting_checkpoint_be_justified(store, get_checkpoint_for_block(store, head, current_epoch))))):
+                     or will_no_conflicting_checkpoint_be_justified(store, head, current_epoch)))):
             confirmed_root = tentative_confirmed_root
             
     return confirmed_root        
@@ -437,16 +470,20 @@ def get_latest_confirmed(store: Store) -> Root:
     confirmed_root = store.confirmed_root
     current_epoch = get_current_store_epoch(store)
 
-    # revert to finalized block if the latest confirmed block:
-    # a) from two or more epochs ago
-    # b) doesn't belong to the canonical chain
+    # revert to finalized block if:
+    # a) the latest confirmed block from two or more epochs ago
+    # b) the latest confirmed block doesn't belong to the canonical chain
+    # c) the confirmed chain starting from the previous epoch unrealized justified checkpoint
+    #    cannot be re-confirmed at the beginning of the current epoch
     # 
     # either of the above conditions signifies that confirmation rule assumptions (at least synchrony) are broken
     # and already confirmed block might not be safe to use hence revert to the safest one which is the finalized block
     # this reversal trades monotonicity in favour of safety in the casey of asynchrony in the network
     confirmed_block_epoch = get_block_epoch(store, confirmed_root)
     head = get_head(store)
-    if confirmed_block_epoch + 1 < current_epoch or not is_ancestor(store, head, confirmed_root):
+    if (confirmed_block_epoch + 1 < current_epoch
+        or not is_ancestor(store, head, confirmed_root)
+        or (is_first_slot_in_epoch(get_current_slot(store)) and not is_chain_reconfirmed(store, confirmed_root))):
         confirmed_root = store.finalized_checkpoint.root
         
     # if we are at the beginning of the epoch and the epoch of the unrealized justified checkpoint at beginning of the last slot of
@@ -455,7 +492,6 @@ def get_latest_confirmed(store: Store) -> Root:
     # of any honest validator and, therefore, any honest validator will keep voting for it for the entire epoch
     confirmed_block_slot = store.blocks[confirmed_root].slot
     prev_unrealized_justified_checkpoint_slot = store.blocks[store.prev_epoch_unrealized_justified_checkpoint.root].slot
-
     if (is_first_slot_in_epoch(get_current_slot(store))
         and store.prev_epoch_unrealized_justified_checkpoint.epoch + 1 == current_epoch 
         and confirmed_block_slot < prev_unrealized_justified_checkpoint_slot):
