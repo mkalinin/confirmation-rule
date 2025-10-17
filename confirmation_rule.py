@@ -198,7 +198,7 @@ def get_checkpoint_weight(store: Store, target: Checkpoint) -> Gwei:
         state.validators[i].effective_balance for i in unslashed_and_active_indices
         if (i in store.latest_messages
             and i not in store.equivocating_indices
-            and target == get_checkpoint_for_block(store, latest_message.root, latest_message.epoch))
+            and target == get_checkpoint_for_block(store, store.latest_messages[i].root, store.latest_messages[i].epoch))
     ))
 
 
