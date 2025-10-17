@@ -232,7 +232,12 @@ def compute_empty_slot_support_discount(store: Store,
 
 
 def get_support_discount(store: Store, balance_source: BeaconState, block_root: Root) -> Gwei:
-    return compute_empty_slot_support_discount(store, balance_source, block_root)
+    # Empty slot support discount
+    empty_slot_support = compute_empty_slot_support_discount(store, balance_source, block_root)
+    # Parent block support during the block's slot
+    parent_block_support = get_block_support_in_slots(
+        balance_source, block.parent_root, block.slot, block.slot)
+    return empty_slot_support + parent_block_support
 
 
 def get_proposer_score(balance_source: BeaconState) -> Gwei:
