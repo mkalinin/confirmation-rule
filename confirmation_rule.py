@@ -181,21 +181,26 @@ def is_one_confirmed(store: Store, block_root: Root) -> bool:
     )
 
 
-def get_checkpoint_weight(store: Store, checkpoint: Checkpoint, checkpoint_state: BeaconState) -> Gwei:
+def get_checkpoint_weight(store: Store, target: Checkpoint) -> Gwei:
     """
     Uses LMD-GHOST votes to estimate FFG support for a checkpoint.
     """
-    if get_current_slot(store) <= compute_start_slot_at_epoch(checkpoint.epoch):
+    # No attestation with a vote for the target has yet been processed
+    if target not in store.checkpoint_states:
         return Gwei(0)
 
-    checkpoint_weight = 0
-    for validator_index, latest_message in store.latest_messages.items():
-        vote_target = get_checkpoint_for_block(store, latest_message.root, latest_message.epoch)
-        # checkpoint matches vote's target
-        if checkpoint == vote_target:
-            checkpoint_weight += checkpoint_state.validators[validator_index].effective_balance
-
-    return Gwei(checkpoint_weight)
+    state = store.checkpoint_states[checkpoint]
+    unslashed_and_active_indices = [
+        i for i in get_active_validator_indices(state, get_current_epoch(state))
+        if not state.validators[i].slashed
+    ]
+    return Gwei(sum(
+        state.validators[i].effective_balance for i in unslashed_and_active_indices
+        if (i in store.latest_messages
+            and i not in store.equivocating_indices
+            and target == get_checkpoint_for_block(
+                    store, store.latest_messages[i].root, store.latest_messages[i].epoch))
+    ))
 
 
 def get_ffg_weight_till_slot(slot: Slot, epoch: Epoch, total_active_balance: Gwei) -> Gwei:
@@ -220,7 +225,7 @@ def checkpoint_justification_indicator(store: Store, checkpoint: Checkpoint, mul
     total_active_balance = get_total_active_balance(checkpoint_state)
 
     # compute FFG support for checkpoint
-    ffg_support_for_checkpoint = get_checkpoint_weight(store, checkpoint, checkpoint_state)
+    ffg_support_for_checkpoint = get_checkpoint_weight(store, checkpoint)
 
     # compute total FFG weight till current slot
     ffg_weight_till_now = get_ffg_weight_till_slot(current_slot, current_epoch, total_active_balance)
