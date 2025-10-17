@@ -98,25 +98,16 @@ def get_attestation_score(store: Store, root: Root, checkpoint_state: BeaconStat
     return attestation_score
 
 
-def get_slot_committee(state: BeaconState, slot: Slot) -> Sequence[ValidatorIndex]:
+def get_slot_committee(store: Store, slot: Slot) -> Sequence[ValidatorIndex]:
+    # Use post state of the head block as a source of shuffling.
+    # It is safe because if the head is one epoch older than the current epoch,
+    # this code won't be executed.
+    head_state = store.block_states[get_head(store)]
     indices = []
-    committees_count = get_committee_count_per_slot(state, compute_epoch_at_slot(state.slot))
+    committees_count = get_committee_count_per_slot(head_state, compute_epoch_at_slot(slot))
     for i in range(committees_count):
-        indices.append(get_beacon_committee(state, Slot(slot), CommitteeIndex(i)))
+        indices.append(get_beacon_committee(state, slot, CommitteeIndex(i)))
     return indices
-
-
-def get_equivocation_score(store: Store, state: BeaconState, first_slot: Slot, last_slot: Slot) -> Gwei:
-    committee_indices = set()
-    for slot in range(first_slot, last_slot + 1):
-        committee_indices.update(get_slot_committee(state, slot))
-
-    equivocating_committee_indices = committee_indices.intersection(store.equivocating_indices)
-    equivocation_score = Gwei(0)
-    for index in equivocating_committee_indices:
-        equivocation_score += state.validators[index].effective_balance
-
-    return equivocation_score
 
 
 def is_full_validator_set_covered(first_slot: Slot, last_slot: Slot) -> bool:
@@ -182,26 +173,89 @@ def estimate_committee_weight_between_slots(state: BeaconState, first_slot: Slot
         )
 
 
+def get_equivocation_score(store: Store, balance_source: BeaconState, first_slot: Slot, last_slot: Slot) -> Gwei:
+    committee_indices = set()
+    for slot in range(first_slot, last_slot + 1):
+        committee_indices.update(get_slot_committee(store, slot))
+
+    equivocating_indices = committee_indices.intersection(store.equivocating_indices)
+    return Gwei(
+        sum(balance_source.validators[i].effective_balance for i in equivocating_indices)
+    )
+
+
+def compute_adversarial_weight(store: Store, balance_source: BeaconState, first_slot: Slot, last_slot: Slot) -> Gwei:
+    maximum_weight = estimate_committee_weight_between_slots(balance_source, first_slot, last_slot)
+    max_adversarial_weight = maximum_weight // 100 * CONFIRMATION_BYZANTINE_THRESHOLD
+
+    # Discount total weight of equivocating validators
+    equivocation_score = get_equivocation_score(store, balance_source, first_slot, last_slot)
+    if max_adversarial_weight > equivocation_score:
+        return Gwei(max_adversarial_weight - equivocation_score)
+    else:
+        return Gwei(0)
+
+
+def get_block_support_in_slots(balance_source: BeaconState, block_root: Root, first_slot: Slot, last_slot: Slot) -> Gwei:
+    committees = []
+    for slot in range(first_slot, last_slot + 1):
+        committees.append(get_slot_committee(store, slot))
+    unslashed_and_active_committee_indices = [
+        i for i in get_active_validator_indices(balance_source, get_current_epoch(balance_source))
+        if (i in committees and not balance_source.validators[i].slashed)
+    ]
+    return Gwei(sum(
+        balance_source.validators[i].effective_balance for i in unslashed_and_active_committee_indices
+        if (i in store.latest_messages
+            and i not in store.equivocating_indices
+            and store.latest_messages[i].root == block_root)
+    ))
+
+
+def compute_empty_slot_support_discount(store: Store,
+                                        balance_source: BeaconState,
+                                        block_root: Root) -> Gwei:
+    # No empty slot
+    if parent_block.slot + 1 == block.slot:
+        return Gwei()
+
+    # Discount votes supporting the parent block during empty slots
+    # with exception to the adversarial fraction
+    parent_support_in_empty_slots = get_block_support_in_slots(
+        balance_source, block.parent_root, parent_block.slot + 1, block.slot - 1)
+    adversarial_weight = compute_adversarial_weight(
+        store, balance_source, parent_block.slot + 1, block.slot - 1)
+    if parent_support_in_empty_slots > adversarial_weight:
+        return parent_support_in_empty_slots - adversarial_weight
+    else:
+        return Gwei(0)
+
+
+def get_support_discount(store: Store, balance_source: BeaconState, block_root: Root) -> Gwei:
+    return compute_empty_slot_support_discount(store, balance_source, block_root)
+
+
+def get_proposer_score(balance_source: BeaconState) -> Gwei:
+    committee_weight = get_total_active_balance(balance_source) // SLOTS_PER_EPOCH
+    return (committee_weight * config.PROPOSER_SCORE_BOOST) // 100
+
+
 def is_one_confirmed(store: Store, block_root: Root) -> bool:
     current_slot = get_current_slot(store)
     block = store.blocks[block_root]
     parent_block = store.blocks[block.parent_root]
-    state = store.checkpoint_states[store.prev_epoch_unrealized_justified_checkpoint]
-    support = get_attestation_score(store, block_root, state)
-    maximum_support = estimate_committee_weight_between_slots(
-        state, Slot(parent_block.slot + 1), Slot(current_slot - 1))
-    proposer_score = get_proposer_score(store)
-    equivocation_score = get_equivocation_score(store, state, block.slot, current_slot - 1)
+    balance_source = store.checkpoint_states[store.prev_epoch_unrealized_justified_checkpoint]
+
+    support = get_attestation_score(store, block_root, balance_source)
+    proposer_score = get_proposer_score(balance_source)
+    maximum_support = estimate_committee_weight_between_slots(balance_source, parent_block.slot + 1, current_slot - 1)
+    support_discount = get_support_discount(store, balance_source, block_root)
+    adversarial_weight = compute_adversarial_weight(store, balance_source, block.slot, current_slot - 1)
 
     # Returns whether the following condition is true using only integer arithmetic
     # support / maximum_support >
-    #     0.5 * (1 + proposer_score / maximum_support) +
-    #     max(0, CONFIRMATION_BYZANTINE_THRESHOLD / 100 - equivocation_score / maximum_support)
-    return (
-        2 * support >
-        maximum_support + proposer_score +
-        max(0, maximum_support // 50 * CONFIRMATION_BYZANTINE_THRESHOLD - 2 * equivocation_score)
-    )
+    #   0.5 * (1 + (proposer_score - support_discount) / maximum_support) + adversarial_weight / maximum_support
+    return 2 * support + support_discount > maximum_support + proposer_score + 2 * adversarial_weight
 
 
 def get_checkpoint_weight(store: Store, checkpoint: Checkpoint, checkpoint_state: BeaconState) -> Gwei:
