@@ -240,27 +240,33 @@ def compute_honest_ffg_support(store: Store, checkpoint: Checkpoint, state: Beac
     return Gwei(min_honest_ffg_support + remaining_honest_ffg_weight)
 
 
-def will_no_conflicting_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
-    # Works for current epoch checkpoint only
-    if checkpoint.epoch < get_current_epoch_store(store):
-        return False
+def get_checkpoint_state(store: Store, checkpoint: Checkpoint) -> BeaconState:
+    if checkpoint in store.checkpoint_states:
+        return store.checkpoint_states[checkpoint]
+    else if checkpoint.epoch == compute_epoch_at_slot(store.block_states[checkpoint.root].slot):
+        return store.block_states[checkpoint.root]
+    else:
+        base_state = copy(store.block_states[checkpoint.root])
+        process_slots(base_state, compute_start_slot_at_epoch(target.epoch))
+        return base_state
 
-    # This condition implies that no conflicting checkpoint can ever be justified
+
+def will_no_conflicting_checkpoint_be_justified(store: Store, block_root: Root, block_epoch: Epoch) -> bool:
+    checkpoint = get_checkpoint_for_block(store, block_root, block_epoch)
+
+    # If checkpoint is unrealized justified then no conflicting checkpoint can be justified
     if checkpoint == store.unrealized_justified_checkpoint:
         return True
 
-    state = store.block_states[checkpoint.root]
+    state = get_checkpoint_state(store, checkpoint)
     total_active_balance = get_total_active_balance(state)
     honest_ffg_support = compute_honest_ffg_support(store, checkpoint, state)
     return 3 * honest_ffg_support >= 1 * total_active_balance
 
 
-def will_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
-    # Works for current epoch checkpoint only
-    if checkpoint.epoch < get_current_epoch_store(store):
-        return False
-
-    state = store.block_states[checkpoint.root]
+def will_checkpoint_be_justified(store: Store, block_root: Root, block_epoch: Epoch) -> bool:
+    checkpoint = get_checkpoint_for_block(store, block_root, block_epoch)
+    state = get_checkpoint_state(store, checkpoint)
     total_active_balance = get_total_active_balance(state)
     honest_ffg_support = compute_honest_ffg_support(store, checkpoint, state)
     return 3 * honest_ffg_support >= 2 * total_active_balance
@@ -296,7 +302,7 @@ def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) 
     if (get_block_epoch(store, confirmed_root) + 1 == current_epoch
         and get_voting_source(store, store.prev_slot_head).epoch + 2 >= current_epoch 
         and (is_first_slot_in_epoch(get_current_slot(store))
-             or (will_no_conflicting_checkpoint_be_justified(store, get_checkpoint_for_block(store, head, current_epoch))
+             or (will_no_conflicting_checkpoint_be_justified(store, head, current_epoch)
                  and (store.unrealized_justifications[store.prev_slot_head].epoch + 1 >= current_epoch
                       or store.unrealized_justifications[head].epoch + 1 >= current_epoch)))):
         # retrieve suffix of the canonical chain
@@ -338,14 +344,11 @@ def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) 
             
             # The following condition can only be true the first time that we advance to a block from the current epoch
             if block_epoch > tentative_confirmed_epoch:
-                checkpoint = get_checkpoint_for_block(store, block_root, block_epoch)
-
                 # To confirm blocks from the current epoch ensure that
                 # current epoch checkpoint will be justified
-                if not will_checkpoint_be_justified(store, checkpoint):
+                if not will_checkpoint_be_justified(store, block_root, block_epoch):
                     break  
-            
-                    
+
             if not is_one_confirmed(store, block_root):
                 break
                 
@@ -355,7 +358,7 @@ def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) 
         if (get_block_epoch(store, tentative_confirmed_root) == current_epoch
             or (get_voting_source(store, tentative_confirmed_root).epoch + 2 >= current_epoch
                 and (is_first_slot_in_epoch(get_current_slot(store))
-                     or will_no_conflicting_checkpoint_be_justified(store, get_checkpoint_for_block(store, head, current_epoch))))):
+                     or will_no_conflicting_checkpoint_be_justified(store, head, current_epoch)))):
             confirmed_root = tentative_confirmed_root
             
     return confirmed_root        
