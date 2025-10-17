@@ -186,7 +186,7 @@ def get_checkpoint_weight(store: Store, target: Checkpoint) -> Gwei:
     Uses LMD-GHOST votes to estimate FFG support for a checkpoint.
     """
     # No attestation with a vote for the target has yet been processed
-    if checkpoint not in store.checkpoint_states:
+    if target not in store.checkpoint_states:
         return Gwei(0)
 
     state = store.checkpoint_states[checkpoint]
