@@ -196,7 +196,7 @@ def compute_adversarial_weight(store: Store, balance_source: BeaconState, first_
         return Gwei(0)
 
 
-def get_block_support_in_slots(balance_source: BeaconState, block_root: Root, first_slot: Slot, last_slot: Slot) -> Gwei:
+def get_block_support_in_slots(store: Store, balance_source: BeaconState, block_root: Root, first_slot: Slot, last_slot: Slot) -> Gwei:
     committees = []
     for slot in range(first_slot, last_slot + 1):
         committees.append(get_slot_committee(store, slot))
