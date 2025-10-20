@@ -1235,6 +1235,7 @@ but for $\slot(t)-1$ instead of $\slot(t)$ we conclude the proof.
     %     \item[\Cref{ln:set-bcan-on-start-conf-chain}.] Impossible, as at this line $\epoch(\bcand) < \epoch(t)-1$, but we assume $\epoch(b_c) = \epoch(t) -1$.
     %     \item[\Cref{ln:set-bcand-to-output-find-latest}.] \Cref{lem:out-find-latest-conf-descendant-output} implies $\var[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed} \preceq b_c$ which concludes the proof.
     % \end{description}
+\end{proof}
 
 \begin{lemma}\label{lem:beta-less-than-quarter-no-reconfirmation-required-old}
     Let $s' := \firstslot(\epoch(t)+1)$, $\chkp' := \guattime[val=v,time=\slotstart(s'-1)]$.
@@ -2091,4 +2092,588 @@ However, I don't think that this holds unless when we reconfirm we use the same 
         &&\alignexpl[\alignexplwidth]{As, $\attsetfromblockunfiltered[from=b,to=s-1,val=v,when=\slotstart(s')]{\slashvals} \\ \subseteq \attsetfromblockunfiltered[from=b,to=s'-1,val=v,when=\slotstart(s')]{\slashvals}$.}
     \end{align*}
 \end{proof}
+% \end{proof}
+
+\begin{lemma}[Analogous of Lemma 4 in the paper]\label{lem:lmd-cond-on-q-implies-cond-on-p-ex2-with-fix-late-blocks}
+    Given Assumption~\ref{assum:beta},
+    for any time $t\geq\GGST$,
+    honest validator $v$,
+    block $b'$,
+    slot $s$
+    % such that $slot(b') \leq s$ % \leq \slotattime{t}$
+    and checkpoint $C \in \allU(b')$ with $b'$ being any valid block,\\
+    % that is canonical in the view of validator $v$ at time $t$ and
+    % checkpoint $C$,\\
+    % Let $b'$, $v$, $s$, $t$, $C$ and $C$ be any block, honest validator, slot, time and two checkpoints respectively.
+    if
+    $$
+    \indicatorfromblock[from=b',to=s,val=v,when=t,chkp=C]{Q}
+    >
+    \frac{1}{2}
+        \left( 1+
+            \frac
+            {
+                \boostweight[chkp=C]
+                -\attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\allatts}
+                -\attsetweighttobediscfromblock[from=b',to=\slot(b')-1,val=v,when=t,chkp=C]{\honattsub}                  
+            }
+            {\commweightfromafterparentblock[from=b',to=s,chkp=C]{\allvals}}
+        \right)
+        + \beta 
+            \frac
+                {\commweightfromblock[from=b',to=\slot(t)-1,chkp=C,when=t,val=v]{\allvals}}
+                {\commweightfromafterparentblock[from=b',to=\slot(t)-1,chkp=C,when=t,val=v]{\allvals}}
+    $$, then
+    % $$
+    % \indicatorfromblock[from=b',to=s,val=v,when=t,chkp=C]{\indP}
+    % >
+    % \frac
+    %     {\commweightfromafterparentblock[from=b',to=s,chkp=C]{\allvals}}
+    %     {2\commweightfromblock[from=b',to=s,chkp=C]{\honvals} }
+    %     \left( 1+
+    %         \frac
+    %         {
+    %             \boostweight[chkp=C]
+    %             -\attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\honatts}
+    %             -\attsetweighttobediscfromblock[from=b',to=\slot(b')-1,val=v,when=t,chkp=C]{\honattsub}                  
+    %         }
+    %         {\commweightfromafterparentblock[from=b',to=s,chkp=C]{\allvals}}
+    %     \right) 
+    % $$    
+    $$
+    \indicatorfromblock[from=b',to=s,val=v,when=t,chkp=C]{\indP}
+    >
+    \frac
+        {\commweightfromafterparentblock[from=b',to=s,chkp=C]{\allvals}}
+        {2(1-\beta)\commweightfromblock[from=b',to=s,chkp=C]{\allvals} }
+        \left( 1+
+            \frac
+            {
+                \boostweight[chkp=C]
+                -\attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\honatts}
+                -\attsetweighttobediscfromblock[from=b',to=\slot(b')-1,val=v,when=t,chkp=C]{\honattsub}                  
+            }
+            {\commweightfromafterparentblock[from=b',to=s,chkp=C]{\allvals}}
+        \right) 
+    $$
+\end{lemma}
+
+\begin{proof}
+We proceed as follows.
+
+\def\alignexplwidth{5cm}
+\allowdisplaybreaks
+% \begin{align*}
+%     \indicatorfromblock[from=b',to=s,val=v,when=t,chkp=C]{\indP}
+%     &=
+%     \frac
+%     {\attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\honatts}}
+%     {\commweightfromblock[from=b',to=s,chkp=C]{\honvals}}
+%     &&\alignexpl[\alignexplwidth]{By definition.}
+%     \\
+%     &\geq
+%     \frac
+%     {
+%     \attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}-
+%         \left(
+%             \commweightfromslot[from=\slot(b'),to=s,chkp=C]{\advvals}
+%             -
+%             \attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\advatts}
+%         \right)
+%     }
+%     {\commweightfromblock[from=b',to=s,chkp=C]{\honvals}}
+%     &&\alignexpl[\alignexplwidth]{
+%         As out of $\attsetfromblock[from=b',to=s,val=v,when=t]{\allatts}$ at most 
+%         $\commfromslot[from=\slot(b'),to=s]{\advvals} \setminus \attsettobediscforlatefromblock[from=b',to=s,when=t,val=v]{\advatts}$ could be dishonest.
+%         This is because validators in $\commfromblock[from=b',to=s]{\advvals}\setminus \commfromslot[from=\slot(b'),to=s]{\advvals}$ cannot cast a valid \GHOST vote for $b'$, and $\attsettobediscforlatefromblock[from=b',to=s,when=t,val=v]{\advatts}\cap \attsetfromblock[from=b',to=s,val=v,when=t]{\allatts} = \emptyset$, as, due to \FILLMD, validators in $\attsetfromblock[from=b',to=s,val=v,when=t]{\allatts}$ cannot also be in $\attsettobediscforlatefromblock[from=b',to=s,when=t,val=v]{\advatts}$ given that $b' \neq \parent(b')$.}
+%     \\
+%     % &=
+%     % \frac
+%     % {
+%     %     \attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}-
+%     %     \left(
+%     %         \commweightfromslot[from=\slot(b'),to=s,chkp=C]{\advvals}
+%     %         -
+%     %         \attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\advatts}
+%     %     \right)
+%     % }
+%     % {\commweightfromblock[from=b',to=s,chkp=C]{\allvals} - \commweightfromblock[from=b',to=s,chkp=C]{\advvals}}
+%     % &&\alignexpl[\alignexplwidth]{By definition, $\commweightfromblock[from=b',to=s,chkp=C]{\allvals} = \commweightfromblock[from=b',to=s,chkp=C]{\honvals} + \commweightfromblock[from=b',to=s,chkp=C]{\advvals}$.}
+%     % \\    
+%     % &=
+%     % \frac
+%     % {
+%     %     \attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}-
+%     %     \left(
+%     %         \left(
+%     %             \commweightfromblock[from=b',to=s,chkp=C]{\advvals}
+%     %             -
+%     %             \weightofset[chkp=C]{
+%     %                 \commfromslot[from=\parentslotplusone(b'),to=\slot(b')-1]{\advvals}
+%     %                 \setminus
+%     %                 \commfromblock[from=b',to=s]{\advvals}
+%     %             }
+%     %         \right)
+%     %         -
+%     %         \attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\advatts}
+%     %     \right)
+%     % }
+%     % {\commweightfromblock[from=b',to=s,chkp=C]{\allvals} - \commweightfromblock[from=b',to=s,chkp=C]{\advvals}}
+%     % &&\alignexpl[\alignexplwidth]{By definition, $\commweightfromslot[from=\slot(b'),to=s,chkp=C]{\advvals}=\commweightfromblock[from=b',to=s,chkp=C]{\advvals}
+%     %             -
+%     %             \weightofset[chkp=C]{
+%     %                 \commfromslot[from=\parentslotplusone(b'),to=\slot(b')-1]{\advvals}
+%     %                 \setminus
+%     %                 \commfromblock[from=b',to=s]{\advvals}
+%     %             }
+%     % $.}
+%     % \\    
+%     &=
+%     \frac
+%     {
+%         \attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}
+%         +\attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\advatts}
+%         -\commweightfromblock[from=b',to=s,chkp=C]{\advvals}
+%     }
+%     {\commweightfromblock[from=b',to=s,chkp=C]{\honvals}}
+%     &&\alignexpl[\alignexplwidth]{By rearranging terms.}
+%     \\    
+%     % &=
+%     % \frac
+%     % {
+%     %     \indicatorfromblock[from=b',to=s,val=v,when=t,chkp=C]{\indQ}
+%     %     \commweightfromblock[from=b',to=s,chkp=C]{\allvals}
+%     %     + 
+%     %     \weightofset[chkp=C]{
+%     %         \commfromslot[from=\parentslotplusone(b'),to=\slot(b')-1]{\advvals}
+%     %         \setminus
+%     %         \commfromblock[from=b',to=s]{\advvals}
+%     %     }
+%     %     +\attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\advatts}
+%     %     -\commweightfromblock[from=b',to=s,chkp=C]{\advvals}
+%     % }
+%     % {\commweightfromblock[from=b',to=s,chkp=C]{\allvals} - \commweightfromblock[from=b',to=s,chkp=C]{\advvals}}
+%     % \\
+%     % &>
+%     % \frac
+%     % {
+%     %     \begin{aligned}[t]
+%     %         &
+%     %         \frac{1}{2}
+%     %             \left( 
+%     %                     \commweightfromblock[from=b',to=s,chkp=C]{\allvals}+
+%     %                     \boostweight[chkp=C]
+%     %                     -\attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\allatts}
+%     %                     -\attsetweighttobediscfromblock[from=b',to=\slot(b')-1,val=v,when=t,chkp=C]{\honattsub}                  
+%     %             \right)
+%     %             + \beta 
+%     %             \commweightfromslot[from=\slot(b'),to=\slot(t)-1,chkp=C,when=t,val=v]{\allvals}
+%     %         \\
+%     %         &+
+%     %         \weightofset[chkp=C]{
+%     %             \commfromslot[from=\parentslotplusone(b'),to=\slot(b')-1]{\advvals}
+%     %             \setminus
+%     %             \commfromblock[from=b',to=s]{\advvals}
+%     %         }        
+%     %         +\attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\advatts}
+%     %         -\commweightfromblock[from=b',to=s,chkp=C]{\advvals}           
+%     %     \end{aligned}
+%     % }
+%     % {
+%     %     \commweightfromblock[from=b',to=s,chkp=C]{\allvals}(1-\beta) 
+%     % }       
+%     % \\
+%     % &=======================    
+%     \\         
+%     &\geq
+%     \frac
+%     {
+%         \attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}     
+%         +\attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\advatts}
+%         -\beta \commweightfromblock[from=b',to=s,chkp=C]{\allvals}
+%     }
+%     {\commweightfromblock[from=b',to=s,chkp=C]{\honvals}}
+%     &&\alignexpl[\alignexplwidth]{
+%         Note that 
+%         $\attsetfromblock[from=b',to=s,val=v,when=t]{\allatts}$%,
+%         % $\left(\commfromslot[from=\parentslotplusone(b'),to=\slot(b')-1]{\advvals}
+%         %     \setminus
+%         %     \commfromblock[from=b',to=s]{\advvals}\right)$ 
+%             and 
+%         $\attsettobediscforlatefromblock[from=b',to=s,when=t,val=v]{\advatts}$ are
+%         % all
+%         disjoint and subsets of $\commfromblock[from=b',to=s]{\allvals}$.
+%         This implies that 
+%         $
+%         \attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}     
+%         +\attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\advatts}
+%         \leq\commweightfromblock[from=b',to=s,chkp=C]{\allvals}$.
+%         Given this and that,
+%         by Assumption~\ref{assum:beta}, $\commweightfromblock[from=b',to=s,chkp=C]{\advvals}\leq \beta \commweightfromblock[from=b',to=s,chkp=C]{\allvals}$,
+%         the function 
+%         $g(x)=
+%         \frac
+%             {
+%                 \attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}    
+%                 +\attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\advatts}                
+%             -x}
+%             {\commweightfromblock[from=b',to=s,chkp=C]{\allvals}-x}$ is monotone decreasing in $[0,\commweightfromblock[from=b',to=s,chkp=C]{\allvals}]$
+%     }
+%     \\
+%     &=
+%     \frac
+%     {
+%         \begin{aligned}[t]
+%             \indicatorfromblock[from=b',to=s,val=v,when=t,chkp=C]{\indQ}
+%             \commweightfromafterparentblock[from=b',to=s,chkp=C]{\allvals}       
+%             +\attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\advatts}
+%             -\beta \commweightfromblock[from=b',to=s,chkp=C]{\allvals}            
+%         \end{aligned}
+%     }
+%     {
+%         \commweightfromblock[from=b',to=s,chkp=C]{\honvals}
+%     }
+%     \\ 
+%     &>
+%     \frac
+%     {
+%         \begin{aligned}[t]
+%             &
+%             \frac{1}{2}
+%                 \left( 1+
+%                     \frac
+%                     {
+%                         \boostweight[chkp=C]
+%                         -\attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\allatts}
+%                         -\attsetweighttobediscfromblock[from=b',to=\slot(b')-1,val=v,when=t,chkp=C]{\honattsub}                  
+%                     }
+%                     {\commweightfromafterparentblock[from=b',to=s,chkp=C]{\allvals}}
+%                 \right)
+%                 \commweightfromafterparentblock[from=b',to=s,chkp=C]{\allvals}       
+%                 + \beta 
+%                 \commweightfromblock[from=b',to=s,chkp=C]{\allvals}
+%             \\
+%             &      
+%             +\attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\advatts}
+%             -\beta \commweightfromblock[from=b',to=s,chkp=C]{\allvals}            
+%         \end{aligned}
+%     }
+%     {
+%         \commweightfromblock[from=b',to=s,chkp=C]{\honvals}
+%     }    
+%     \\  
+%     &=
+%     \frac
+%         {\commweightfromafterparentblock[from=b',to=s,chkp=C]{\allvals}}
+%         {2\commweightfromblock[from=b',to=s,chkp=C]{\honvals}}
+%         \left( 1+
+%             \frac
+%             {
+%                 \boostweight[chkp=C]
+%                 -\left(
+%                     \attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\allatts}
+%                     -2\attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\advatts}
+%                 \right)
+%                 -\attsetweighttobediscfromblock[from=b',to=\slot(b')-1,val=v,when=t,chkp=C]{\honattsub}                  
+%             }
+%             {\commweightfromafterparentblock[from=b',to=s,chkp=C]{\allvals}}
+%         \right)   
+%     \\  
+%     &\geq
+%     \frac
+%         {\commweightfromafterparentblock[from=b',to=s,chkp=C]{\allvals}}
+%         {2\commweightfromblock[from=b',to=s,chkp=C]{\honvals} }
+%         \left( 1+
+%             \frac
+%             {
+%                 \boostweight[chkp=C]
+%                 -\attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\honatts}
+%                 -\attsetweighttobediscfromblock[from=b',to=\slot(b')-1,val=v,when=t,chkp=C]{\honattsub}                  
+%             }
+%             {\commweightfromafterparentblock[from=b',to=s,chkp=C]{\allvals}}
+%         \right)  
+%     &&\alignexpl[\alignexplwidth]{As 
+%     $
+%                         \attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\allatts}
+%                     -2\attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\advatts}
+%                     \leq
+%                     \attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\honatts}
+%     $.} 
+%     % \\   
+%     % &=
+%     % &\geq
+%     % \frac
+%     %     {\commweightfromafterparentblock[from=b',to=s,chkp=C]{\allvals}}
+%     %     {2(1-\beta)\commweightfromblock[from=b',to=s,chkp=C]{\allvals} }
+%     %     \left( 1+
+%     %         \frac
+%     %         {
+%     %             \boostweight[chkp=C]
+%     %             -\attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\honatts}
+%     %             -\attsetweighttobediscfromblock[from=b',to=\slot(b')-1,val=v,when=t,chkp=C]{\honattsub}                  
+%     %         }
+%     %         {\commweightfromafterparentblock[from=b',to=s,chkp=C]{\allvals}}
+%     %     \right)  
+%     % \frac
+%     %     {}
+%     %     {}
+%     % &&\alignexpl[\alignexplwidth]{By rearrangement.}             
+% \end{align*}
+\begin{align*}
+    \indicatorfromblock[from=b',to=s,val=v,when=t,chkp=C]{\indP}
+    &=
+    \frac
+    {\attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\honatts}}
+    {\commweightfromblock[from=b',to=s,chkp=C]{\honvals}}
+    &&\alignexpl[\alignexplwidth]{By definition.}
+    \\
+    &\geq
+    \frac
+    {
+    \attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}-
+        \left(
+            \commweightfromslot[from=\slot(b'),to=s,chkp=C]{\advvals}
+            -
+            \attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\advatts}
+        \right)
+    }
+    {\commweightfromblock[from=b',to=s,chkp=C]{\honvals}}
+    &&\alignexpl[\alignexplwidth]{
+        As out of $\attsetfromblock[from=b',to=s,val=v,when=t]{\allatts}$ at most 
+        $\commfromslot[from=\slot(b'),to=s]{\advvals} \setminus \attsettobediscforlatefromblock[from=b',to=s,when=t,val=v]{\advatts}$ could be dishonest.
+        This is because validators in $\commfromblock[from=b',to=s]{\advvals}\setminus \commfromslot[from=\slot(b'),to=s]{\advvals}$ cannot cast a valid \GHOST vote for $b'$, and $\attsettobediscforlatefromblock[from=b',to=s,when=t,val=v]{\advatts}\cap \attsetfromblock[from=b',to=s,val=v,when=t]{\allatts} = \emptyset$, as, due to \FILLMD, validators in $\attsetfromblock[from=b',to=s,val=v,when=t]{\allatts}$ cannot also be in $\attsettobediscforlatefromblock[from=b',to=s,when=t,val=v]{\advatts}$ given that $b' \neq \parent(b')$.}
+    \\
+    &=
+    \frac
+    {
+        \attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}-
+        \left(
+            \commweightfromslot[from=\slot(b'),to=s,chkp=C]{\advvals}
+            -
+            \attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\advatts}
+        \right)
+    }
+    {\commweightfromblock[from=b',to=s,chkp=C]{\allvals} - \commweightfromblock[from=b',to=s,chkp=C]{\advvals}}
+    &&\alignexpl[\alignexplwidth]{By definition, $\commweightfromblock[from=b',to=s,chkp=C]{\allvals} = \commweightfromblock[from=b',to=s,chkp=C]{\honvals} + \commweightfromblock[from=b',to=s,chkp=C]{\advvals}$.}
+    \\    
+    % &=
+    % \frac
+    % {
+    %     \attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}-
+    %     \left(
+    %         \left(
+    %             \commweightfromblock[from=b',to=s,chkp=C]{\advvals}
+    %             -
+    %             \weightofset[chkp=C]{
+    %                 \commfromslot[from=\parentslotplusone(b'),to=\slot(b')-1]{\advvals}
+    %                 \setminus
+    %                 \commfromblock[from=b',to=s]{\advvals}
+    %             }
+    %         \right)
+    %         -
+    %         \attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\advatts}
+    %     \right)
+    % }
+    % {\commweightfromblock[from=b',to=s,chkp=C]{\allvals} - \commweightfromblock[from=b',to=s,chkp=C]{\advvals}}
+    % &&\alignexpl[\alignexplwidth]{By definition, $\commweightfromslot[from=\slot(b'),to=s,chkp=C]{\advvals}=\commweightfromblock[from=b',to=s,chkp=C]{\advvals}
+    %             -
+    %             \weightofset[chkp=C]{
+    %                 \commfromslot[from=\parentslotplusone(b'),to=\slot(b')-1]{\advvals}
+    %                 \setminus
+    %                 \commfromblock[from=b',to=s]{\advvals}
+    %             }
+    % $.}
+    % \\    
+    &=
+    \frac
+    {
+        \attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}
+        +\attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\advatts}
+        -\commweightfromblock[from=b',to=s,chkp=C]{\advvals}
+    }
+    {\commweightfromblock[from=b',to=s,chkp=C]{\allvals} - \commweightfromblock[from=b',to=s,chkp=C]{\advvals}}
+    &&\alignexpl[\alignexplwidth]{By rearranging terms.}
+    \\    
+    % &=
+    % \frac
+    % {
+    %     \indicatorfromblock[from=b',to=s,val=v,when=t,chkp=C]{\indQ}
+    %     \commweightfromblock[from=b',to=s,chkp=C]{\allvals}
+    %     + 
+    %     \weightofset[chkp=C]{
+    %         \commfromslot[from=\parentslotplusone(b'),to=\slot(b')-1]{\advvals}
+    %         \setminus
+    %         \commfromblock[from=b',to=s]{\advvals}
+    %     }
+    %     +\attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\advatts}
+    %     -\commweightfromblock[from=b',to=s,chkp=C]{\advvals}
+    % }
+    % {\commweightfromblock[from=b',to=s,chkp=C]{\allvals} - \commweightfromblock[from=b',to=s,chkp=C]{\advvals}}
+    % \\
+    % &>
+    % \frac
+    % {
+    %     \begin{aligned}[t]
+    %         &
+    %         \frac{1}{2}
+    %             \left( 
+    %                     \commweightfromblock[from=b',to=s,chkp=C]{\allvals}+
+    %                     \boostweight[chkp=C]
+    %                     -\attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\allatts}
+    %                     -\attsetweighttobediscfromblock[from=b',to=\slot(b')-1,val=v,when=t,chkp=C]{\honattsub}                  
+    %             \right)
+    %             + \beta 
+    %             \commweightfromslot[from=\slot(b'),to=\slot(t)-1,chkp=C,when=t,val=v]{\allvals}
+    %         \\
+    %         &+
+    %         \weightofset[chkp=C]{
+    %             \commfromslot[from=\parentslotplusone(b'),to=\slot(b')-1]{\advvals}
+    %             \setminus
+    %             \commfromblock[from=b',to=s]{\advvals}
+    %         }        
+    %         +\attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\advatts}
+    %         -\commweightfromblock[from=b',to=s,chkp=C]{\advvals}           
+    %     \end{aligned}
+    % }
+    % {
+    %     \commweightfromblock[from=b',to=s,chkp=C]{\allvals}(1-\beta) 
+    % }       
+    % \\
+    % &=======================    
+    \\         
+    &\geq
+    \frac
+    {
+        \attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}     
+        +\attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\advatts}
+        -\beta \commweightfromblock[from=b',to=s,chkp=C]{\allvals}
+    }
+    {\commweightfromblock[from=b',to=s,chkp=C]{\allvals} - \beta \commweightfromblock[from=b',to=s,chkp=C]{\allvals}}
+    &&\alignexpl[\alignexplwidth]{
+        Note that 
+        $\attsetfromblock[from=b',to=s,val=v,when=t]{\allatts}$%,
+        % $\left(\commfromslot[from=\parentslotplusone(b'),to=\slot(b')-1]{\advvals}
+        %     \setminus
+        %     \commfromblock[from=b',to=s]{\advvals}\right)$ 
+            and 
+        $\attsettobediscforlatefromblock[from=b',to=s,when=t,val=v]{\advatts}$ are
+        % all
+        disjoint and subsets of $\commfromblock[from=b',to=s]{\allvals}$.
+        This implies that 
+        $
+        \attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}     
+        +\attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\advatts}
+        \leq\commweightfromblock[from=b',to=s,chkp=C]{\allvals}$.
+        Given this and that,
+        by Assumption~\ref{assum:beta}, $\commweightfromblock[from=b',to=s,chkp=C]{\advvals}\leq \beta \commweightfromblock[from=b',to=s,chkp=C]{\allvals}$,
+        the function 
+        $g(x)=
+        \frac
+            {
+                \attsetweightfromblock[from=b',to=s,val=v,when=t,chkp=C]{\allatts}    
+                +\attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\advatts}                
+            -x}
+            {\commweightfromblock[from=b',to=s,chkp=C]{\allvals}-x}$ is monotone decreasing in $[0,\commweightfromblock[from=b',to=s,chkp=C]{\allvals}]$
+    }
+    \\
+    &=
+    \frac
+    {
+        \begin{aligned}[t]
+            \indicatorfromblock[from=b',to=s,val=v,when=t,chkp=C]{\indQ}
+            \commweightfromafterparentblock[from=b',to=s,chkp=C]{\allvals}       
+            +\attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\advatts}
+            -\beta \commweightfromblock[from=b',to=s,chkp=C]{\allvals}            
+        \end{aligned}
+    }
+    {
+        \commweightfromblock[from=b',to=s,chkp=C]{\allvals} 
+        - \beta \commweightfromblock[from=b',to=s,chkp=C]{\allvals}
+    }
+    \\ 
+    &>
+    \frac
+    {
+        \begin{aligned}[t]
+            &
+            \frac{1}{2}
+                \left( 1+
+                    \frac
+                    {
+                        \boostweight[chkp=C]
+                        -\attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\allatts}
+                        -\attsetweighttobediscfromblock[from=b',to=\slot(b')-1,val=v,when=t,chkp=C]{\honattsub}                  
+                    }
+                    {\commweightfromafterparentblock[from=b',to=s,chkp=C]{\allvals}}
+                \right)
+                \commweightfromafterparentblock[from=b',to=s,chkp=C]{\allvals}       
+                + \beta 
+                \commweightfromblock[from=b',to=s,chkp=C]{\allvals}
+            \\
+            &      
+            +\attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\advatts}
+            -\beta \commweightfromblock[from=b',to=s,chkp=C]{\allvals}            
+        \end{aligned}
+    }
+    {
+        \commweightfromblock[from=b',to=s,chkp=C]{\allvals}(1-\beta) 
+    }    
+    \\  
+    &=
+    \frac
+        {\commweightfromafterparentblock[from=b',to=s,chkp=C]{\allvals}}
+        {2(1-\beta)\commweightfromblock[from=b',to=s,chkp=C]{\allvals} }
+        \left( 1+
+            \frac
+            {
+                \boostweight[chkp=C]
+                -\left(
+                    \attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\allatts}
+                    -2\attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\advatts}
+                \right)
+                -\attsetweighttobediscfromblock[from=b',to=\slot(b')-1,val=v,when=t,chkp=C]{\honattsub}                  
+            }
+            {\commweightfromafterparentblock[from=b',to=s,chkp=C]{\allvals}}
+        \right)   
+    \\  
+    &\geq
+    \frac
+        {\commweightfromafterparentblock[from=b',to=s,chkp=C]{\allvals}}
+        {2(1-\beta)\commweightfromblock[from=b',to=s,chkp=C]{\allvals} }
+        \left( 1+
+            \frac
+            {
+                \boostweight[chkp=C]
+                -\attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\honatts}
+                -\attsetweighttobediscfromblock[from=b',to=\slot(b')-1,val=v,when=t,chkp=C]{\honattsub}                  
+            }
+            {\commweightfromafterparentblock[from=b',to=s,chkp=C]{\allvals}}
+        \right)  
+    &&\alignexpl[\alignexplwidth]{As 
+    $
+                        \attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\allatts}
+                    -2\attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\advatts}
+                    \leq
+                    \attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\honatts}
+    $.} 
+    % \\   
+    % &=
+    % &\geq
+    % \frac
+    %     {\commweightfromafterparentblock[from=b',to=s,chkp=C]{\allvals}}
+    %     {2(1-\beta)\commweightfromblock[from=b',to=s,chkp=C]{\allvals} }
+    %     \left( 1+
+    %         \frac
+    %         {
+    %             \boostweight[chkp=C]
+    %             -\attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\honatts}
+    %             -\attsetweighttobediscfromblock[from=b',to=\slot(b')-1,val=v,when=t,chkp=C]{\honattsub}                  
+    %         }
+    %         {\commweightfromafterparentblock[from=b',to=s,chkp=C]{\allvals}}
+    %     \right)  
+    % \frac
+    %     {}
+    %     {}
+    % &&\alignexpl[\alignexplwidth]{By rearrangement.}             
+\end{align*}
 \end{proof}
