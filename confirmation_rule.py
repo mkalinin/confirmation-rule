@@ -196,7 +196,8 @@ def compute_adversarial_weight(store: Store, balance_source: BeaconState, first_
         return Gwei(0)
 
 
-def get_block_support_in_slots(store: Store, balance_source: BeaconState, block_root: Root, first_slot: Slot, last_slot: Slot) -> Gwei:
+def get_block_support_in_slots(
+        store: Store, balance_source: BeaconState, block_root: Root, first_slot: Slot, last_slot: Slot) -> Gwei:
     committees = []
     for slot in range(first_slot, last_slot + 1):
         committees.append(get_slot_committee(store, slot))
@@ -222,7 +223,7 @@ def compute_empty_slot_support_discount(store: Store, balance_source: BeaconStat
     # Discount votes supporting the parent block during empty slots
     # with exception to the adversarial fraction
     parent_support_in_empty_slots = get_block_support_in_slots(
-        balance_source, block.parent_root, parent_block.slot + 1, block.slot - 1)
+        store, balance_source, block.parent_root, parent_block.slot + 1, block.slot - 1)
     adversarial_weight = compute_adversarial_weight(
         store, balance_source, parent_block.slot + 1, block.slot - 1)
     if parent_support_in_empty_slots > adversarial_weight:
@@ -233,11 +234,7 @@ def compute_empty_slot_support_discount(store: Store, balance_source: BeaconStat
 
 def get_support_discount(store: Store, balance_source: BeaconState, block_root: Root) -> Gwei:
     # Empty slot support discount
-    empty_slot_support = compute_empty_slot_support_discount(store, balance_source, block_root)
-    # Parent block support during the block's slot
-    parent_block_support = get_block_support_in_slots(
-        balance_source, block.parent_root, block.slot, block.slot)
-    return empty_slot_support + parent_block_support
+    return compute_empty_slot_support_discount(store, balance_source, block_root)
 
 
 def get_proposer_score(balance_source: BeaconState) -> Gwei:
