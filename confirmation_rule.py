@@ -196,6 +196,17 @@ def compute_adversarial_weight(store: Store, balance_source: BeaconState, first_
         return Gwei(0)
 
 
+def get_adversarial_weight(store: Store, balance_source: BeaconState, block_root: Root) -> Gwei:
+    current_slot = get_current_slot(store)
+    block = store.blocks[block_root]
+    if get_block_epoch(store, block_root) > get_block_epoch(store, block.parent_root):
+        # Use the first epoch slot as the start slot when crossing epoch boundary
+        first_slot = compute_start_slot_at_epoch(get_block_epoch(store, block_root))
+        return compute_adversarial_weight(store, balance_source, first_slot, current_slot - 1)
+    else:
+        return compute_adversarial_weight(store, balance_source, block.slot, current_slot - 1)
+
+
 def get_block_support_in_slots(
         store: Store, balance_source: BeaconState, block_root: Root, first_slot: Slot, last_slot: Slot) -> Gwei:
     committees = []
@@ -218,7 +229,7 @@ def compute_empty_slot_support_discount(store: Store, balance_source: BeaconStat
     parent_block = store.blocks[block.parent_root]
     # No empty slot
     if parent_block.slot + 1 == block.slot:
-        return Gwei()
+        return Gwei(0)
 
     # Discount votes supporting the parent block during empty slots
     # with exception to the adversarial fraction
@@ -252,7 +263,7 @@ def is_one_confirmed(store: Store, block_root: Root) -> bool:
     proposer_score = get_proposer_score(balance_source)
     maximum_support = estimate_committee_weight_between_slots(balance_source, parent_block.slot + 1, current_slot - 1)
     support_discount = get_support_discount(store, balance_source, block_root)
-    adversarial_weight = compute_adversarial_weight(store, balance_source, block.slot, current_slot - 1)
+    adversarial_weight = get_adversarial_weight(store, balance_source, block_root)
 
     # Returns whether the following condition is true using only integer arithmetic
     # support / maximum_support >
