@@ -3224,7 +3224,7 @@ $\attsettobediscforlatefromblock[from=b,to=s,when=t,val=v]{\advatts}$ be $\attse
                         \frac
                         {
                             \boostweight[chkp=C] 
-                            -\attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\allatts}
+                            % -\attsetweighttobediscforlatefromblock[from=b',to=s,when=t,val=v,chkp=C]{\allatts}
                             -\attsetweighttobediscfromblock[from=b',to=\slot(b')-1,val=v,when=t,chkp=C]{\honattsub}              
                         }
                         {\commweightfromafterparentblock[from=b',to=\slot(t)-1,chkp=C,when=t,val=v]{\allvals}}
@@ -5271,7 +5271,7 @@ We proceed as follows.
             }    
             &&\alignexpl[\alignexplwidth]{
                 As 
-                $(1-beta)\commweightfromblock[from=b',to=\slot(t')-1,chkp={\gjviewsym}]{\allvals} 
+                $(1-\beta)\commweightfromblock[from=b',to=\slot(t')-1,chkp={\gjviewsym}]{\allvals} 
                 \leq 
                 \commweightfromblock[from=b',to=\slot(t')-1,chkp={\gjviewsym}]{\honvals} 
                 $
