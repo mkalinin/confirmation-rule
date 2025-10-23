@@ -100,13 +100,13 @@ def get_attestation_score(store: Store, root: Root, checkpoint_state: BeaconStat
 
 def get_slot_committee(store: Store, slot: Slot) -> Sequence[ValidatorIndex]:
     # Use post state of the head block as a source of shuffling.
-    # It is safe because if the head is one epoch older than the current epoch,
+    # It is safe because if the head is two epochs older than the current epoch,
     # this code won't be executed.
     head_state = store.block_states[get_head(store)]
     indices = []
     committees_count = get_committee_count_per_slot(head_state, compute_epoch_at_slot(slot))
     for i in range(committees_count):
-        indices.append(get_beacon_committee(state, slot, CommitteeIndex(i)))
+        indices.append(get_beacon_committee(head_state, slot, CommitteeIndex(i)))
     return indices
 
 
