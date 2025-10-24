@@ -445,10 +445,9 @@ def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) 
             if not will_checkpoint_be_justified(store, checkpoint):
                 break
 
-        if is_one_confirmed(store, block_root):
-            lmd_confirmed_root = block_root
-        else:
+        if not is_one_confirmed(store, block_root):
             break
+        lmd_confirmed_root = block_root
 
     # Return if current epoch block.
     if get_block_epoch(store, lmd_confirmed_root) >= get_current_store_epoch(store):
