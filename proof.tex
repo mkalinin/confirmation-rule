@@ -232,6 +232,7 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
 \SetKwFor{While}{while}{}{}%
 \SetKw{Break}{break}
 \SetKw{Const}{const}
+\SetKw{False}{False}
 
 \begin{algorithm}[H]
 \caption{Find latest confirmed descendant}
@@ -253,13 +254,6 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
     $\bcand \gets b_c$\label{ln:bcand-set-beginning-of-find-latest}\\
     \Const $head \gets \LMDGHOSTHFC(\viewattime[time={\var[val=v]{t}},val=v])$\\
     \Const $phead \gets \LMDGHOSTHFC(\viewattime[time={\slotstart(\slot(\var[val=v]{t})-1)},val=v])$\\
-    \uIf{$\slot(\var[val=v]{t}) = \firstslot(\epoch(\var[val=v]{t}))$} {
-        $\chkp_{EBA} \gets \guattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}]$
-    }
-    \uElse {
-        $\chkp_{EBA} \gets \gjattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}]$
-    }
-    
 
 
     \uIf{$\epoch(\bcand) = \epoch(\var[val=v]{t}) - 1$ {\bf and}
@@ -274,7 +268,7 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
             $\btemp \gets \var[val=v]{\mathit{next\_child}}(\bcand,head)$\\
             \uIf{$\epoch(\btemp) < \epoch(\var[val=v]{t})$ {\bf and}
                 $\btemp \preceq phead$ {\bf and}
-                $\isOneConfirmed_v(\btemp, \chkp_W)$}
+                $\isOneConfirmed_v(\btemp, \guattime[val=v,time={\prevfirstslotepoch{t}}])$}
             {
                 $\bcand \gets \btemp$\label{ln:set-bcand-in-prev-epoch-loop}
             }
@@ -296,7 +290,7 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
             {
                 \Break
             }
-            \uIf{$\isOneConfirmed_v(\btemp, \chkp_{EBA})$\label{ln:if-is-one-confirmed-second-loop}} {
+            \uIf{$\isOneConfirmed_v(\btemp, \guattime[val=v,time={\prevfirstslotepoch{t}}])$\label{ln:if-is-one-confirmed-second-loop}} {
                 $\btcand \gets \btemp$\label{set-btcand-to-btemp}
             }
             \uElse { 
@@ -391,6 +385,94 @@ then $\guattime[time=t,val=v]$ is canonical in the view of any honest validator 
     \Return{$\bcand$}
 }
 \end{algorithm}
+
+\begin{algorithm}[H]
+\caption{Find latest confirmed descendant (Refactored)}
+\SetAlgoNoLine
+\Fn{$\var[val=v]{\mathit{next\_child}}(b,head)$}{
+    $extension = \{ b' \in \viewattime[time={\var[val=v]{t}},val=v], b \prec b' \preceq head \}$\\
+    \uIf{$|extension| > 0$}
+    {
+        \Return{$\argmin_{b' \in extension} \slot(b')$}
+    }
+    \uElse{
+        \Return{$\bot$}
+    }
+}
+
+\Fn{$\var[val=v]{\ensuremath{\mathit{will\_canonical\_block\_match\_filtering\_criteria}}}(b)$}
+{
+    \Const $head \gets \LMDGHOSTHFC(\viewattime[time={\var[val=v]{t}},val=v])$\\
+    \Const $phead \gets \LMDGHOSTHFC(\viewattime[time={\slotstart(\slot(\var[val=v]{t})-1)},val=v])$\\
+
+    \uIf{$\epoch(b)=\epoch(t)$}
+    {
+        \Return{$\gu(head) \geq \epoch(t)-1$}
+    }
+
+    \uElseIf{$\votsource[blck=b,time=t] \geq \epoch(t)-2$}
+    {
+        \Return{$\slot(t)=\firstslot(\epoch(t)) \lor \gu(head) \geq \epoch(t)-1$}
+    }
+
+    \uElseIf{$\votsource[blck=phead,time=t] \geq \epoch(t)-2$ {\bf and}
+        $b \preceq phead$}
+    {
+        \Return{$\slot(t)=\firstslot(\epoch(t)) \lor \gu(head) \geq \epoch(t)-1 \lor \gu(phead) \geq \epoch(t)-1$}
+    }
+
+    \uElse
+    {
+        \Return{\False}
+    }
+}
+
+\Fn{$\var[val=v]{\findlatestconfirmeddescendant}(b_c)$}
+{
+    $\btcand \gets b_c$\\
+    \Const $head \gets \LMDGHOSTHFC(\viewattime[time={\var[val=v]{t}},val=v])$\\
+
+    \While{$\var[val=v]{\mathit{next\_child}}(\btcand,head) \neq \bot$}
+    {
+        $\btemp \gets \var[val=v]{\mathit{next\_child}}(\btcand,head)$\\
+        \uIf{$\epoch(\btemp) > \epoch(\btcand)$ {\bf and}
+            $(\neg \willChkpBeJustified_v(\chkp(\btemp))$ {\bf or}
+            $\neg \var[val=v]{\ensuremath{\mathit{will\_canonical\_block\_match\_filtering\_criteria}}}(\btemp))$}
+        {
+            \Break
+        }
+        \uIf{$\isOneConfirmed_v(\btemp, \guattime[val=v,time={\prevfirstslotepoch{t}}])$} {
+            $\btcand \gets \btemp$
+        }
+        \uElse {
+            \Break
+        }
+    }
+
+    \uIf{$\epoch(\btcand) = \epoch(t)$}
+    {
+        \Return{$\btcand$}
+    }
+
+    \uElseIf{$\slot(t)=\firstslot(\epoch(t))$ {\bf or}
+        $\var[val=v]{\willNoConflictingChkpBeJustified}(\chkp(head, \epoch(t))$}
+    {
+        \While{$\btcand \neq b_c$ {\bf and}
+                $\neg \var[val=v]{\ensuremath{\mathit{will\_canonical\_block\_match\_filtering\_criteria}}}(\btcand)$}
+        {
+            $\btcand \gets \parent(\btcand)$
+        }
+
+        \Return{$\btcand$}
+    }
+
+    \uElse
+    {
+        \Return{$b_c$}
+    }
+}
+\end{algorithm}
+
 
 \begin{definition}[Notation]\leavevmode\label{def:b-cand-is-b-conf}
     \begin{enumerate}
