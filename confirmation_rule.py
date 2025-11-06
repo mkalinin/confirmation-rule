@@ -379,7 +379,9 @@ def get_checkpoint_state(store: Store, checkpoint: Checkpoint) -> BeaconState:
         return base_state
 
 
-def will_no_conflicting_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
+def will_no_current_epoch_conflicting_checkpoint_be_justified(store: Store) -> bool:
+    checkpoint = get_checkpoint_for_block(store, get_head(store), get_current_store_epoch(store))
+
     # Assuming synchrony all honest validators in current epoch will support a checkpoint
     # that is a descendant of the most recent confirmed block,
     # thus no conflicting checkpoint can be justified.
@@ -396,7 +398,8 @@ def will_no_conflicting_checkpoint_be_justified(store: Store, checkpoint: Checkp
     return 3 * honest_ffg_support >= 1 * total_active_balance
 
 
-def will_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
+def will_current_epoch_checkpoint_be_justified(store: Store) -> bool:
+    checkpoint = get_checkpoint_for_block(store, get_head(store), get_current_store_epoch(store))
     state = get_checkpoint_state(store, checkpoint)
     total_active_balance = get_total_active_balance(state)
     honest_ffg_support = compute_honest_ffg_support(store, checkpoint, state)
@@ -429,39 +432,31 @@ def will_canonical_block_match_filtering_criteria(store: Store, block_root: Root
 
 
 def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) -> Root:
+
+    # Check if no conflicting checkpoint will be justified
+    if not will_no_current_epoch_conflicting_checkpoint_be_justified(store):
+        return latest_confirmed_root
+
     head = get_head(store)
-    canonical_roots = get_chain_roots(store, latest_confirmed_root, head)
+
+    if will_current_epoch_checkpoint_be_justified(store):
+        max_conmfirmed_candidate = head
+    else:
+        previous_epoch_last_slot = compute_start_slot_at_epoch(get_current_store_epoch(store)) - 1
+        max_conmfirmed_candidate = get_ancestor(store, head, previous_epoch_last_slot)
+
+    canonical_roots = get_chain_roots(store, latest_confirmed_root, max_conmfirmed_candidate)
+
     lmd_confirmed_root = latest_confirmed_root
 
     for block_root in canonical_roots:
-        block_epoch = get_block_epoch(store, block_root)
-        if block_epoch > get_block_epoch(store, lmd_confirmed_root):
-            # Block won't get filtered out in the next epoch
-            if not will_canonical_block_match_filtering_criteria(store, block_root):
-                break
 
-            # Current epoch checkpoint will be justified
-            checkpoint = get_checkpoint_for_block(store, block_root, block_epoch)
-            if not will_checkpoint_be_justified(store, checkpoint):
-                break
+        if not will_canonical_block_match_filtering_criteria(store, block_root):
+            break
 
         if not is_one_confirmed(store, block_root):
             break
         lmd_confirmed_root = block_root
-
-    # Return if current epoch block.
-    if get_block_epoch(store, lmd_confirmed_root) >= get_current_store_epoch(store):
-        return lmd_confirmed_root
-
-    # Check if no conflicting checkpoint will be justified
-    checkpoint = get_checkpoint_for_block(store, head, get_current_store_epoch(store))
-    if will_no_conflicting_checkpoint_be_justified(store, checkpoint):
-        # Find the most recent ancestor matching filtering criteria
-        while (lmd_confirmed_root != latest_confirmed_root
-               and not will_canonical_block_match_filtering_criteria(store, lmd_confirmed_root)):
-            lmd_confirmed_root = store.blocks[lmd_confirmed_root].parent_root
-    else:
-        lmd_confirmed_root = latest_confirmed_root
 
     return lmd_confirmed_root
 
