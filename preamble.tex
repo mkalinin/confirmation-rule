@@ -7,7 +7,7 @@
 % \usepackage{algorithm}
 % \usepackage{algorithmic}
 %\usepackage{algpseudocode}
-% \usepackage{numbertabbing}
+\usepackage{numbertabbing}
 \usepackage{xcolor}
 \usepackage{amsmath,amsfonts}
 \usepackage{listings}
@@ -24,6 +24,12 @@
 \SetKwProg{Proc}{procedure}{}{end}
 \SetKwProg{Upon}{upon}{}{end}
 \SetNlSty{textbf}{}{:}
+\SetKw{KwStateK}{State}
+\SetKwBlock{KwState}{State:}{}
+\SetKwFor{While}{while}{}{}%
+\SetKw{Break}{break}
+\SetKw{Const}{const}
+\SetKw{False}{False}
 
 \usepackage{hyperref}
 \hypersetup{
@@ -113,6 +119,29 @@
     }}%
 }%
 
+\define@key{commfromafterblock}{from}{\def\commfromafterblock@From{#1}}
+\define@key{commfromafterblock}{to}{\def\commfromafterblock@To{#1}}
+\define@key{commfromafterblock}{val}{\def\commfromafterblock@Val{#1}}
+\define@key{commfromafterblock}{when}{\def\commfromafterblock@When{#1}}
+\newcommand{\commfromafterblock}[2][]{%
+    \setkeys{commfromafterblock}{from=,to=,val=,when=}%
+    \setkeys{commfromafterblock}{#1}%
+    \ensuremath{{#2}_{\commfromafterblock@From +}^{\commfromafterblock@To%
+    \ifthenelse{\equal{\commfromafterblock@Val}{}}{}{,\commfromafterblock@Val}%
+    \ifthenelse{\equal{\commfromafterblock@When}{}}{}{,\commfromafterblock@When}%
+    }}%
+}%
+
+\define@key{commfromafterparentblock}{from}{\def\commfromafterparentblock@From{#1}}
+\define@key{commfromafterparentblock}{to}{\def\commfromafterparentblock@To{#1}}
+\define@key{commfromafterparentblock}{val}{\def\commfromafterparentblock@Val{#1}}
+\define@key{commfromafterparentblock}{when}{\def\commfromafterparentblock@When{#1}}
+\newcommand{\commfromafterparentblock}[2][]{%
+    \setkeys{commfromafterparentblock}{from=,to=,when=,val=}%
+    \setkeys{commfromafterparentblock}{#1}%
+    \commfromafterblock[from=\parent(\commfromafterparentblock@From),to=\commfromafterparentblock@To,val=\commfromafterparentblock@Val,when=\commfromafterparentblock@When]{#2}%
+}%
+
 
 \define@key{commatepoch}{epoch}{\def\commatepoch@Epoch{#1}}
 % \setkeys{commatepoch}{epoch=}
@@ -170,6 +199,31 @@
     \ifthenelse{\equal{\commweightfromblock@Val}{}}{}{\commweightfromblock@Val,}%
     \ifthenelse{\equal{\commweightfromblock@When}{}}{}{\commweightfromblock@When,}% 
     \commweightfromblock@ValSetChkp}}%
+}%
+
+\define@key{commweightfromafterblock}{from}{\def\commweightfromafterblock@From{#1}}
+\define@key{commweightfromafterblock}{to}{\def\commweightfromafterblock@To{#1}}
+\define@key{commweightfromafterblock}{chkp}{\def\commweightfromafterblock@ValSetChkp{#1}}
+\define@key{commweightfromafterblock}{val}{\def\commweightfromafterblock@Val{#1}}
+\define@key{commweightfromafterblock}{when}{\def\commweightfromafterblock@When{#1}}
+\newcommand{\commweightfromafterblock}[2][]{%
+    \setkeys{commweightfromafterblock}{from=,to=,chkp=,when=,val=}
+    \setkeys{commweightfromafterblock}{#1}%
+    \ensuremath{\addweight{#2}_{\commweightfromafterblock@From +}^{\commweightfromafterblock@To,%
+    \ifthenelse{\equal{\commweightfromafterblock@Val}{}}{}{\commweightfromafterblock@Val,}%
+    \ifthenelse{\equal{\commweightfromafterblock@When}{}}{}{\commweightfromafterblock@When,}% 
+    \commweightfromafterblock@ValSetChkp}}%
+}%
+
+\define@key{commweightfromafterparentblock}{from}{\def\commweightfromafterparentblock@From{#1}}
+\define@key{commweightfromafterparentblock}{to}{\def\commweightfromafterparentblock@To{#1}}
+\define@key{commweightfromafterparentblock}{chkp}{\def\commweightfromafterparentblock@ValSetChkp{#1}}
+\define@key{commweightfromafterparentblock}{val}{\def\commweightfromafterparentblock@Val{#1}}
+\define@key{commweightfromafterparentblock}{when}{\def\commweightfromafterparentblock@When{#1}}
+\newcommand{\commweightfromafterparentblock}[2][]{%
+    \setkeys{commweightfromafterparentblock}{from=,to=,chkp=,when=,val=}%
+    \setkeys{commweightfromafterparentblock}{#1}%
+    \commweightfromafterblock[from=\parent(\commweightfromafterparentblock@From),to=\commweightfromafterparentblock@To,val=\commweightfromafterparentblock@Val,chkp=\commweightfromafterparentblock@ValSetChkp,when=\commweightfromafterparentblock@When]{#2}%
 }%
 
 
@@ -246,12 +300,56 @@
 \define@key{attsetfromblock}{to}{\def\attsetfromblock@To{#1}}
 \define@key{attsetfromblock}{val}{\def\attsetfromblock@Val{#1}}
 \define@key{attsetfromblock}{when}{\def\attsetfromblock@When{#1}}
-\define@key{attsetfromblock}{chkp}{\def\attsetfromblock@ValSetChkp{#1}}
-\setkeys{attsetfromblock}{from=,to=,val=,when=,chkp=}
+% \define@key{attsetfromblock}{chkp}{\def\attsetfromblock@ValSetChkp{#1}}
+\setkeys{attsetfromblock}{from=,to=,val=,when=}
 \newcommand{\attsetfromblock}[2][]{%
     \setkeys{attsetfromblock}{#1}%
-    \ensuremath{{#2}_{\attsetfromblock@From}^{\attsetfromblock@To,\attsetfromblock@Val,\attsetfromblock@When,\attsetfromblock@ValSetChkp}}
+    \ensuremath{{#2}_{\attsetfromblock@From}^{\attsetfromblock@To,\attsetfromblock@Val,\attsetfromblock@When}}
 }%
+
+\define@key{attsettobediscfromblock}{from}{\def\attsettobediscfromblock@From{#1}}
+\define@key{attsettobediscfromblock}{to}{\def\attsettobediscfromblock@To{#1}}
+\define@key{attsettobediscfromblock}{val}{\def\attsettobediscfromblock@Val{#1}}
+\define@key{attsettobediscfromblock}{when}{\def\attsettobediscfromblock@When{#1}}
+% \define@key{attsettobediscfromblock}{chkp}{\def\attsettobediscfromblock@ValSetChkp{#1}}
+\setkeys{attsettobediscfromblock}{from=,to=,val=,when=}
+\newcommand{\attsettobediscfromblock}[2][]{%
+    \setkeys{attsettobediscfromblock}{#1}%
+    \ensuremath{\overset{\nsucc}{#2}{}_{\parent(\attsettobediscfromblock@From)+}^{\attsettobediscfromblock@To,\attsettobediscfromblock@Val,\attsettobediscfromblock@When}}
+}%
+
+\define@key{attsettobediscsimplefromblock}{from}{\def\attsettobediscsimplefromblock@From{#1}}
+\define@key{attsettobediscsimplefromblock}{to}{\def\attsettobediscsimplefromblock@To{#1}}
+\define@key{attsettobediscsimplefromblock}{val}{\def\attsettobediscsimplefromblock@Val{#1}}
+\define@key{attsettobediscsimplefromblock}{when}{\def\attsettobediscsimplefromblock@When{#1}}
+% \define@key{attsettobediscsimplefromblock}{chkp}{\def\attsettobediscsimplefromblock@ValSetChkp{#1}}
+\setkeys{attsettobediscsimplefromblock}{from=,to=,val=,when=}
+\newcommand{\attsettobediscsimplefromblock}[2][]{%
+    \setkeys{attsettobediscsimplefromblock}{#1}%
+    \ensuremath{\overset{=}{#2}{}_{\parent(\attsettobediscsimplefromblock@From)+}^{\attsettobediscsimplefromblock@To,\attsettobediscsimplefromblock@Val,\attsettobediscsimplefromblock@When}}
+}%
+
+\define@key{attsettobediscforlatefromblock}{from}{\def\attsettobediscforlatefromblock@From{#1}}
+\define@key{attsettobediscforlatefromblock}{to}{\def\attsettobediscforlatefromblock@To{#1}}
+\define@key{attsettobediscforlatefromblock}{val}{\def\attsettobediscforlatefromblock@Val{#1}}
+\define@key{attsettobediscforlatefromblock}{when}{\def\attsettobediscforlatefromblock@When{#1}}
+% \define@key{attsettobediscforlatefromblock}{chkp}{\def\attsettobediscforlatefromblock@ValSetChkp{#1}}
+\setkeys{attsettobediscforlatefromblock}{from=,to=,val=,when=}
+\newcommand{\attsettobediscforlatefromblock}[2][]{%
+    \setkeys{attsettobediscforlatefromblock}{#1}%
+    \ensuremath{\overset{= \parent(\attsettobediscforlatefromblock@From)}{#2}{}_{\slot(\attsettobediscforlatefromblock@From)}^{\attsettobediscforlatefromblock@To,\attsettobediscforlatefromblock@Val,\attsettobediscforlatefromblock@When}}
+}%
+
+% \define@key{attsettobediscfromblock}{from}{\def\attsettobediscfromblock@From{#1}}
+% \define@key{attsettobediscfromblock}{to}{\def\attsettobediscfromblock@To{#1}}
+% \define@key{attsettobediscfromblock}{val}{\def\attsettobediscfromblock@Val{#1}}
+% \define@key{attsettobediscfromblock}{when}{\def\attsettobediscfromblock@When{#1}}
+% % \define@key{attsettobediscfromblock}{chkp}{\def\attsettobediscfromblock@ValSetChkp{#1}}
+% \setkeys{attsettobediscfromblock}{from=,to=,val=,when=}
+% \newcommand{\attsettobediscfromblock}[2][]{%
+%     \setkeys{attsettobediscfromblock}{#1}%
+%     \ensuremath{\overset{\nsucc}{#2}{}_{\parent(\attsettobediscfromblock@From)}^{\slot(\attsettobediscfromblock@From)-1,\attsettobediscfromblock@Val,\attsettobediscfromblock@When}}
+% }%
 
 \newcommand{\ghostvotersfnname}{\ensuremath{GS}}
 
@@ -286,6 +384,67 @@
     \setkeys{attsetweightfromblock}{from=,to=,val=,when=,chkp=}%
 }%
 
+\define@key{attsetweightfromafterblock}{from}{\def\attsetweightfromafterblock@From{#1}}
+\define@key{attsetweightfromafterblock}{to}{\def\attsetweightfromafterblock@To{#1}}
+\define@key{attsetweightfromafterblock}{val}{\def\attsetweightfromafterblock@Val{#1}}
+\define@key{attsetweightfromafterblock}{when}{\def\attsetweightfromafterblock@When{#1}}
+\define@key{attsetweightfromafterblock}{chkp}{\def\attsetweightfromafterblock@ValSetChkp{#1}}
+\setkeys{attsetweightfromafterblock}{from=,to=,val=,when=}
+\newcommand{\attsetweightfromafterblock}[2][]{%
+    \setkeys{attsetweightfromafterblock}{#1}%
+    \ensuremath{{\addweight{#2}}_{\attsetweightfromafterblock@From +}^{\attsetweightfromafterblock@To,\attsetweightfromafterblock@Val,\attsetweightfromafterblock@When,\attsetweightfromafterblock@ValSetChkp}}%
+    \setkeys{attsetweightfromafterblock}{from=,to=,val=,when=,chkp=}%
+}%
+
+\define@key{attsetweighttobediscfromblock}{from}{\def\attsetweighttobediscfromblock@From{#1}}
+\define@key{attsetweighttobediscfromblock}{to}{\def\attsetweighttobediscfromblock@To{#1}}
+\define@key{attsetweighttobediscfromblock}{val}{\def\attsetweighttobediscfromblock@Val{#1}}
+\define@key{attsetweighttobediscfromblock}{when}{\def\attsetweighttobediscfromblock@When{#1}}
+\define@key{attsetweighttobediscfromblock}{chkp}{\def\attsetweighttobediscfromblock@ValSetChkp{#1}}
+\setkeys{attsetweighttobediscfromblock}{from=,to=,val=,when=}
+\newcommand{\attsetweighttobediscfromblock}[2][]{%
+    \setkeys{attsetweighttobediscfromblock}{#1}%
+    \ensuremath{\overset{\nsucc}{\addweight{#2}}{}_{\parent(\attsetweighttobediscfromblock@From)+}^{\attsetweighttobediscfromblock@To,\attsetweighttobediscfromblock@Val,\attsetweighttobediscfromblock@When,\attsetweighttobediscfromblock@ValSetChkp}}%
+    \setkeys{attsetweighttobediscfromblock}{from=,to=,val=,when=,chkp=}%
+}%
+
+\define@key{attsetweighttobediscsimplefromblock}{from}{\def\attsetweighttobediscsimplefromblock@From{#1}}
+\define@key{attsetweighttobediscsimplefromblock}{to}{\def\attsetweighttobediscsimplefromblock@To{#1}}
+\define@key{attsetweighttobediscsimplefromblock}{val}{\def\attsetweighttobediscsimplefromblock@Val{#1}}
+\define@key{attsetweighttobediscsimplefromblock}{when}{\def\attsetweighttobediscsimplefromblock@When{#1}}
+\define@key{attsetweighttobediscsimplefromblock}{chkp}{\def\attsetweighttobediscsimplefromblock@ValSetChkp{#1}}
+\setkeys{attsetweighttobediscsimplefromblock}{from=,to=,val=,when=}
+\newcommand{\attsetweighttobediscsimplefromblock}[2][]{%
+    \setkeys{attsetweighttobediscsimplefromblock}{#1}%
+    \ensuremath{{\addweight{#2}}_{\parent(\attsetweighttobediscsimplefromblock@From)+}^{\attsetweighttobediscsimplefromblock@To,\attsetweighttobediscsimplefromblock@Val,\attsetweighttobediscsimplefromblock@When,\attsetweighttobediscsimplefromblock@ValSetChkp}}%
+    \setkeys{attsetweighttobediscsimplefromblock}{from=,to=,val=,when=,chkp=}%
+}%
+
+\define@key{attsetweighttobediscforlatefromblock}{from}{\def\attsetweighttobediscforlatefromblock@From{#1}}
+\define@key{attsetweighttobediscforlatefromblock}{to}{\def\attsetweighttobediscforlatefromblock@To{#1}}
+\define@key{attsetweighttobediscforlatefromblock}{val}{\def\attsetweighttobediscforlatefromblock@Val{#1}}
+\define@key{attsetweighttobediscforlatefromblock}{when}{\def\attsetweighttobediscforlatefromblock@When{#1}}
+\define@key{attsetweighttobediscforlatefromblock}{chkp}{\def\attsetweighttobediscforlatefromblock@ValSetChkp{#1}}
+\setkeys{attsetweighttobediscforlatefromblock}{from=,to=,val=,when=}
+\newcommand{\attsetweighttobediscforlatefromblock}[2][]{%
+    \setkeys{attsetweighttobediscforlatefromblock}{#1}%
+    \ensuremath{\overset{=\parent(\attsetweighttobediscforlatefromblock@From)}{\addweight{#2}}{}_{\slot(\attsetweighttobediscforlatefromblock@From)}^{\attsetweighttobediscforlatefromblock@To,\attsetweighttobediscforlatefromblock@Val,\attsetweighttobediscforlatefromblock@When,\attsetweighttobediscforlatefromblock@ValSetChkp}}%
+    \setkeys{attsetweighttobediscforlatefromblock}{from=,to=,val=,when=,chkp=}%
+}%
+
+% \define@key{attsetweighttobediscfromblock}{from}{\def\attsetweighttobediscfromblock@From{#1}}
+% \define@key{attsetweighttobediscfromblock}{to}{\def\attsetweighttobediscfromblock@To{#1}}
+% \define@key{attsetweighttobediscfromblock}{val}{\def\attsetweighttobediscfromblock@Val{#1}}
+% \define@key{attsetweighttobediscfromblock}{when}{\def\attsetweighttobediscfromblock@When{#1}}
+% \define@key{attsetweighttobediscfromblock}{chkp}{\def\attsetweighttobediscfromblock@ValSetChkp{#1}}
+% \setkeys{attsetweighttobediscfromblock}{from=,to=,val=,when=}
+% \newcommand{\attsetweighttobediscfromblock}[2][]{%
+%     \setkeys{attsetweighttobediscfromblock}{#1}%
+%     \ensuremath{\overset{\nsucc}{\addweight{#2}}{}_{\parent(\attsetweighttobediscfromblock@From)}^{\slot(\attsettobediscfromblock@From)-1,\attsetweighttobediscfromblock@Val,\attsetweighttobediscfromblock@When,\attsetweighttobediscfromblock@ValSetChkp}}%
+%     \setkeys{attsetweighttobediscfromblock}{from=,to=,val=,when=,chkp=}%
+% }%
+
+
 \define@key{indicatorfromblock}{from}{\def\indicatorfromblock@From{#1}}
 \define@key{indicatorfromblock}{to}{\def\indicatorfromblock@To{#1}}
 \define@key{indicatorfromblock}{val}{\def\indicatorfromblock@Val{#1}}
@@ -296,6 +455,18 @@
     \setkeys{indicatorfromblock}{#1}%
     \ensuremath{{{#2}}_{\indicatorfromblock@From}^{\indicatorfromblock@To,\indicatorfromblock@Val,\indicatorfromblock@When,\indicatorfromblock@ValSetChkp}}%
     \setkeys{indicatorfromblock}{from=,to=,val=,when=,chkp=}%
+}%
+
+\define@key{indicatordiscfromblock}{from}{\def\indicatordiscfromblock@From{#1}}
+\define@key{indicatordiscfromblock}{to}{\def\indicatordiscfromblock@To{#1}}
+\define@key{indicatordiscfromblock}{val}{\def\indicatordiscfromblock@Val{#1}}
+\define@key{indicatordiscfromblock}{when}{\def\indicatordiscfromblock@When{#1}}
+\define@key{indicatordiscfromblock}{chkp}{\def\indicatordiscfromblock@ValSetChkp{#1}}
+\setkeys{indicatordiscfromblock}{from=,to=,val=,when=,chkp=}
+\newcommand{\indicatordiscfromblock}[2][]{%
+    \setkeys{indicatordiscfromblock}{#1}%
+    \ensuremath{\overset{\mathsf{wdisc}}{#2}{}_{\indicatordiscfromblock@From}^{\indicatordiscfromblock@To,\indicatordiscfromblock@Val,\indicatordiscfromblock@When,\indicatordiscfromblock@ValSetChkp}}%
+    \setkeys{indicatordiscfromblock}{from=,to=,val=,when=,chkp=}%
 }%
 
 \define@key{boostweight}{chkp}{\def\boostweight@Chkp{#1}}
@@ -483,6 +654,27 @@
     \ensuremath{\guviewsym^{\guattime@Time\ifthenelse{\equal{\guattime@Val}{}}{}{,\guattime@Val}}}%
 }%
 
+
+\define@key{ceba}{time}{\def\ceba@Time{#1}}
+\define@key{ceba}{val}{\def\ceba@Val{#1}}
+\setkeys{ceba}{time=,val=}
+\newcommand{\ceba}[1][]{%
+    \setkeys{ceba}{time=,val=}%
+    \setkeys{ceba}{#1}%
+    \ensuremath{\chkp_\mathsf{EBA}^{\ceba@Time,\ceba@Val}}%
+}%
+
+
+\define@key{bconfirmed}{time}{\def\bconfirmed@Time{#1}}
+\define@key{bconfirmed}{val}{\def\bconfirmed@Val{#1}}
+\setkeys{bconfirmed}{time=,val=}
+\newcommand{\bconfirmed}[1][]{%
+    \setkeys{bconfirmed}{time=,val=}%
+    \setkeys{bconfirmed}{#1}%
+    \ifthenelse{\equal{\bconfirmed@Time}{}\and\equal{\bconfirmed@Val}{}}{\ensuremath{b_\mathsf{confirmed}}}%
+    {{\ensuremath{b_\mathsf{bconfirmed}^{\bconfirmed@Time,\bconfirmed@Val}}}}%
+}%
+
 % \define@key{jviewall}{time}{\def\jviewall@Time{#1}}
 % \define@key{jviewall}{val}{\def\jviewall@Val{#1}}
 % \setkeys{jviewall}{time=,val=}
@@ -510,11 +702,12 @@
 
 \define@key{canonical}{time}{\def\canonical@Time{#1}}
 \define@key{canonical}{blck}{\def\canonical@Blck{#1}}
+\define@key{canonical}{to}{\def\canonical@To{#1}}
 \setkeys{canonical}{time=,blck=}
 \newcommand{\canonical}[1][]{%
-    \setkeys{canonical}{time=,blck=}%
+    \setkeys{canonical}{time=,blck=,to=}%
     \setkeys{canonical}{#1}%
-    \ensuremath{\square\mathsf{canonical}(\canonical@Blck,\canonical@Time)}%
+    \ensuremath{\square\mathsf{canonical}(\canonical@Blck,\canonical@Time\ifthenelse{\equal{\canonical@To}{}}{,\infty}{,\canonical@To})}%
 }%
 
 \define@key{votsource}{time}{\def\votsource@Time{#1}}
@@ -556,18 +749,18 @@
    \hypertarget{#2}{}%
 }
 
-\define@key{varforvalattime}{time}{\def\varforvalattime@Time{#1}}
-\define@key{varforvalattime}{val}{\def\varforvalattime@Val{#1}}
-\setkeys{varforvalattime}{time=,val=}
-\newcommand{\varforvalattime}[2][]{%
-    \setkeys{varforvalattime}{#1}%
+\define@key{var}{time}{\def\var@Time{#1}}
+\define@key{var}{val}{\def\var@Val{#1}}
+\setkeys{var}{time=,val=}
+\newcommand{\var}[2][]{%
+    \setkeys{var}{#1}%
     \ensuremath{%
         \ifthenelse%
-        {\equal{\varforvalattime@Time}%
+        {\equal{\var@Time}%
         {}}%
-        {#2^{\varforvalattime@Val}}
-        {#2^{\varforvalattime@Val,\varforvalattime@Time}}}%
-        \setkeys{varforvalattime}{time=,val=}%
+        {#2^{\var@Val}}
+        {#2^{\var@Val,\var@Time}}}%
+        \setkeys{var}{time=,val=}%
 }%
 
 \define@key{children}{view}{\def\children@View{#1}}
@@ -577,6 +770,19 @@
     \setkeys{children}{#1}%
     \ensuremath{\mathsf{children}(\children@Blck,\children@View)}%
 }%
+
+\makeatletter
+% \siritem{<suffix>}{<label-name>}
+\newcommand{\siritem}[1]{%
+  % Visible label: use next number (= current value + 1) because \item[...] won't step.
+  \item[SIR.\number\numexpr\value{\@listctr}+1\relax#1]%
+  % Now step the counter so numbering and anchors are correct:
+  \refstepcounter{\@listctr}%
+  % Make \ref print the augmented text:
+  \edef\@currentlabel{SIR.\arabic{\@listctr}}%
+  %\label{#2}%
+}
+\makeatother
 
 \crefname{assumption}{assumption}{assumptions}
 \Crefname{assumption}{Assumption}{Assumptions}
@@ -605,7 +811,7 @@
 \makeatother
 
 \newcommand{\True}[0]{\textsc{True}\xspace}
-\newcommand{\False}[0]{\textsc{False}\xspace}
+% \newcommand{\False}[0]{\textsc{False}\xspace}
 
 \newcommand{\chain}[0]{\ensuremath{\mathsf{chain}}}
 % \newcommand{\chainconf}[0]{\ensuremath{\mathsf{Ch}}}
@@ -650,8 +856,10 @@
 \DeclareMathOperator*{\argmin}{arg\,min}
 \DeclareMathOperator*{\sumop}{sum}
 %\DeclareMathOperator*{\argmax}{arg\,max}
-\newcommand{\firstslot}[0]{\ensuremath{\mathsf{first\_slot}}}
-\newcommand{\lastslot}[0]{\ensuremath{\mathsf{last\_slot}}}
+\newcommand{\firstslot}[0]{\ensuremath{\mathsf{fslot}}}
+\newcommand{\prevfirstslot}[1]{\ensuremath{\firstslot(#1)-1}}
+\newcommand{\prevfirstslotepoch}[1]{\ensuremath{\prevfirstslot{\epoch(t)}}}
+\newcommand{\lastslot}[0]{\ensuremath{\mathsf{lslot}}}
 \newcommand{\allU}[0]{\ensuremath{\mathsf{AU}}}
 \newcommand{\allF}[0]{\ensuremath{\mathsf{AF}}}
 
@@ -661,15 +869,16 @@
 % \newcommand{\chkpattime}[0]{\mathsf{C}}
 \newcommand{\slotend}[0]{\textsf{e}}
 \newcommand{\slotstart}[0]{\ensuremath{\mathsf{st}}}
-\newcommand{\now}[0]{\textsf{n}}
-\newcommand{\nowtime}[0]{{\textsf{n}_t}}
-\newcommand{\nowchkp}[0]{{\textsf{n}_C}}
-\newcommand{\nowslot}[0]{{\textsf{n}_s}}
+% \newcommand{\now}[0]{\textsf{n}}
+% \newcommand{\nowtime}[0]{{\textsf{n}_t}}
+% \newcommand{\nowchkp}[0]{{\textsf{n}_C}}
+% \newcommand{\nowslot}[0]{{\textsf{n}_s}}
 % \newcommand{\slotattime}[1]{\ensuremath{\mathsf{slot}(#1)}}
 \newcommand{\slot}[0]{\ensuremath{\mathsf{slot}}}
 \newcommand{\slotstartslot}[1]{\slotstart(\slot(#1))}
+\newcommand{\prevslotstartslot}[1]{\slotstart(\slot(#1)-1)}
 \newcommand{\epoch}{\ensuremath{\mathsf{epoch}}}
-\newcommand{\parent}{\ensuremath{\mathsf{parent}}}
+\newcommand{\parent}{\ensuremath{\mathsf{p}}}
 \newcommand{\block}{\ensuremath{\mathsf{block}}}
 % \newcommand{\chain}{\ensuremath{\mathit{chain}}}
 \newcommand{\chkp}{\ensuremath{\mathsf{C}}}
@@ -689,14 +898,27 @@
 % \newcommand{\children}{{\ensuremath{\mathit{children}}}}
 \newcommand{\receivedattime}{{\ensuremath{\mathit{rcvd\_time}}}}
 \newcommand{\banchor}{\ensuremath{b_\mathsf{anchor}}}
-\newcommand{\bconfirmed}{\ensuremath{b_\mathsf{confirmed}}}
+% \newcommand{\bconfirmed}{\ensuremath{b_\mathsf{confirmed}}}
 \newcommand{\blmdconfirmed}{\ensuremath{b_\mathsf{lmd\_confirmed}}}
 \newcommand{\bcand}{\ensuremath{b_\mathsf{cand}}}
+\newcommand{\bcands}{\ensuremath{b_\mathsf{cands}}}
 \newcommand{\btemp}{\ensuremath{b_\mathsf{temp}}}
 \newcommand{\btcand}{\ensuremath{b_\mathsf{tentative\_cand}}}
 \newcommand{\tinit}{\ensuremath{t_\mathsf{init}}}
 \newcommand{\head}{\ensuremath{head}}
 \newcommand{\phead}{\ensuremath{prev\_head}}
+\newcommand{\findlatestconfirmeddescendant}{\ensuremath{\mathit{find\_latest\_confirmed\_descendant}}}
+\newcommand{\getlatestconfirmed}{\ensuremath{\mathit{get\_latest\_confirmed}}}
+\newcommand{\sir}{\mathrm{SIR}}
+\newcommand{\tind}{t_\mathsf{ind}}
+\newcommand{\sind}{s_\mathsf{ind}}
+\newcommand{\sirone}{\ref{def:induction-conditions:is-lmd-confirmed}\xspace}
+\newcommand{\sirtwo}{\ref{def:induction-conditions:all-validators:not-filtered-out}\xspace}
+\newcommand{\sirthree}{\ref{def:induction-conditions:all-validators:gj-succ}\xspace}
+\newcommand{\sirfour}{\ref{def:induction-conditions:ub}\xspace}
+\newcommand{\sirfive}{\ref{def:induction-conditions:no-conflicting}\xspace}
+
+\newcommand{\now}{\ensuremath{\mathsf{now}}}
 
 
 
@@ -719,7 +941,7 @@
 
 
 
-\newcommand{\var}[1]{\textit{#1}}
+% \newcommand{\var}[1]{\textit{#1}}
 \newcommand{\op}[1]{\textsl{#1}}
 \newcommand{\calF}{\mathcal{F}}
 \newcommand{\calH}{\mathcal{H}}
@@ -735,6 +957,8 @@
 
 \newcommand{\slotsperepoch}[0]{{E}}
 
+\newcommand{\maxratiowttoonecommittee}[0]{\overline{E}}
+
 \newcommand{\honvalsweight}[0]{J}
 \newcommand{\honvals}[0]{\mathcal{\honvalsweight}}
 
@@ -747,8 +971,14 @@
 \newcommand{\slashvalsweight}[0]{I}
 \newcommand{\slashvals}[0]{\mathcal{\slashvalsweight}}
 
+\newcommand{\advattsweight}[0]{M}
+\newcommand{\advatts}[0]{\mathcal{\advattsweight}}
+
 \newcommand{\honattsweight}[0]{H}
 \newcommand{\honatts}[0]{\mathcal{\honattsweight}}
+
+\newcommand{\honattsubweight}[0]{\underset{\leq}{H}}
+\newcommand{\honattsub}[0]{\underset{\leq}{\mathcal{H}}}
 
 \newcommand{\allvalsweight}[0]{W}
 \newcommand{\allvals}[0]{\mathcal{\allvalsweight}}
@@ -855,9 +1085,11 @@
 \endgroup%
 }
 
-% \newcommand{\RS}[1]{{\color{red}RS: #1}}
+\newcommand{\RS}[1]{{\color{red}RS: #1}}
+\newcommand{\MK}[1]{{\color{blue}MK: #1}}
 % \newcommand{\RSsimple}[1]{{\color{red}#1}}
-% \newcommand{\RSfn}[1]{\fcomment{red}{RS}{#1}}
+\newcommand{\RSfn}[1]{\fcomment{red}{RS}{#1}}
+\newcommand{\MKfn}[1]{\fcomment{blue}{MK}{#1}}
 % \newcommand{\LZfn}[1]{\fcomment{blue}{LZ}{#1}}
 % \newcommand{\CZ}[1]{\textcolor{blue}{#1}}
 % \newcommand{\CZfn}[1]{\fcomment{blue}{CZ}{#1}}
@@ -869,16 +1101,19 @@
 % \newcommand{\finishfix}[0]{\endgroup}
 
 % \newcommand{\RS}[1]{{\color{red}RS: #1}}
-\newcommand{\RSsimple}[1]{#1}
-\newcommand{\RSfn}[1]{}
+% \newcommand{\RSsimple}[1]{#1}
+% \newcommand{\RSfn}[1]{}
 % \newcommand{\LZfn}[1]{\fcomment{blue}{LZ}{#1}}
 % \newcommand{\CZ}[1]{\textcolor{blue}{#1}}
-\newcommand{\CZfn}[1]{}
+% \newcommand{\CZfn}[1]{}
 
 \newcommand{\sep}[0]{\leavevmode\\\noindent\rule{\textwidth}{1pt}\\}
 
 \renewlist{enumerate*}{enumerate*}{2}
 \setlist[enumerate*,1,2]{label=(\roman*),itemjoin={{, }}, itemjoin*={{, and }}}
+% \setlist[description]{style=multiline}
+
+% \setlist[description]{style=multiline, labelwidth=\linewidth, leftmargin=!, labelsep=1em}
 
 
 \DeclareMathOperator*{\argmax}{arg\,max}
