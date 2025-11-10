@@ -14,7 +14,7 @@
 \label{alg:findlatestconf}
 \SetAlgoNoLine
 \Fn{$\var[val=v]{\mathit{next\_child}}(b,head)$}{
-    $extension = \{ b' \in \viewattime[time={\var[val=v]{t}},val=v], b \prec b' \preceq head \}$\\
+    $extension = \{ b' \in \viewattime[time={\var[val=v]{\now}},val=v], b \prec b' \preceq head \}$\\
     \uIf{$|extension| > 0$}
     {
         \Return{$\argmin_{b' \in extension} \slot(b')$}
@@ -25,27 +25,27 @@
 }
 
 \Fn{\isOneConfirmed$_v(b, C)$}{
-    \Return{$Q^{\slot(\var[val=v]{t})-1, v, \var[val=v]{t}, C}_{b} > \frac{1}{2}\left(1 + \frac{W^C_p}{W^{\slot(\var[val=v]{t})-1,\ C}_b}\right) + \beta$}\;
+    \Return{$Q^{\slot(\var[val=v]{\now})-1, v, \var[val=v]{\now}, C}_{b} > \frac{1}{2}\left(1 + \frac{W^C_p}{W^{\slot(\var[val=v]{\now})-1,\ C}_b}\right) + \beta$}\;
 }
 
 \Fn{$\var[val=v]{\findlatestconfirmeddescendant}(b_c)$}
 {
     $\bcand \gets b_c$\label{ln:bcand-set-beginning-of-find-latest}\\
-    \Const $head \gets \LMDGHOSTHFC(\viewattime[time={\var[val=v]{t}},val=v])$\\
-    \Const $phead \gets \LMDGHOSTHFC(\viewattime[time={\slotstart(\slot(\var[val=v]{t})-1)},val=v])$\\
+    \Const $head \gets \LMDGHOSTHFC(\viewattime[time={\var[val=v]{\now}},val=v])$\\
+    \Const $phead \gets \LMDGHOSTHFC(\viewattime[time={\slotstart(\slot(\var[val=v]{\now})-1)},val=v])$\\
 
 
-    \uIf{$\epoch(\bcand) = \epoch(\var[val=v]{t}) - 1$ {\bf and}
-        $\votsource[blck=phead, time={\var[val=v]{t}}] \geq \epoch(\var[val=v]{t}) - 2$ {\bf and}
-        $(\slot(\var[val=v]{t}) = \firstslot(\epoch(\var[val=v]{t}))$ {\bf or}
-        $(\var[val=v]{\willNoConflictingChkpBeJustified}(\chkp(head, \epoch(\var[val=v]{t})))$ {\bf and}
-        $(\gu(phead) \geq \epoch(\var[val=v]{t}) - 1$ {\bf or}
-        $\gu(head) \geq \epoch(\var[val=v]{t}) - 1)))$\label{ln:if-prev-epoch}}
+    \uIf{$\epoch(\bcand) = \epoch(\var[val=v]{\now}) - 1$ {\bf and}
+        $\votsource[blck=phead, time={\var[val=v]{\now}}] \geq \epoch(\var[val=v]{\now}) - 2$ {\bf and}
+        $(\slot(\var[val=v]{\now}) = \firstslot(\epoch(\var[val=v]{\now}))$ {\bf or}
+        $(\var[val=v]{\willNoConflictingChkpBeJustified}(\chkp(head, \epoch(\var[val=v]{\now})))$ {\bf and}
+        $(\gu(phead) \geq \epoch(\var[val=v]{\now}) - 1$ {\bf or}
+        $\gu(head) \geq \epoch(\var[val=v]{\now}) - 1)))$\label{ln:if-prev-epoch}}
     {
         \While{$\var[val=v]{\mathit{next\_child}}(\bcand,head) \neq \bot$}
         {
             $\btemp \gets \var[val=v]{\mathit{next\_child}}(\bcand,head)$\\
-            \uIf{$\epoch(\btemp) < \epoch(\var[val=v]{t})$ {\bf and}
+            \uIf{$\epoch(\btemp) < \epoch(\var[val=v]{\now})$ {\bf and}
                 $\btemp \preceq phead$ {\bf and}
                 $\isOneConfirmed_v(\btemp, \guattime[val=v,time={\prevfirstslotepoch{t}}])$}
             {
@@ -57,8 +57,8 @@
         }
     }
 
-    \uIf{$\slot(\var[val=v]{t}) = \firstslot(\epoch(\var[val=v]{t}))$ {\bf or}
-        $\gu(head) \geq \epoch(\var[val=v]{t}) - 1$\nllabel{ln:second-if}}
+    \uIf{$\slot(\var[val=v]{\now}) = \firstslot(\epoch(\var[val=v]{\now}))$ {\bf or}
+        $\gu(head) \geq \epoch(\var[val=v]{\now}) - 1$\nllabel{ln:second-if}}
     {
         $\btcand \gets \bcand$\;
         \While{$\var[val=v]{\mathit{next\_child}}(\btcand,head) \neq \bot$}
@@ -77,10 +77,10 @@
             }
         }
 
-        \uIf{$\epoch(\btcand) = \epoch(\var[val=v]{t})$ {\bf or}
-            $(\votsource[blck=\btcand, time={\var[val=v]{t}}] \geq \epoch(\var[val=v]{t}) - 2$ {\bf and}
-            $(\slot(\var[val=v]{t}) = \firstslot(\epoch(\var[val=v]{t}))$ {\bf or}
-            $\willNoConflictingChkpBeJustified_v(\chkp(head, \epoch(\var[val=v]{t})))))$\label{ln:if-to-set-bcand-to-btcand}}
+        \uIf{$\epoch(\btcand) = \epoch(\var[val=v]{\now})$ {\bf or}
+            $(\votsource[blck=\btcand, time={\var[val=v]{\now}}] \geq \epoch(\var[val=v]{\now}) - 2$ {\bf and}
+            $(\slot(\var[val=v]{\now}) = \firstslot(\epoch(\var[val=v]{\now}))$ {\bf or}
+            $\willNoConflictingChkpBeJustified_v(\chkp(head, \epoch(\var[val=v]{\now})))))$\label{ln:if-to-set-bcand-to-btcand}}
         {
             $\bcand \gets \btcand$\label{ln:set-bcand-to-btcand}
         }
@@ -104,10 +104,10 @@
 \KwState{
     $\var[val=v]{\bconfirmed}$
 }
-\Upon{$\var[val=v]{t} = \var[val=v]{\tinit}$}{
-    $\var[val=v]{\bconfirmed}   \gets \block(\gfattime[time={\var[val=v]{t}},val=v])$
+\Upon{$\var[val=v]{\now} = \var[val=v]{\tinit}$}{
+    $\var[val=v]{\bconfirmed}   \gets \block(\gfattime[time={\var[val=v]{\now}},val=v])$
 }
-\Upon{$\var[val=v]{t} = \slotstartslot{\var[val=v]{t}} \land \var[val=v]{t} \geq \var[val=v]{\tinit}$}{
+\Upon{$\var[val=v]{\now} = \slotstartslot{\var[val=v]{\now}} \land \var[val=v]{\now} \geq \var[val=v]{\tinit}$}{
     $\var[val=v]{\bconfirmed} \gets \var[val=v]{\getlatestconfirmed}(\var[val=v]{\bconfirmed})$
 }
 \Fn{$\var[val=v]{\mathit{is\_chain\_one\_confirmed}}(b_c, C)$}{
@@ -120,43 +120,43 @@
 }
 \Fn{$\var[val=v]{\willNoConflictingChkpBeJustified}(C)$}
 {
-    \Return{$\max(\ffgvalsettoslotweight[target={C},to={\slot(\var[val=v]{t})-1},time={\var[val=v]{t}},val=v,weight chkp={C}]
+    \Return{$\max(\ffgvalsettoslotweight[target={C},to={\slot(\var[val=v]{\now})-1},time={\var[val=v]{\now}},val=v,weight chkp={C}]
     - \beta \commweightfromslot[from=\firstslot(\epoch(t)),to=\slot(t)-1,chkp=C]{\allvals},
     0)
-    + {(1-\beta)\commweightfromslot[from={\slot(\var[val=v]{t})},to=\lastslot(\epoch(C)),chkp={C},when={\var[val=v]{t}},val=v]{\allvals}}
+    + {(1-\beta)\commweightfromslot[from={\slot(\var[val=v]{\now})},to=\lastslot(\epoch(C)),chkp={C},when={\var[val=v]{\now}},val=v]{\allvals}}
     \geq
     \frac{1}{3}\totvalsetweight[chkp={C}] {\allvals}
     % +
     % \min\left(
     %     \ffgequivweight,
-    %     \beta \commweightfromslot[from=\slotstart(\epoch(C)),to={\slot(\var[val=v]{t})}-1,chkp={C},when={\var[val=v]{t}},val=v]{\allvals}
+    %     \beta \commweightfromslot[from=\slotstart(\epoch(C)),to={\slot(\var[val=v]{\now})}-1,chkp={C},when={\var[val=v]{\now}},val=v]{\allvals}
     % \right)
     $}
 }
 \Proc{$\var[val=v]{\getlatestconfirmed}(b_c)$}{
     $\bcand \gets b_c$\label{ln:set-bcand-beginning-of-get-latest-confirmed}\\
-    \Const $\head \gets \LMDGHOSTHFC(\viewattime[time={\var[val=v]{t}},val=v])$\\
+    \Const $\head \gets \LMDGHOSTHFC(\viewattime[time={\var[val=v]{\now}},val=v])$\\
 
-    \uIf{$\epoch(\bcand) < \epoch(\var[val=v]{t}) - 1$ {\bf or}
+    \uIf{$\epoch(\bcand) < \epoch(\var[val=v]{\now}) - 1$ {\bf or}
         $\bcand \npreceq \head$ {\bf or}
-        $(\slot(\var[val=v]{t}) = \firstslot(\epoch(\var[val=v]{t}))$ 
+        $(\slot(\var[val=v]{\now}) = \firstslot(\epoch(\var[val=v]{\now}))$ 
         % {\bf and}
         % $\epoch(\bcand) \geq \epoch(t)-1$  
         {\bf and}
         $\neg (\var[val=v]{\mathit{is\_chain\_one\_confirmed}}(b_c, \guattime[val=v,time=\slotstart(\slot(t)-1)]))$ {\bf and} $b_c \succeq \guattime[val=v,time=\slotstart(\slot(t)-1)]$\label{ln:if-bcand-npreceq-head}}{
-        $\bcand \gets \block(\gfattime[val=v,time={\var[val=v]{t}}])$\label{ln:set-bcand-to-fin}
+        $\bcand \gets \block(\gfattime[val=v,time={\var[val=v]{\now}}])$\label{ln:set-bcand-to-fin}
     }
 
-    \uIf{$\slot(\var[val=v]{t}) = \firstslot(\epoch(\var[val=v]{t}))$ {\bf and}
-        $\epoch(\guattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}]) = \epoch(\var[val=v]{t})-1$ {\bf and}
-        $\gu(\LMDGHOSTHFC(\viewattime[time={\var[val=v]{t}},val=v])) = \guattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}]$ {\bf and}
-        $\slot(\bcand) < \slot(\block(\guattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}]))$
+    \uIf{$\slot(\var[val=v]{\now}) = \firstslot(\epoch(\var[val=v]{\now}))$ {\bf and}
+        $\epoch(\guattime[val=v,time={\slotstart(\slot(\var[val=v]{\now})-1)}]) = \epoch(\var[val=v]{\now})-1$ {\bf and}
+        $\gu(\LMDGHOSTHFC(\viewattime[time={\var[val=v]{\now}},val=v])) = \guattime[val=v,time={\slotstart(\slot(\var[val=v]{\now})-1)}]$ {\bf and}
+        $\slot(\bcand) < \slot(\block(\guattime[val=v,time={\slotstart(\slot(\var[val=v]{\now})-1)}]))$
         \label{ln:start-conf-chain}}
     {
-        $\bcand \gets \block(\guattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}])$\label{ln:set-bcan-on-start-conf-chain}
+        $\bcand \gets \block(\guattime[val=v,time={\slotstart(\slot(\var[val=v]{\now})-1)}])$\label{ln:set-bcan-on-start-conf-chain}
     }
 
-    \uIf{$\epoch(\bcand) \geq \epoch(\var[val=v]{t}) - 1$\label{ln:if-bcand-e-1}}
+    \uIf{$\epoch(\bcand) \geq \epoch(\var[val=v]{\now}) - 1$\label{ln:if-bcand-e-1}}
     {
         $\bcand \gets \var[val=v]{\findlatestconfirmeddescendant}(\bcand)$\label{ln:set-bcand-to-output-find-latest}
     }
@@ -314,7 +314,7 @@
 %     If $b_o \neq b_c$, then
 %     then, 
 %     \begin{enumerate}
-%         \item $\exists b' \in \viewattime[time=\slotstart(\slot({\var[val=v]{t}})),val=v'], b' \succeq b_o \land \epoch(\votsource[blck=b',time=\slotstartslot{{\var[val=v]{t}}}])\geq \epoch({\var[val=v]{t}})-2$
+%         \item $\exists b' \in \viewattime[time=\slotstart(\slot({\var[val=v]{\now}})),val=v'], b' \succeq b_o \land \epoch(\votsource[blck=b',time=\slotstartslot{{\var[val=v]{\now}}}])\geq \epoch({\var[val=v]{\now}})-2$
 %     \end{enumerate}    
 % \end{lemma}
 
@@ -324,11 +324,11 @@
 %     \begin{description}
 %         \item[\Cref{ln:bcand-set-beginning-of-find-latest}.]  Impossible as this lines sets $\bcand$ to $b_c \neq b_o$.
 %         \item[\Cref{ln:set-bcand-in-prev-epoch-loop}.] 
-%         If $\bcand$ is set here, then it must be that $\bcand \preceq phead$ which also implies $\bcand \in \viewattime[time=\slotstart({\var[val=v]{t}}),val=v]$.
-%         Then, given \Cref{ln:if-prev-epoch}, $\votsource[blck=phead, time=\slotstart({\var[val=v]{t}})] \geq \epoch({\var[val=v]{t}}) - 2$.
-%         \item[\Cref{ln:set-bcand-to-btcand}] If $\bcand$ is set here, then, due to \Cref{ln:if-to-set-bcand-to-btcand}, $\votsource[blck=\bcand, time={\var[val=v]{t}}] \geq \epoch(\var[val=v]{t}) - 2$ and clearly $\bcand \in \viewattime[time=\slotstart({\var[val=v]{t}}),val=v]$.
+%         If $\bcand$ is set here, then it must be that $\bcand \preceq phead$ which also implies $\bcand \in \viewattime[time=\slotstart({\var[val=v]{\now}}),val=v]$.
+%         Then, given \Cref{ln:if-prev-epoch}, $\votsource[blck=phead, time=\slotstart({\var[val=v]{\now}})] \geq \epoch({\var[val=v]{\now}}) - 2$.
+%         \item[\Cref{ln:set-bcand-to-btcand}] If $\bcand$ is set here, then, due to \Cref{ln:if-to-set-bcand-to-btcand}, $\votsource[blck=\bcand, time={\var[val=v]{\now}}] \geq \epoch(\var[val=v]{\now}) - 2$ and clearly $\bcand \in \viewattime[time=\slotstart({\var[val=v]{\now}}),val=v]$.
 %         % Due to \Cref{ln:if-is-one-confirmed-second-loop,set-btcand-to-btemp}, $\isOneConfirmed(\bcand, \cdot)$ which implies\RSfn{We should probably have a Lemma proving such an implication} that there exists an honest validator $v'$ such that
-%         % $\bcand \in \viewattime[time=\slotstart({\var[val=v]{t}}-1),val=v']$.
+%         % $\bcand \in \viewattime[time=\slotstart({\var[val=v]{\now}}-1),val=v']$.
 %     \end{description}    
 % \end{proof}
 
@@ -550,7 +550,7 @@
     \begin{description}
         \item[\Cref{ln:set-bcand-beginning-of-get-latest-confirmed}.] 
         If $\bcand = \bconfirmed[val=v,time=\slotstart(\slot(t))] \npreceq \LMDGHOSTHFC(\viewatstslottime[val=v,time=t])$, then \Cref{ln:set-bcand-to-fin} is also executed.
-        This line sets $\bcand$ to $\block(\gfattime[val=v,time={\var[val=v]{t}}]) \preceq \LMDGHOSTHFC(\viewatstslottime[val=v,time=t])$. 
+        This line sets $\bcand$ to $\block(\gfattime[val=v,time={\var[val=v]{\now}}]) \preceq \LMDGHOSTHFC(\viewatstslottime[val=v,time=t])$. 
         Given the above, this implies that \Cref{ln:set-bcand-to-fin} sets $\bcand$ to a value different from $\bconfirmed[val=v,time=\slotstart(\slot(t))]$.
         Therefore \Cref{ln:set-bcand-beginning-of-get-latest-confirmed} is not the last line where $\bcand$ is set $\bconfirmed[val=v,time=\slotstart(\slot(t))]$ and any successive line setting $\bcand$ sets it to $\bconfirmed[val=v,time=\slotstart(\slot(t))]$.\RSfn{Perhaps improve the English here :)}
         \item[\Cref{ln:set-bcand-to-fin}.] Obvious\RSfn{Pehaps explain a bit more why}.
@@ -1466,7 +1466,7 @@ By cases.
     \end{enumerate},
     then
     \begin{enumerate}
-        \item $\sir(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})],t,\guattime[val=v,time={\slotstart(\prevfirstslotepoch{t})}],\block(\guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{t}))-1)}])).\{ \sirone, \sirtwo, \sirthree\}$ holds.
+        \item $\sir(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})],t,\guattime[val=v,time={\slotstart(\prevfirstslotepoch{t})}],\block(\guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{\now}))-1)}])).\{ \sirone, \sirtwo, \sirthree\}$ holds.
         % \item for any honest validators $v'$ and time $t'$ s.t. $\epoch(t') = \epoch(t)$, $\gjattime[time=t',val=v']  \preceq \bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]$
         \item for any justified checkpiont $C$, $\epoch(C) \in [\epoch(\guattime[time=\slotstart(\firstslot(\epoch(t)-1))]),\epoch(t)-1] \implies C  \succeq \guattime[time=\slotstart(\prevfirstslotepoch{t}),val=v]$
         \item for any justified checkpiont $C$, $\epoch(C) \in [\epoch(\guattime[time=\slotstart(\firstslot(\epoch(t)-1))]),\epoch(t)-1] \implies C  \preceq \bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]$
@@ -1476,32 +1476,32 @@ By cases.
 
 \begin{proof}
     Lemma's assumption~\ref{itm:lem:conf-prev-slot-canonical-at-the-start-of-an-epoch:3}
-    implies that $\epoch(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]) = \epoch(t)-1$ and $\var[val=v]{\mathit{is\_chain\_one\_confirmed}}(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})],\guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{t}))-1)}])$.
+    implies that $\epoch(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]) = \epoch(t)-1$ and $\var[val=v]{\mathit{is\_chain\_one\_confirmed}}(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})],\guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{\now}))-1)}])$.
     
     Note that this implies that $\slotstart(epoch(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]) +2) = \slotstart(\epoch(t)+1)$.
 
 
-    % Now, we prove tha $\sir(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})],t,\guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{t}))-1)}],\block(\guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{t}))-1)}]))$ holds.
+    % Now, we prove tha $\sir(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})],t,\guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{\now}))-1)}],\block(\guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{\now}))-1)}]))$ holds.
 
-    $\var[val=v]{\mathit{is\_chain\_one\_confirmed}}(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})],\guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{t}))-1)}])$ implies that $\block(\guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{t}))-1)}]) \preceq \bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]$.
-    Given that $\epoch(\guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{t}))-1)}])\leq \epoch(t)-1 = \epoch(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})])$, we have that $\guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{t}))-1)}] \preceq \bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]$.
-    % $\var[val=v]{\mathit{is\_chain\_one\_confirmed}}(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})],\guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{t}))-1)}])$ then also implies \sirone.
+    $\var[val=v]{\mathit{is\_chain\_one\_confirmed}}(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})],\guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{\now}))-1)}])$ implies that $\block(\guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{\now}))-1)}]) \preceq \bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]$.
+    Given that $\epoch(\guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{\now}))-1)}])\leq \epoch(t)-1 = \epoch(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})])$, we have that $\guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{\now}))-1)}] \preceq \bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]$.
+    % $\var[val=v]{\mathit{is\_chain\_one\_confirmed}}(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})],\guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{\now}))-1)}])$ then also implies \sirone.
     This further implies that \sirone holds.
 
     \Cref{lem:prev-confirmed-not-filtered-out-start-of-epoch}  proves \ref{def:induction-conditions:all-validators:not-filtered-out}.
 
     Let $C$ be a justified checkpoint such that $\epoch(C) \in [\epoch(\guattime[time=\slotstart(\firstslot(\epoch(t)-1))]),\epoch(t)-1]$.
     \Cref{lem:gj-prec-prev-confirmed-at-start-of-epoch} implies $C  \preceq \bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]$.
-    Given that, as proven above, $\guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{t}))-1)}] \preceq \bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]$, this implies that $\guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{t}))-1)}]$ does not conflict with $C$.
-    Then, given that we assume $\epoch(C)\geq \epoch(\guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{t}))-1)}])$, we have that $C\succeq \guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{t}))-1)}]$.
+    Given that, as proven above, $\guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{\now}))-1)}] \preceq \bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]$, this implies that $\guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{\now}))-1)}]$ does not conflict with $C$.
+    Then, given that we assume $\epoch(C)\geq \epoch(\guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{\now}))-1)}])$, we have that $C\succeq \guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{\now}))-1)}]$.
 
     Given that $\epoch(\gjattime[time=t',val=v']) \in [\epoch(\guattime[time=\slotstart(\firstslot(\epoch(t)-1))]),\epoch(t)-1]$ for any honest validator $v'$ and time $t' \in [\slotstart(\epoch(t)),\slotstart(\epoch(t)+1)]$, \ref{def:induction-conditions:all-validators:gj-succ} holds.
 
 
     % Let $v'$ be any honest validator and $t' \geq \epoch(t)$ such that $\epoch(\gjattime[time=t',val=v']\leq\epoch(t)-1$.
     % \Cref{lem:gj-prec-prev-confirmed-at-start-of-epoch} implies $\gjattime[time=t',val=v']  \preceq \bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]$.
-    % Given that, as proven above, $\guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{t}))-1)}] \preceq \bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]$, this implies that $\guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{t}))-1)}]$ does not conflict with $\gjattime[time=t',val=v']$.
-    % Then, given that due to synchorny, $\epoch(\gjattime[time=t',val=v'])\geq \epoch(\guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{t}))-1)}])$, we have that $\gjattime[time=t',val=v']\succeq \guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{t}))-1)}]$.
+    % Given that, as proven above, $\guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{\now}))-1)}] \preceq \bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]$, this implies that $\guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{\now}))-1)}]$ does not conflict with $\gjattime[time=t',val=v']$.
+    % Then, given that due to synchorny, $\epoch(\gjattime[time=t',val=v'])\geq \epoch(\guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{\now}))-1)}])$, we have that $\gjattime[time=t',val=v']\succeq \guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{\now}))-1)}]$.
     % This also implies that \ref{def:induction-conditions:all-validators:gj-succ} holds.
 
     % This, \Cref{lem:gj-at-least-e-2-curr-slot,lem:gj-does-not-conflict} we can conclude that $\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]$ does not conflict with $\gjattime[time=t',val=v']$.
@@ -1517,7 +1517,7 @@ By cases.
 
 
 
-    % Then, this, \Cref{lem:gu-prec-gj-start-epoch-when-prec-conf-from-at-least-prev-epoch,lem:epoch-gu-less-than-two-epoch-ago-start-epoch}, $\epoch(\gjattime[time=t',val=v']) \geq \epoch(\guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{t}))-1)}])$ imply \ref{def:induction-conditions:all-validators:gj-succ} and \ref{def:induction-conditions:all-validators:gj-succ-cs}.
+    % Then, this, \Cref{lem:gu-prec-gj-start-epoch-when-prec-conf-from-at-least-prev-epoch,lem:epoch-gu-less-than-two-epoch-ago-start-epoch}, $\epoch(\gjattime[time=t',val=v']) \geq \epoch(\guattime[val=v,time={\slotstart(\firstslot(\epoch(\var[val=v]{\now}))-1)}])$ imply \ref{def:induction-conditions:all-validators:gj-succ} and \ref{def:induction-conditions:all-validators:gj-succ-cs}.
 
     \sirone, \sirtwo and \sirthree and \Cref{lem:ffg-condition-on-q-implies-safety} imply that $\canonical[time=t,blck={\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]},to=\slotstart(\epoch(t)+1)]$. 
 
@@ -1539,10 +1539,10 @@ By cases.
         \item \label{itm:lem:output-find-latest-canonical-canonical-at-the-start-of-an-epoch:4}for any justified checkpiont $C$, $\epoch(C) \in [\epoch(\guattime[time=\slotstart(\firstslot(\epoch(t)-1))]),\epoch(t)-1] \implies C  \preceq b_c$
         \item  \label{itm:lem:output-find-latest-canonical-canonical-at-the-start-of-an-epoch:5} for any justified checkpiont $C$, $\epoch(C) \in [\epoch(\guattime[time=\slotstart(\firstslot(\epoch(t)-1))]),\epoch(t)-1] \implies C  \succeq \guattime[time=\slotstart(\prevfirstslotepoch{t}),val=v]$
         % \item \ref{def:induction-conditions:ub} holds for a block $b_0$ s.t. $b_0 \preceq b_c$ and $\epoch(b_0) = \epoch(t)-1$ %\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]
-        % \item $\epoch(b_c) \geq \epoch(\var[val=v]{t})-1$
+        % \item $\epoch(b_c) \geq \epoch(\var[val=v]{\now})-1$
         % \item $t = \slotstart(\slot(t))$
 
-        % \item $\var[val=v]{t} = \slotstart(\epoch(\var[val=v]{t}))$
+        % \item $\var[val=v]{\now} = \slotstart(\epoch(\var[val=v]{\now}))$
     \end{enumerate},
     then
     \begin{enumerate}
@@ -1550,7 +1550,7 @@ By cases.
         \item for any justified checkpiont $C$, $\epoch(C) \in [\epoch(\guattime[time=\slotstart(\firstslot(\epoch(t)-1))]),\epoch(t)-1] \implies C  \preceq \bconfirmed[val=v,time=\slotstart(\slot(t))]$\RSfn{Not sure this conclusion is ever used. This might be true for conclusions in other Lemmas though. Perhaps le't leave it just in case as these proofs are not that polished anyway.}
         \item for any justified checkpiont $C$, $\epoch(C) \in [\epoch(\guattime[time=\slotstart(\firstslot(\epoch(t)-1))]),\epoch(t)-1] \implies C  \succeq \ceba[val=v,time=\slotstartslot{t}]$
         \item $\sir(\bconfirmed[val=v,time=\slotstart(\slot(t))],t,\ceba[val=v,time=\slotstartslot{t}],b_c).\{ \sirone, \sirtwo, \sirthree\}$ holds.
-        % \item $\sir(b_o,t,\guattime[val=v,time={\s\lotstart(\slot(\var[val=v]{t})-1)}],b_c)$, with the exception of  \ref{def:induction-conditions:ub}, holds
+        % \item $\sir(b_o,t,\guattime[val=v,time={\s\lotstart(\slot(\var[val=v]{\now})-1)}],b_c)$, with the exception of  \ref{def:induction-conditions:ub}, holds
         \item $\canonical[blck=b_o,time={\slotstartslot{t}},to=\slotstart(\epoch(t)+1)]$
     \end{enumerate}
 \end{lemma}
@@ -1596,7 +1596,7 @@ By cases.
         Finally, \sirone, \sirtwo and \sirthree,   $\canonical[blck={b_c},time=t, to=\slotstart(\epoch(t)+1)]$, and \Cref{lem:ffg-condition-on-q-implies-safety} imply that $\canonical[time=t,blck={\var[val=v,time=\slotstart(\slot(t)-1)]{\bconfirmed}},to=\slotstart(\epoch(t)+1)]$. 
 
 
-        % $\sir(b_c,t,\guattime[val=v,time={\slotstart(\slot({t})-1)}],\cdot)$ clearly implies \ref{def:induction-conditions:all-validators:gj-succ}$(b_o,t,\guattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}],b_c)$.
+        % $\sir(b_c,t,\guattime[val=v,time={\slotstart(\slot({t})-1)}],\cdot)$ clearly implies \ref{def:induction-conditions:all-validators:gj-succ}$(b_o,t,\guattime[val=v,time={\slotstart(\slot(\var[val=v]{\now})-1)}],b_c)$.
 
         % \ref{def:induction-conditions:all-validators:gj-succ-cs} is clearly implied by the Lemma's assumptions.
 
@@ -1608,14 +1608,14 @@ By cases.
 
 % \begin{proof}
     
-%     % We need to prove that $\sir(b_o,t,\guattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}],b_c)$ holds.  
+%     % We need to prove that $\sir(b_o,t,\guattime[val=v,time={\slotstart(\slot(\var[val=v]{\now})-1)}],b_c)$ holds.  
     
 %     We know that 
 %     \begin{enumerate}
-%         \item $\findlatestconfirmeddescendant$ ensures that\\ $\mathit{isLMDGHOSTSafeFrom}(b_o,t,\guattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}],b_c)$ 
-%         \item  $\sir(b_c,t,\guattime[val=v,time={\slotstart(\slot({t})-1)}],\cdot)$ implies  $\guattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}] \preceq b_c$.
-%         $b_o = \var[val=v]{\findlatestconfirmeddescendant}(b_c)$ then implies $\guattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}] \preceq b_c \preceq b_o$.
-%         % \item Given the above, $\block(\guattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}])  \preceq b_o$
+%         \item $\findlatestconfirmeddescendant$ ensures that\\ $\mathit{isLMDGHOSTSafeFrom}(b_o,t,\guattime[val=v,time={\slotstart(\slot(\var[val=v]{\now})-1)}],b_c)$ 
+%         \item  $\sir(b_c,t,\guattime[val=v,time={\slotstart(\slot({t})-1)}],\cdot)$ implies  $\guattime[val=v,time={\slotstart(\slot(\var[val=v]{\now})-1)}] \preceq b_c$.
+%         $b_o = \var[val=v]{\findlatestconfirmeddescendant}(b_c)$ then implies $\guattime[val=v,time={\slotstart(\slot(\var[val=v]{\now})-1)}] \preceq b_c \preceq b_o$.
+%         % \item Given the above, $\block(\guattime[val=v,time={\slotstart(\slot(\var[val=v]{\now})-1)}])  \preceq b_o$
 %     \end{enumerate}
 %     Hence, \sirone holds.
 
@@ -1623,7 +1623,7 @@ By cases.
 %     assumption \ref{itm:lem:output-find-latest-canonical-canonical-at-the-start-of-an-epoch:4} implies that $\gjattime[time=t',val=v'] \preceq b_c  \preceq b_o$.
 %     \Cref{lem:conf-prev-epoch-then-vs-two-epochs-ago} then implies \ref{def:induction-conditions:all-validators:not-filtered-out}.
 
-%     $\sir(b_c,t,\guattime[val=v,time={\slotstart(\slot({t})-1)}],\cdot)$ clearly implies \ref{def:induction-conditions:all-validators:gj-succ}$(b_o,t,\guattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}],b_c)$.
+%     $\sir(b_c,t,\guattime[val=v,time={\slotstart(\slot({t})-1)}],\cdot)$ clearly implies \ref{def:induction-conditions:all-validators:gj-succ}$(b_o,t,\guattime[val=v,time={\slotstart(\slot(\var[val=v]{\now})-1)}],b_c)$.
 
 %     % \ref{def:induction-conditions:all-validators:gj-succ-cs} is clearly implied by the Lemma's assumptions.
 
@@ -1649,7 +1649,7 @@ By cases.
     \end{enumerate},
     then, one of the following conditions hold
     \begin{enumerate}
-        % \item $\bconfirmed[val=v,time=\slotstart(\epoch(t))] = \block(\gfattime[val=v,time={\var[val=v]{t}}])$
+        % \item $\bconfirmed[val=v,time=\slotstart(\epoch(t))] = \block(\gfattime[val=v,time={\var[val=v]{\now}}])$
         \item \sloppy{the \KwSty{if} condition at line \Cref{ln:if-bcand-npreceq-head} during the execution of $\var[val=v,time=\slotstart(\epoch(t))]{\getlatestconfirmed}(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})])$ is false 
         and $\bconfirmed[val=v,time=\slotstart(\epoch(t))] = \var[val=v]{\findlatestconfirmeddescendant}(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})])$.}
         \item $\guattime[val=v,time=\slotstart(\prevfirstslotepoch{t})]=\chkp(\bconfirmed[val=v,time=\slotstart(\epoch(t))])$ and\\ 
@@ -1719,7 +1719,7 @@ By cases.
     \end{enumerate},
     then, 
     \begin{enumerate}
-        \item  $\sir(\bconfirmed[val=v,time=\slotstart(\epoch(t))],t,\guattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}],\cdot).\{\sirone,\sirtwo,\sirthree\}$ holds.
+        \item  $\sir(\bconfirmed[val=v,time=\slotstart(\epoch(t))],t,\guattime[val=v,time={\slotstart(\slot(\var[val=v]{\now})-1)}],\cdot).\{\sirone,\sirtwo,\sirthree\}$ holds.
         \item $\canonical[blck={\bconfirmed[val=v,time=\slotstart(\epoch(t))]},time=t,to=\slotstart(\epoch(t)+1)]$
         \item for any justified checkpiont $C$, $\epoch(C) \in [\epoch(\guattime[time=\slotstart(\firstslot(\epoch(t)-1))]),\epoch(t)-1] \implies C  \preceq \bconfirmed[val=v,time=\slotstart(\epoch(t))]$
         \item   for any justified checkpiont $C$, $\epoch(C) \in [\epoch(\guattime[time=\slotstart(\firstslot(\epoch(t)-1))]),\epoch(t)-1] \implies C  \succeq \guattime[time=\slotstart(\prevfirstslotepoch{t}),val=v]$
@@ -1836,27 +1836,27 @@ By cases.
         % We know that 
         % \begin{enumerate}
         %     \item $\findlatestconfirmeddescendant$ ensures that\\
-        %     $\mathit{isLMDGHOSTSafeFrom}(\var[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed},t,\gjattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}],\var[val=v,time=\slotstart(\slot(t')-1)]{\bconfirmed})$ 
-        %     \item  $\gjattime[time=t',val=v'] \preceq \var[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed}$ implies that $\gjattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}] \preceq \var[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed}$.
-        %     % \item Given the above, $\block(\guattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}])  \preceq b_o$
+        %     $\mathit{isLMDGHOSTSafeFrom}(\var[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed},t,\gjattime[val=v,time={\slotstart(\slot(\var[val=v]{\now})-1)}],\var[val=v,time=\slotstart(\slot(t')-1)]{\bconfirmed})$ 
+        %     \item  $\gjattime[time=t',val=v'] \preceq \var[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed}$ implies that $\gjattime[val=v,time={\slotstart(\slot(\var[val=v]{\now})-1)}] \preceq \var[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed}$.
+        %     % \item Given the above, $\block(\guattime[val=v,time={\slotstart(\slot(\var[val=v]{\now})-1)}])  \preceq b_o$
         % \end{enumerate}
         % Hence, \sirone holds.
 
         % $\gjattime[time=t',val=v'] \preceq \var[val=v,time=\slotstart(\slot(\tind))]{\bconfirmed}$ and
         % \Cref{lem:conf-prev-epoch-then-vs-two-epochs-ago} then imply \ref{def:induction-conditions:all-validators:not-filtered-out}.
 
-        % We know that $\epoch(t)-2\leq\epoch(\guattime[val=v,time={\slotstart(\prevfirstslotepoch{t})}])\leq\epoch(\gjattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}])\leq\epoch(\gjattime[time=t',val=v'])\leq\epoch(t)-1$.
+        % We know that $\epoch(t)-2\leq\epoch(\guattime[val=v,time={\slotstart(\prevfirstslotepoch{t})}])\leq\epoch(\gjattime[val=v,time={\slotstart(\slot(\var[val=v]{\now})-1)}])\leq\epoch(\gjattime[time=t',val=v'])\leq\epoch(t)-1$.
 
-        % If $\epoch(\gjattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}])=\epoch(t)-2$, 
-        % then  $\gjattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}]= \guattime[val=v,time={\slotstart(\slot({t})-1)}]$.
-        % $\sir(b_c,t,\guattime[val=v,time={\slotstart(\slot({t})-1)}],\cdot)$ then implies $\gjattime[time=t',val=v']\succeq \gjattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}]$.
+        % If $\epoch(\gjattime[val=v,time={\slotstart(\slot(\var[val=v]{\now})-1)}])=\epoch(t)-2$, 
+        % then  $\gjattime[val=v,time={\slotstart(\slot(\var[val=v]{\now})-1)}]= \guattime[val=v,time={\slotstart(\slot({t})-1)}]$.
+        % $\sir(b_c,t,\guattime[val=v,time={\slotstart(\slot({t})-1)}],\cdot)$ then implies $\gjattime[time=t',val=v']\succeq \gjattime[val=v,time={\slotstart(\slot(\var[val=v]{\now})-1)}]$.
 
-        % If $\epoch(\gjattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}])=\epoch(t)-1$, 
-        % then  $\gjattime[time=t',val=v'] = \gjattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}]$.
+        % If $\epoch(\gjattime[val=v,time={\slotstart(\slot(\var[val=v]{\now})-1)}])=\epoch(t)-1$, 
+        % then  $\gjattime[time=t',val=v'] = \gjattime[val=v,time={\slotstart(\slot(\var[val=v]{\now})-1)}]$.
         % Hence, \ref{def:induction-conditions:all-validators:gj-succ} holds.
 
 
-        % % $\sir(b_c,t,\guattime[val=v,time={\slotstart(\slot({t})-1)}],\cdot)$ clearly implies \ref{def:induction-conditions:all-validators:gj-succ}$(b_o,t,\guattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}],b_c)$.
+        % % $\sir(b_c,t,\guattime[val=v,time={\slotstart(\slot({t})-1)}],\cdot)$ clearly implies \ref{def:induction-conditions:all-validators:gj-succ}$(b_o,t,\guattime[val=v,time={\slotstart(\slot(\var[val=v]{\now})-1)}],b_c)$.
 
         % % \ref{def:induction-conditions:all-validators:gj-succ-cs} is clearly implied by the Lemma's assumptions.
 
@@ -1936,7 +1936,7 @@ By cases.
             % \item $b_c \succeq \block(\guattime[time=\slotstart(\prevfirstslotepoch{t}),val=v])$ and $\epoch(\guattime[time=\slotstart(\prevfirstslotepoch{t}),val=v]) = \epoch(t)-1$
         \end{enumerate}
         \item \label{itm:lem:helper-hard-to-name:cond6} $\canonical[blck={b_c},time=\slotstart(\epoch(t)),to=\slotstart(\epoch(t)+1)]$
-        \item $\sir(b_c,\slotstart(\epoch(t)),\guattime[val=v,time={\slotstart(\prevfirstslotepoch{t})}],\block(\guattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}])).\{\sirone,\sirtwo,\sirthree\}$ holds
+        \item $\sir(b_c,\slotstart(\epoch(t)),\guattime[val=v,time={\slotstart(\prevfirstslotepoch{t})}],\block(\guattime[val=v,time={\slotstart(\slot(\var[val=v]{\now})-1)}])).\{\sirone,\sirtwo,\sirthree\}$ holds
         % \item for any justified checkpiont $C$, $\epoch(C) \in [\epoch(\guattime[time=\slotstart(\firstslot(\epoch(t)-1))]),\epoch(t)-1] \implies C  \succeq \guattime[time=\slotstart(\prevfirstslotepoch{t}),val=v]$,
 
 
@@ -2024,7 +2024,7 @@ By cases.
     allows us to apply
     \Cref{lem:conf-prev-slot-canonical-at-the-start-of-an-epoch} which implies that
     \begin{enumerate}
-        \item $\sir(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})],t,\guattime[val=v,time={\slotstart(\prevfirstslotepoch{t})}],\block(\guattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}])).\{\sirone,\sirtwo,\sirthree\}$ holds,  
+        \item $\sir(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})],t,\guattime[val=v,time={\slotstart(\prevfirstslotepoch{t})}],\block(\guattime[val=v,time={\slotstart(\slot(\var[val=v]{\now})-1)}])).\{\sirone,\sirtwo,\sirthree\}$ holds,  
         \item for any justified checkpiont $C$, $\epoch(C) \in [\epoch(\guattime[time=\slotstart(\firstslot(\epoch(t)-1))]),\epoch(t)-1] \implies C  \succeq \guattime[time=\slotstart(\prevfirstslotepoch{t}),val=v]$,
         \item for any justified checkpiont $C$, $\epoch(C) \in [\epoch(\guattime[time=\slotstart(\firstslot(\epoch(t)-1))]),\epoch(t)-1] \implies C  \preceq \bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]$
         \item $\canonical[blck={\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]},time=t,to=\slotstart(\epoch(t)+1)]$
@@ -2062,7 +2062,7 @@ By cases.
 %     \end{enumerate},
 %     then
 %     \begin{enumerate}
-%         \item $\sir(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})],t,\guattime[val=v,time={\slotstart(\prevfirstslotepoch{t})}],\block(\guattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}]))$ holds
+%         \item $\sir(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})],t,\guattime[val=v,time={\slotstart(\prevfirstslotepoch{t})}],\block(\guattime[val=v,time={\slotstart(\slot(\var[val=v]{\now})-1)}]))$ holds
 %         \item no checkpoint $C$ s.t. $\epoch(C) = \epoch(t)-1$ and $C$ conflicts with $\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]$ can ever be justified
 %         % \item for any honest validators $v'$ and time $t'$ s.t. $\epoch(t') = \epoch(t)$, $\gjattime[time=t',val=v']  \preceq \bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]$
 %         \item for any justified checkpiont $C$, $\epoch(C) \in [\epoch(\guattime[time=\slotstart(\firstslot(\epoch(t)-1))]),\epoch(t)-1] \implies C  \succeq \guattime[time=\slotstart(\prevfirstslotepoch{t}),val=v]$
@@ -2079,7 +2079,7 @@ By cases.
 
 % \begin{proof}
 %     \Cref{lem:no-conflicting-to-c-b-at-the-start-of-an-epoch} allows us to apply
-%     \Cref{lem:conf-prev-slot-canonical-at-the-start-of-an-epoch} which implies that (i) \sirone, \sirtwo and \sirthree for $\sir(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})],t,\guattime[val=v,time={\slotstart(\prevfirstslotepoch{t})}],\block(\guattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}]))$ hold,  
+%     \Cref{lem:conf-prev-slot-canonical-at-the-start-of-an-epoch} which implies that (i) \sirone, \sirtwo and \sirthree for $\sir(\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})],t,\guattime[val=v,time={\slotstart(\prevfirstslotepoch{t})}],\block(\guattime[val=v,time={\slotstart(\slot(\var[val=v]{\now})-1)}]))$ hold,  
 %     (ii) for any justified checkpiont $C$, $\epoch(C) \in [\epoch(\guattime[time=\slotstart(\firstslot(\epoch(t)-1))]),\epoch(t)-1] \implies C  \succeq \guattime[time=\slotstart(\prevfirstslotepoch{t}),val=v]$,
 %     and (iii) $\canonical[blck={\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]},time=t,to=\slotstart(\epoch(t)+1)]$
 
@@ -2114,7 +2114,7 @@ By cases.
 %     \end{enumerate},
 %     then
 %     \begin{enumerate}
-%         \item $\sir(\bconfirmed[val=v,time=\slotstart(\epoch(t))],t,\guattime[val=v,time={\slotstart(\prevfirstslotepoch{t})}],\block(\guattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}]))$ holds
+%         \item $\sir(\bconfirmed[val=v,time=\slotstart(\epoch(t))],t,\guattime[val=v,time={\slotstart(\prevfirstslotepoch{t})}],\block(\guattime[val=v,time={\slotstart(\slot(\var[val=v]{\now})-1)}]))$ holds
 %         \item no checkpoint $C$ s.t. $\epoch(C) = \epoch(t)-1$ and $C$ conflicts with $\bconfirmed[val=v,time=\slotstart(\epoch(t))]$ can ever be justified
 %         % \item for any honest validators $v'$ and time $t'$ s.t. $\epoch(t') = \epoch(t)$, $\gjattime[time=t',val=v']  \preceq \bconfirmed[val=v,time=\slotstart(\epoch(t))]$
 %         \item for any justified checkpiont $C$, $\epoch(C) \in [\epoch(\guattime[time=\slotstart(\firstslot(\epoch(t)-1))]),\epoch(t)-1] \implies C  \preceq \bconfirmed[val=v,time=\slotstart(\epoch(t))]$
@@ -2129,7 +2129,7 @@ By cases.
 %     \Cref{lem:conf-prev-slot-canonical-at-the-start-of-an-epoch-no-extra-assum} implies hat that no checkpoint $C$ s.t. $\epoch(C) = \epoch(t)-1$ and $\block(C)$ conflicts with $\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]$ can ever be justified,which also allows us to apply
 %     \Cref{lem:output-find-latest-canonical-canonical-at-the-start-of-an-epoch} which implies that
 %     \begin{enumerate}
-%         \item \sirone, \sirtwo and \sirthree for $\sir(\bconfirmed[val=v,time=\slotstart(\epoch(t))],t,\guattime[val=v,time={\slotstart(\prevfirstslotepoch{t})}],\block(\guattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}]))$ hold,  
+%         \item \sirone, \sirtwo and \sirthree for $\sir(\bconfirmed[val=v,time=\slotstart(\epoch(t))],t,\guattime[val=v,time={\slotstart(\prevfirstslotepoch{t})}],\block(\guattime[val=v,time={\slotstart(\slot(\var[val=v]{\now})-1)}]))$ hold,  
 %         \item for any justified checkpiont $C$, $\epoch(C) \in [\epoch(\guattime[time=\slotstart(\firstslot(\epoch(t)-1))]),\epoch(t)-1] \implies C  \succeq \guattime[time=\slotstart(\prevfirstslotepoch{t}),val=v]$,
 %         \item for any justified checkpiont $C$, $\epoch(C) \in [\epoch(\guattime[time=\slotstart(\firstslot(\epoch(t)-1))]),\epoch(t)-1] \implies C  \preceq \bconfirmed[val=v,time=\slotstart(\epoch(t))]$
 %         \item $\canonical[blck={\bconfirmed[val=v,time=\slotstart(\epoch(t))]},time=t,to=\slotstart(\epoch(t)+1)]$
@@ -2154,7 +2154,7 @@ By cases.
     \end{enumerate},
     then, 
     \begin{enumerate}
-        \item $\sir(\bconfirmed[val=v,time=\slotstart(\epoch(t))],\slotstart(\epoch(t)),\guattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}],\block(\guattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}]))$
+        \item $\sir(\bconfirmed[val=v,time=\slotstart(\epoch(t))],\slotstart(\epoch(t)),\guattime[val=v,time={\slotstart(\slot(\var[val=v]{\now})-1)}],\block(\guattime[val=v,time={\slotstart(\slot(\var[val=v]{\now})-1)}]))$
         \item $\canonical[blck={\bconfirmed[val=v,time=\slotstart(\epoch(t))]},time=\slotstart(\epoch(t))]$
         \item for any justified checkpiont $C$, $\epoch(C) \in [\epoch(\guattime[time=\slotstart(\firstslot(\epoch(t)-1))]),\epoch(t)-1] \implies C  \succeq \guattime[time=\slotstart(\prevfirstslotepoch{t}),val=v]$,
         \item for any justified checkpiont $C$, $\epoch(C) \in [\epoch(\guattime[time=\slotstart(\firstslot(\epoch(t)-1))]),\epoch(t)-1] \implies C  \preceq \bconfirmed[val=v,time=\slotstart(\epoch(t))]$
@@ -2166,7 +2166,7 @@ By cases.
     Below, first we prove that (i) no checkpoint $C$ s.t. $\epoch(C) = \epoch(t)-1$ and $C$ conflicts with $\bconfirmed[val=v,time=\slotstart(\epoch(t))]$ can ever be justified and (ii) we can apply
     \Cref{lem:output-find-latest-canonical-canonical-at-the-start-of-an-epoch} to conclude that
     \begin{enumerate}
-        \item $\sir(\bconfirmed[val=v,time=\slotstart(\epoch(t))],t,\guattime[val=v,time={\slotstart(\prevfirstslotepoch{t})}],\block(\guattime[val=v,time={\slotstart(\slot(\var[val=v]{t})-1)}])).\{\sirone,\sirtwo,\sirthree\}$ holds,  
+        \item $\sir(\bconfirmed[val=v,time=\slotstart(\epoch(t))],t,\guattime[val=v,time={\slotstart(\prevfirstslotepoch{t})}],\block(\guattime[val=v,time={\slotstart(\slot(\var[val=v]{\now})-1)}])).\{\sirone,\sirtwo,\sirthree\}$ holds,  
         \item for any justified checkpiont $C$, $\epoch(C) \in [\epoch(\guattime[time=\slotstart(\firstslot(\epoch(t)-1))]),\epoch(t)-1] \implies C  \succeq \guattime[time=\slotstart(\prevfirstslotepoch{t}),val=v]$,
         \item for any justified checkpiont $C$, $\epoch(C) \in [\epoch(\guattime[time=\slotstart(\firstslot(\epoch(t)-1))]),\epoch(t)-1] \implies C  \preceq \bconfirmed[val=v,time=\slotstart(\epoch(t))]$
         \item $\canonical[blck={\bconfirmed[val=v,time=\slotstart(\epoch(t))]},time=\slotstart(\epoch(t)),to=\slotstart(\epoch(t)+1)]$
@@ -2392,21 +2392,21 @@ By cases.
 %         \item $\bconfirmed[val=v,time=\slotstart(\slot(t))] =  \var[val=v]{\findlatestconfirmeddescendant}(b_c)$
 %         \item $\slotstart(\prevfirstslotepoch{t})\geq \GST$
 %         % \item $\sir(b_c,t,\guattime[val=v,time={\slotstart(\slot({t})-1)}],\cdot)$ holds
-%         \item $\canonical[blck=b_c,time={\var[val=v]{t}}]$
+%         \item $\canonical[blck=b_c,time={\var[val=v]{\now}}]$
 %         \item \label{itm:lem:output-find-latest-canonical-canonical-at-the-start-of-an-epoch:4}for any honest validators $v'$ and time $t'$ s.t. $\epoch(t') = \epoch(t)$, $\gjattime[time=t',val=v']  \preceq b_c$
 %         \item  \label{itm:lem:output-find-latest-canonical-canonical-at-the-start-of-an-epoch:5}for any honest validators $v'$ and time $t'$ s.t. $\epoch(t') = \epoch(t)$, $\gjattime[time=t',val=v']  \succeq \guattime[time=\slotstart(\prevfirstslotepoch{t}),val=v]$
 %         % \item \ref{def:induction-conditions:ub} holds for a block $b_0$ s.t. $b_0 \preceq b_c$ and $\epoch(b_0) = \epoch(t)-1$ %\bconfirmed[val=v,time=\slotstart(\prevfirstslotepoch{t})]
-%         % \item $\epoch(b_c) \geq \epoch(\var[val=v]{t})-1$
+%         % \item $\epoch(b_c) \geq \epoch(\var[val=v]{\now})-1$
 %         \item $t = \slotstart(\slot(t))$
 
-%         % \item $\var[val=v]{t} = \slotstart(\epoch(\var[val=v]{t}))$
+%         % \item $\var[val=v]{\now} = \slotstart(\epoch(\var[val=v]{\now}))$
 %     \end{enumerate},
 %     then
 %     \begin{enumerate}
 %         \item for any honest validators $v'$ and time $t'$ s.t. $\epoch(t') = \epoch(t)$, $\gjattime[time=t',val=v']  \preceq \bconfirmed[val=v,time=\slotstart(\slot(t))]$
 %         \item \sirone, \sirtwo and \sirthree for $\sir(\bconfirmed[val=v,time=\slotstart(\slot(t))],t,\ceba[val=v,time=\slotstartslot{t}],b_c)$ hold
-%         % \item $\sir(b_o,t,\guattime[val=v,time={\s\lotstart(\slot(\var[val=v]{t})-1)}],b_c)$, with the exception of  \ref{def:induction-conditions:ub}, holds
-%         \item $\canonical[blck=b_o,time={\var[val=v]{t}}]$
+%         % \item $\sir(b_o,t,\guattime[val=v,time={\s\lotstart(\slot(\var[val=v]{\now})-1)}],b_c)$, with the exception of  \ref{def:induction-conditions:ub}, holds
+%         \item $\canonical[blck=b_o,time={\var[val=v]{\now}}]$
 %     \end{enumerate}
 % \end{lemma}
 
@@ -6584,7 +6584,7 @@ $+ \beta
 \caption{Find latest confirmed descendant (Refactored)}
 \SetAlgoNoLine
 \Fn{$\var[val=v]{\mathit{next\_child}}(b,head)$}{
-    $extension = \{ b' \in \viewattime[time={\var[val=v]{t}},val=v], b \prec b' \preceq head \}$\\
+    $extension = \{ b' \in \viewattime[time={\var[val=v]{\now}},val=v], b \prec b' \preceq head \}$\\
     \uIf{$|extension| > 0$}
     {
         \Return{$\argmin_{b' \in extension} \slot(b')$}
@@ -6596,8 +6596,8 @@ $+ \beta
 
 \Fn{$\var[val=v]{\ensuremath{\mathit{will\_canonical\_block\_match\_filtering\_criteria}}}(b)$}
 {
-    \Const $head \gets \LMDGHOSTHFC(\viewattime[time={\var[val=v]{t}},val=v])$\\
-    \Const $phead \gets \LMDGHOSTHFC(\viewattime[time={\slotstart(\slot(\var[val=v]{t})-1)},val=v])$\\
+    \Const $head \gets \LMDGHOSTHFC(\viewattime[time={\var[val=v]{\now}},val=v])$\\
+    \Const $phead \gets \LMDGHOSTHFC(\viewattime[time={\slotstart(\slot(\var[val=v]{\now})-1)},val=v])$\\
 
     \uIf{$\epoch(b)=\epoch(t)$}
     {
@@ -6624,7 +6624,7 @@ $+ \beta
 \Fn{$\var[val=v]{\findlatestconfirmeddescendant}(b_c)$}
 {
     $\btcand \gets b_c$\\
-    \Const $head \gets \LMDGHOSTHFC(\viewattime[time={\var[val=v]{t}},val=v])$\\
+    \Const $head \gets \LMDGHOSTHFC(\viewattime[time={\var[val=v]{\now}},val=v])$\\
 
     \While{$\var[val=v]{\mathit{next\_child}}(\btcand,head) \neq \bot$}
     {
