@@ -47,7 +47,7 @@
             $\btemp \gets \var[val=v]{\mathit{next\_child}}(\bcand,head)$\\
             \uIf{$\epoch(\btemp) < \epoch(\var[val=v]{\now})$ {\bf and}
                 $\btemp \preceq phead$ {\bf and}
-                $\isOneConfirmed_v(\btemp, \guattime[val=v,time={\prevfirstslotepoch{t}}])$}
+                $\var[val=v]{\isOneConfirmed}(\btemp, \guattime[val=v,time=\slotstart(\prevfirstslotepoch{t})])$}
             {
                 $\bcand \gets \btemp$\label{ln:set-bcand-in-prev-epoch-loop}
             }
@@ -69,7 +69,7 @@
             {
                 \Break
             }
-            \uIf{$\isOneConfirmed_v(\btemp, \guattime[val=v,time={\prevfirstslotepoch{t}}])$\label{ln:if-is-one-confirmed-second-loop}} {
+            \uIf{$\var[val=v]{\isOneConfirmed}(\btemp, \guattime[val=v,time=\slotstart(\prevfirstslotepoch{t})])$\label{ln:if-is-one-confirmed-second-loop}} {
                 $\btcand \gets \btemp$\label{set-btcand-to-btemp}
             }
             \uElse { 
@@ -112,7 +112,7 @@
 }
 \Fn{$\var[val=v]{\mathit{is\_chain\_one\_confirmed}}(b_c, C)$}{
     $b \gets b_c$\\
-    \While{$b \neq \block(C) \land \isOneConfirmed_v(b_c, C)$}{
+    \While{$b \neq \block(C) \land \var[val=v]{\isOneConfirmed}(b, C)$}{
         $b \gets \parent(b)$
     }
 
@@ -141,19 +141,21 @@
         $\bcand \npreceq \head$ {\bf or}
         $(\slot(\var[val=v]{\now}) = \firstslot(\epoch(\var[val=v]{\now}))$ 
         % {\bf and}
-        % $\epoch(\bcand) \geq \epoch(t)-1$  
+        % $\epoch(\bcand) \geq \epoch(t)-1$
         {\bf and}
-        $\neg (\var[val=v]{\mathit{is\_chain\_one\_confirmed}}(b_c, \guattime[val=v,time=\slotstart(\slot(t)-1)]))$ {\bf and} $b_c \succeq \guattime[val=v,time=\slotstart(\slot(t)-1)]$\label{ln:if-bcand-npreceq-head}}{
-        $\bcand \gets \block(\gfattime[val=v,time={\var[val=v]{\now}}])$\label{ln:set-bcand-to-fin}
+        $\bcand \succeq \guattime[val=v,time=\slotstart(\prevfirstslotepoch{t})]$
+        {\bf and}
+        $\neg \var[val=v]{\mathit{is\_chain\_one\_confirmed}}(\bcand, \guattime[val=v,time=\slotstart(\prevfirstslotepoch{t})]))$\label{ln:if-bcand-npreceq-head}}{
+        $\bcand \gets \block(\gfattime[val=v,time={\var[val=v]{t}}])$\label{ln:set-bcand-to-fin}
     }
 
-    \uIf{$\slot(\var[val=v]{\now}) = \firstslot(\epoch(\var[val=v]{\now}))$ {\bf and}
-        $\epoch(\guattime[val=v,time={\slotstart(\slot(\var[val=v]{\now})-1)}]) = \epoch(\var[val=v]{\now})-1$ {\bf and}
-        $\gu(\LMDGHOSTHFC(\viewattime[time={\var[val=v]{\now}},val=v])) = \guattime[val=v,time={\slotstart(\slot(\var[val=v]{\now})-1)}]$ {\bf and}
-        $\slot(\bcand) < \slot(\block(\guattime[val=v,time={\slotstart(\slot(\var[val=v]{\now})-1)}]))$
+    \uIf{$\slot(\var[val=v]{t}) = \firstslot(\epoch(\var[val=v]{t}))$ {\bf and}
+        $\epoch(\guattime[val=v,time=\slotstart(\prevfirstslotepoch{t})]) = \epoch(\var[val=v]{t})-1$ {\bf and}
+        $\gu(\LMDGHOSTHFC(\viewattime[time={\var[val=v]{t}},val=v])) = \guattime[val=v,time=\slotstart(\prevfirstslotepoch{t})]$ {\bf and}
+        $\slot(\bcand) < \slot(\block(\guattime[val=v,time=\slotstart(\prevfirstslotepoch{t})]))$
         \label{ln:start-conf-chain}}
     {
-        $\bcand \gets \block(\guattime[val=v,time={\slotstart(\slot(\var[val=v]{\now})-1)}])$\label{ln:set-bcan-on-start-conf-chain}
+        $\bcand \gets \block(\guattime[val=v,time=\slotstart(\prevfirstslotepoch{t})])$\label{ln:set-bcan-on-start-conf-chain}
     }
 
     \uIf{$\epoch(\bcand) \geq \epoch(\var[val=v]{\now}) - 1$\label{ln:if-bcand-e-1}}
